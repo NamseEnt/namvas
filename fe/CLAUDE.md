@@ -2,12 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Development Commands
+## Terminology
 
-- **Start development server**: `npm run dev` or `npm start` (runs on port 3000)
-- **Build for production**: `npm run build` (runs Vite build + TypeScript compilation)
-- **Run tests**: `npm run test` (uses Vitest)
-- **Preview production build**: `npm run serve`
+### Canvas Naming Convention
+
+- **CanvasProduct**: Refers to the physical canvas frame product sold on this website
+- **CanvasElement**: Refers to HTML `<canvas>` element for drawing/graphics
+- **Never use "Canvas" alone**: Always clarify which type you mean
+
+When user mentions "Canvas" or "캔버스" without context, ask: "Do you mean CanvasProduct (the physical frame product) or CanvasElement (HTML canvas element)?"
 
 ## Project Architecture
 
@@ -84,6 +87,7 @@ This is a React 19 application built with:
 ### Control Flow
 
 - **Always use curly braces**: Even for single-line if statements, use `if () { return a; }` instead of `if () return a;`
+- **All if statements must use braces**: Never write `if (condition) doSomething();` - always write `if (condition) { doSomething(); }`
 
 ## Component Internal Context Pattern
 
@@ -201,7 +205,7 @@ function SubComponent1() {
 
 ### Development Server
 
-- **Never run dev server** - user will handle this
+- **NEVER run `npm run dev` or any dev server commands** - the development server is usually already running and the user will handle this
 
 ### Styling
 

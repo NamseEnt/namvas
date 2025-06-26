@@ -10,17 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsAgreementRouteImport } from './routes/terms-agreement'
-import { Route as StudioRouteImport } from './routes/studio'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StudioIndexRouteImport } from './routes/studio/index'
 
 const TermsAgreementRoute = TermsAgreementRouteImport.update({
   id: '/terms-agreement',
   path: '/terms-agreement',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudioRoute = StudioRouteImport.update({
-  id: '/studio',
-  path: '/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -28,35 +23,40 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioIndexRoute = StudioIndexRouteImport.update({
+  id: '/studio/',
+  path: '/studio/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/studio': typeof StudioRoute
   '/terms-agreement': typeof TermsAgreementRoute
+  '/studio': typeof StudioIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/studio': typeof StudioRoute
   '/terms-agreement': typeof TermsAgreementRoute
+  '/studio': typeof StudioIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/studio': typeof StudioRoute
   '/terms-agreement': typeof TermsAgreementRoute
+  '/studio/': typeof StudioIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/studio' | '/terms-agreement'
+  fullPaths: '/' | '/terms-agreement' | '/studio'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/studio' | '/terms-agreement'
-  id: '__root__' | '/' | '/studio' | '/terms-agreement'
+  to: '/' | '/terms-agreement' | '/studio'
+  id: '__root__' | '/' | '/terms-agreement' | '/studio/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  StudioRoute: typeof StudioRoute
   TermsAgreementRoute: typeof TermsAgreementRoute
+  StudioIndexRoute: typeof StudioIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -68,13 +68,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsAgreementRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/studio': {
-      id: '/studio'
-      path: '/studio'
-      fullPath: '/studio'
-      preLoaderRoute: typeof StudioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -82,13 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio/': {
+      id: '/studio/'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  StudioRoute: StudioRoute,
   TermsAgreementRoute: TermsAgreementRoute,
+  StudioIndexRoute: StudioIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

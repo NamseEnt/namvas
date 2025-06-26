@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+이 프로젝트에서 작업할 때는 항상 [CLAUDE.md](mdc:CLAUDE.md) 파일을 읽고, 거기서 하란대로 해야합니다.

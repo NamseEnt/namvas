@@ -1,11 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
-export const Route = createFileRoute('/terms-agreement')({
-  component: TermsAgreement,
-})
+export const Route = createFileRoute("/terms-agreement")({
+  component: TermsAgreementPage,
+});
 
-export default function TermsAgreement() {
+export default function TermsAgreementPage() {
   return <TermsAgreementContent />;
 }
 
@@ -17,7 +17,7 @@ function TermsAgreementContent() {
   const navigate = useNavigate();
 
   const updateAgreement = (key: keyof typeof agreements) => {
-    setAgreements(prev => ({ ...prev, [key]: !prev[key] }));
+    setAgreements((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const handleAgree = () => {
@@ -38,17 +38,17 @@ function TermsAgreementContent() {
         </div>
 
         <div className="space-y-4">
-          <TermsCheckbox 
+          <TermsCheckbox
             label="(필수) 서비스 이용 약관에 동의합니다."
             detailText="자세히 보기"
             checked={agreements.terms}
-            onChange={() => updateAgreement('terms')}
+            onChange={() => updateAgreement("terms")}
           />
-          <TermsCheckbox 
+          <TermsCheckbox
             label="(필수) 개인정보처리방침에 동의합니다."
             detailText="자세히 보기"
             checked={agreements.privacy}
-            onChange={() => updateAgreement('privacy')}
+            onChange={() => updateAgreement("privacy")}
           />
         </div>
 
@@ -60,13 +60,13 @@ function TermsAgreementContent() {
   );
 }
 
-function TermsCheckbox({ 
-  label, 
-  detailText, 
-  checked, 
-  onChange 
-}: { 
-  label: string; 
+function TermsCheckbox({
+  label,
+  detailText,
+  checked,
+  onChange,
+}: {
+  label: string;
   detailText: string;
   checked: boolean;
   onChange: () => void;
@@ -80,9 +80,7 @@ function TermsCheckbox({
         className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
       />
       <div className="flex-1">
-        <label className="text-sm text-gray-900">
-          {label}
-        </label>
+        <label className="text-sm text-gray-900">{label}</label>
         <button className="ml-2 text-sm text-blue-600 hover:text-blue-800 underline">
           {detailText}
         </button>
@@ -91,15 +89,21 @@ function TermsCheckbox({
   );
 }
 
-function AgreeButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
+function AgreeButton({
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  disabled: boolean;
+}) {
   return (
-    <button 
+    <button
       onClick={onClick}
       disabled={disabled}
       className={`w-full py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors ${
-        disabled 
-          ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-          : 'bg-blue-600 text-white hover:bg-blue-700'
+        disabled
+          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+          : "bg-blue-600 text-white hover:bg-blue-700"
       }`}
     >
       동의하고 시작하기
