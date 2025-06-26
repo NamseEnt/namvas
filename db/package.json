@@ -1,0 +1,13 @@
+{
+  "name": "db",
+  "scripts": {},
+  "devDependencies": {
+    "@types/node": "^22.15.33",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.835.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  }
+}
