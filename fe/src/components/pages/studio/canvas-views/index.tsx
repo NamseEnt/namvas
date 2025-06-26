@@ -95,9 +95,9 @@ function PerspectiveCollage() {
   useEffect(function updateCameraDistance() {
     const distance =
       baseCameraDistance +
-      Math.abs(state.rotation.y) * cameraDistanceMultiplier;
+      (Math.abs(state.rotation.y) + Math.abs(state.rotation.x)) * cameraDistanceMultiplier;
     setCameraDistance(distance);
-  }, [state.rotation.y, baseCameraDistance, cameraDistanceMultiplier]);
+  }, [state.rotation.x, state.rotation.y, baseCameraDistance, cameraDistanceMultiplier]);
 
   useEffect(function initializeThreeJS() {
     RectAreaLightUniformsLib.init();
