@@ -36,7 +36,7 @@ import {
   useRef,
 } from "react";
 import * as THREE from "three";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { useStudioContext } from "..";
@@ -86,8 +86,20 @@ function PerspectiveCollage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
   const lastMousePosition = useRef({ x: 0, y: 0 });
+  const [cameraDistance, setCameraDistance] = useState(0.25);
 
-  useEffect(() => {
+  // 카메라 거리 설정 변수들
+  const baseCameraDistance = 0.25;
+  const cameraDistanceMultiplier = 0.0005;
+
+  useEffect(function updateCameraDistance() {
+    const distance =
+      baseCameraDistance +
+      Math.abs(state.rotation.y) * cameraDistanceMultiplier;
+    setCameraDistance(distance);
+  }, [state.rotation.y, baseCameraDistance, cameraDistanceMultiplier]);
+
+  useEffect(function initializeThreeJS() {
     RectAreaLightUniformsLib.init();
   }, []);
 
@@ -146,7 +158,7 @@ function PerspectiveCollage() {
     isDragging.current = false;
   };
 
-  useEffect(() => {
+  useEffect(function handleGlobalMouseEvents() {
     const handleGlobalMouseUp = () => {
       isDragging.current = false;
     };
@@ -164,17 +176,29 @@ function PerspectiveCollage() {
     >
       <Canvas
         ref={canvasRef}
-        camera={{ position: [0, 0, 0.35], fov: 35 }}
+        camera={{
+          position: [0, 0, 0.25],
+          fov: 35,
+        }}
         style={{ width: "100%", height: "100%" }}
         gl={{ alpha: true, antialias: true }}
       >
+        <CameraController cameraDistance={cameraDistance} />
         <ambientLight intensity={1.0} />
         <directionalLight position={[-1, 1, 1]} intensity={1.5} castShadow />
         <directionalLight position={[0, 0, 1]} intensity={1.0} />
         {/* 오른쪽 자연광 */}
-        <directionalLight position={[2, 1, 0]} intensity={0.8} color="#fffacd" />
+        <directionalLight
+          position={[2, 1, 0]}
+          intensity={0.8}
+          color="#fffacd"
+        />
         {/* 상단 형광등 느낌 */}
-        <directionalLight position={[1, 2, 0]} intensity={0.6} color="#f0f8ff" />
+        <directionalLight
+          position={[1, 2, 0]}
+          intensity={0.6}
+          color="#f0f8ff"
+        />
         <CanvasFrame />
         <OrbitControls
           enabled={false}
@@ -187,13 +211,29 @@ function PerspectiveCollage() {
   );
 }
 
+function CameraController({ cameraDistance }: { cameraDistance: number }) {
+  useThree(({ camera }) => {
+    camera.position.setZ(cameraDistance);
+  });
+  return null;
+}
+
 function CanvasFrame() {
   const { state: studioState } = useStudioContext();
   const { state } = useCanvasViewsContext();
   const meshRef = useRef<THREE.Mesh>(null);
 
+  const [canvasTextureImg, setCanvasTextureImg] =
+    useState<HTMLImageElement | null>(null);
+
+  useEffect(function loadCanvasTexture() {
+    const img = new Image();
+    img.onload = () => setCanvasTextureImg(img);
+    img.src = "./canvas-texture.jpg";
+  }, []);
+
   const texture = useMemo(() => {
-    if (!studioState.uploadedImage) return null;
+    if (!studioState.uploadedImage || !canvasTextureImg) return null;
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -202,12 +242,33 @@ function CanvasFrame() {
     canvas.width = 1181;
     canvas.height = 1772;
 
+    // 기본 배경색
     ctx.fillStyle =
       studioState.sideProcessing === "white"
-        ? "#ffffff"
+        ? "#f8f5f0"
         : studioState.defaultColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // 캔버스 텍스처 패턴 생성 및 적용 (더 하얗게)
+    const texturePattern = ctx.createPattern(canvasTextureImg, "repeat");
+    if (texturePattern) {
+      ctx.save();
+      ctx.scale(
+        canvas.width / (canvasTextureImg.width * 2),
+        canvas.height / (canvasTextureImg.height * 3)
+      );
+      ctx.fillStyle = texturePattern;
+      ctx.globalAlpha = 0.3;
+      ctx.fillRect(
+        0,
+        0,
+        canvasTextureImg.width * 2,
+        canvasTextureImg.height * 3
+      );
+      ctx.restore();
+    }
+
+    // 업로드한 이미지 그리기
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.scale(studioState.imageScale, studioState.imageScale);
@@ -220,6 +281,38 @@ function CanvasFrame() {
     );
     ctx.restore();
 
+    // 이미지 위에 약한 텍스처 오버레이
+    if (texturePattern) {
+      ctx.save();
+      ctx.globalCompositeOperation = "multiply";
+      ctx.globalAlpha = 0.1;
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(studioState.imageScale, studioState.imageScale);
+      ctx.translate(studioState.imagePosition.x, studioState.imagePosition.y);
+      ctx.rotate((studioState.canvasAngle * Math.PI) / 180);
+
+      const imgX = -studioState.uploadedImage.width / 2;
+      const imgY = -studioState.uploadedImage.height / 2;
+      const imgW = studioState.uploadedImage.width;
+      const imgH = studioState.uploadedImage.height;
+
+      ctx.beginPath();
+      ctx.rect(imgX, imgY, imgW, imgH);
+      ctx.clip();
+      ctx.scale(
+        imgW / (canvasTextureImg.width * 2),
+        imgH / (canvasTextureImg.height * 3)
+      );
+      ctx.fillStyle = texturePattern;
+      ctx.fillRect(
+        0,
+        0,
+        canvasTextureImg.width * 2,
+        canvasTextureImg.height * 3
+      );
+      ctx.restore();
+    }
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
     return texture;
@@ -230,49 +323,106 @@ function CanvasFrame() {
     studioState.canvasAngle,
     studioState.sideProcessing,
     studioState.defaultColor,
+    canvasTextureImg,
   ]);
 
   const materials = useMemo(() => {
-    const sideColor =
+    const loader = new THREE.TextureLoader();
+
+    // 각 면에 맞는 텍스처 생성
+    const frontBackTexture = loader.load("./canvas-texture.jpg");
+    frontBackTexture.wrapS = frontBackTexture.wrapT = THREE.RepeatWrapping;
+    frontBackTexture.repeat.set(2, 3); // 정면/뒷면: 100mm x 150mm
+
+    const leftRightTexture = loader.load("./canvas-texture.jpg");
+    leftRightTexture.wrapS = leftRightTexture.wrapT = THREE.RepeatWrapping;
+    leftRightTexture.repeat.set(0.12, 3); // 좌우면: 6mm x 150mm
+
+    const topBottomTexture = loader.load("./canvas-texture.jpg");
+    topBottomTexture.wrapS = topBottomTexture.wrapT = THREE.RepeatWrapping;
+    topBottomTexture.repeat.set(2, 0.12); // 상하면: 100mm x 6mm
+
+    // 텍스처에 흰색 오버레이 추가
+    leftRightTexture.offset.set(0, 0);
+    topBottomTexture.offset.set(0, 0);
+    frontBackTexture.offset.set(0, 0);
+
+    // 측면용 텍스처 - 정면과 동일한 스타일
+    const sideTexture = createSideTexture(canvasTextureImg);
+
+    return [
+      new THREE.MeshStandardMaterial({
+        map: sideTexture,
+        toneMapped: false,
+      }), // 우측면
+      new THREE.MeshStandardMaterial({
+        map: sideTexture,
+        toneMapped: false,
+      }), // 좌측면
+      new THREE.MeshStandardMaterial({
+        map: sideTexture,
+        toneMapped: false,
+      }), // 상면
+      new THREE.MeshStandardMaterial({
+        map: sideTexture,
+        toneMapped: false,
+      }), // 하면
+      new THREE.MeshStandardMaterial({ map: texture, toneMapped: false }), // 정면
+      new THREE.MeshStandardMaterial({
+        map: sideTexture,
+        toneMapped: false,
+      }), // 뒷면
+    ];
+  }, [
+    studioState.sideProcessing,
+    studioState.defaultColor,
+    texture,
+    canvasTextureImg,
+  ]);
+
+  function createSideTexture(canvasTextureImg: HTMLImageElement | null) {
+    if (!canvasTextureImg) return null;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    canvas.width = 512;
+    canvas.height = 512;
+
+    // 정면과 동일한 배경색
+    const baseColor =
       studioState.sideProcessing === "white"
         ? "#f8f5f0"
         : studioState.defaultColor;
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const canvasTexture = new THREE.CanvasTexture(createCanvasTexture());
-    canvasTexture.wrapS = canvasTexture.wrapT = THREE.RepeatWrapping;
-    canvasTexture.repeat.set(4, 4);
+    // 정면과 동일한 텍스처 패턴 적용
+    const texturePattern = ctx.createPattern(canvasTextureImg, "repeat");
+    if (texturePattern) {
+      ctx.save();
+      ctx.scale(
+        canvas.width / (canvasTextureImg.width * 2),
+        canvas.height / (canvasTextureImg.height * 3)
+      );
+      ctx.fillStyle = texturePattern;
+      ctx.globalAlpha = 0.3;
+      ctx.fillRect(
+        0,
+        0,
+        canvasTextureImg.width * 2,
+        canvasTextureImg.height * 3
+      );
+      ctx.restore();
+    }
 
-    return [
-      new THREE.MeshStandardMaterial({ 
-        color: sideColor, 
-        map: canvasTexture,
-        toneMapped: false 
-      }),
-      new THREE.MeshStandardMaterial({ 
-        color: sideColor, 
-        map: canvasTexture,
-        toneMapped: false 
-      }),
-      new THREE.MeshStandardMaterial({ 
-        color: sideColor, 
-        map: canvasTexture,
-        toneMapped: false 
-      }),
-      new THREE.MeshStandardMaterial({ 
-        color: sideColor, 
-        map: canvasTexture,
-        toneMapped: false 
-      }),
-      new THREE.MeshStandardMaterial({ map: texture, toneMapped: false }),
-      new THREE.MeshStandardMaterial({ 
-        color: sideColor, 
-        map: canvasTexture,
-        toneMapped: false 
-      }),
-    ];
-  }, [studioState.sideProcessing, studioState.defaultColor, texture]);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+  }
 
-  useEffect(() => {
+  useEffect(function updateMeshRotation() {
     if (meshRef.current) {
       meshRef.current.rotation.x = (state.rotation.x * Math.PI) / 180;
       meshRef.current.rotation.y = (state.rotation.y * Math.PI) / 180;
@@ -286,4 +436,70 @@ function CanvasFrame() {
       <boxGeometry args={[0.1, 0.15, 0.006]} />
     </mesh>
   );
+}
+
+function drawCanvasTextureOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  intensity: number = 1.0,
+  offsetX: number = 0,
+  offsetY: number = 0
+) {
+  const scale = Math.max(width, height) / 128;
+  const spacing = Math.max(4, Math.round(4 * scale));
+
+  // 세로 실 (경사)
+  for (let x = offsetX; x < offsetX + width; x += spacing) {
+    ctx.fillStyle = `rgba(230, 220, 200, ${0.4 * intensity})`;
+    ctx.fillRect(x, offsetY, 1, height);
+    ctx.fillStyle = `rgba(210, 200, 180, ${0.2 * intensity})`;
+    ctx.fillRect(x + 1, offsetY, 1, height);
+  }
+
+  // 가로 실 (위사)
+  for (let y = offsetY; y < offsetY + height; y += spacing) {
+    ctx.fillStyle = `rgba(220, 210, 190, ${0.3 * intensity})`;
+    ctx.fillRect(offsetX, y, width, 1);
+    ctx.fillStyle = `rgba(200, 190, 170, ${0.2 * intensity})`;
+    ctx.fillRect(offsetX, y + 1, width, 1);
+  }
+
+  // 직조 교차점 강조
+  const crossSpacing = spacing * 2;
+  for (let x = offsetX; x < offsetX + width; x += crossSpacing) {
+    for (let y = offsetY; y < offsetY + height; y += crossSpacing) {
+      ctx.fillStyle = `rgba(190, 180, 160, ${0.15 * intensity})`;
+      ctx.fillRect(x, y, 2, 2);
+    }
+  }
+}
+
+function createCanvasTexture() {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d")!;
+
+  canvas.width = 128;
+  canvas.height = 128;
+
+  // 기본 미색 배경
+  ctx.fillStyle = "#f8f5f0";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 천 텍스처 그리기
+  drawCanvasTextureOnCanvas(ctx, canvas.width, canvas.height, 1.0);
+
+  // 자연스러운 노이즈
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = (Math.random() - 0.5) * 12;
+    data[i] = Math.min(255, Math.max(0, data[i] + noise));
+    data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise * 0.8));
+    data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise * 0.6));
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return canvas;
 }

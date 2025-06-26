@@ -89,6 +89,39 @@ This is a React 19 application built with:
 - **Always use curly braces**: Even for single-line if statements, use `if () { return a; }` instead of `if () return a;`
 - **All if statements must use braces**: Never write `if (condition) doSomething();` - always write `if (condition) { doSomething(); }`
 
+### useEffect Style
+
+- **Use named functions instead of arrow functions**: Makes the purpose of each effect clear
+- **Function name should describe what the effect does**
+
+```tsx
+// ✅ Correct - Named function describes the effect's purpose
+useEffect(function updateCameraDistance() {
+  const distance = baseCameraDistance + Math.abs(rotation.y) * multiplier;
+  setCameraDistance(distance);
+}, [rotation.y]);
+
+useEffect(function initializeThreeJS() {
+  RectAreaLightUniformsLib.init();
+}, []);
+
+useEffect(function handleWindowResize() {
+  const handleResize = () => setWindowSize(window.innerWidth);
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
+
+// ❌ Wrong - Arrow function gives no context about what the effect does
+useEffect(() => {
+  const distance = baseCameraDistance + Math.abs(rotation.y) * multiplier;
+  setCameraDistance(distance);
+}, [rotation.y]);
+
+useEffect(() => {
+  RectAreaLightUniformsLib.init();
+}, []);
+```
+
 ## Component Internal Context Pattern
 
 ### When to Use
