@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { createContext, useContext, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import CanvasViews, { useCanvasViewsContext } from "./canvas-views";
+import CanvasViews from "./canvas-views";
 
 type StudioState = {
   uploadedImage: HTMLImageElement | null;
@@ -252,21 +252,21 @@ function LeftPreviewArea() {
     : {};
 
   return (
-    <div className="flex-1 p-6 bg-background relative overflow-hidden">
+    <div className="flex-1 p-6 bg-background relative overflow-hidden flex flex-col">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">미리보기</h2>
         <CanvasBackgroundSelector />
       </div>
 
       <div 
-        className={`w-full h-[calc(100vh-200px)] border border-border rounded-lg ${state.canvasBackgroundColor.startsWith('bg-') ? state.canvasBackgroundColor : ''}`}
+        className={`w-full flex-1 border border-border rounded-lg ${state.canvasBackgroundColor.startsWith('bg-') ? state.canvasBackgroundColor : ''}`}
         style={canvasStyle}
       >
         <CanvasViews />
       </div>
 
       {state.qualityWarning && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex-shrink-0">
           <p className="text-sm text-yellow-800">
             ⚠️ 현재 해상도가 권장 해상도보다 낮습니다. 인쇄 품질이 저하될 수
             있어요.
