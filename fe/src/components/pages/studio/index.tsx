@@ -1,7 +1,7 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { createContext, useContext, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import CanvasViews from "./canvas-views";
+import CanvasViews, { useCanvasViewsContext } from "./canvas-views";
 
 type StudioState = {
   uploadedImage: HTMLImageElement | null;
@@ -152,8 +152,7 @@ export default function StudioPage() {
       }}
     >
       <div className="min-h-screen bg-background">
-        <GlobalNavigationBar />
-        <div className="flex min-h-[calc(100vh-64px)] lg:flex-row flex-col">
+        <div className="flex min-h-screen lg:flex-row flex-col">
           <LeftPreviewArea />
           <RightControlPanel />
         </div>
@@ -163,28 +162,6 @@ export default function StudioPage() {
   );
 }
 
-function GlobalNavigationBar() {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    // TODO: Implement actual logout logic
-    navigate({ to: "/" });
-  };
-
-  return (
-    <nav className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
-      <Link to="/" className="text-xl font-bold">
-        NAMVAS
-      </Link>
-      <div className="flex items-center gap-4">
-        <button className="text-sm hover:text-primary">마이페이지</button>
-        <button onClick={handleLogout} className="text-sm hover:text-primary">
-          로그아웃
-        </button>
-      </div>
-    </nav>
-  );
-}
 
 function LeftPreviewArea() {
   const { state } = useStudioContext();
@@ -282,7 +259,7 @@ function LeftPreviewArea() {
       </div>
 
       <div 
-        className={`w-full h-[600px] border border-border rounded-lg ${state.canvasBackgroundColor.startsWith('bg-') ? state.canvasBackgroundColor : ''}`}
+        className={`w-full h-[calc(100vh-200px)] border border-border rounded-lg ${state.canvasBackgroundColor.startsWith('bg-') ? state.canvasBackgroundColor : ''}`}
         style={canvasStyle}
       >
         <CanvasViews />
@@ -411,7 +388,7 @@ function RightControlPanel() {
       </div>
 
       {/* 사이드 처리 */}
-      <div className="mb-6">
+      <div className="mb-8">
         <label className="block text-sm font-medium mb-2">사이드 처리</label>
         <div className="grid grid-cols-3 gap-2">
           {(["white", "color", "mirror"] as const).map((option) => (
@@ -440,14 +417,16 @@ function RightControlPanel() {
       </div>
 
       {/* 주문하기 */}
-      <Button
-        onClick={handleOrder}
-        disabled={!state.uploadedImage}
-        className="w-full"
-        size="lg"
-      >
-        주문하기
-      </Button>
+      <div className="border-t border-border pt-6">
+        <Button
+          onClick={handleOrder}
+          disabled={!state.uploadedImage}
+          className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+          size="lg"
+        >
+          주문하기
+        </Button>
+      </div>
     </div>
   );
 }
@@ -551,6 +530,7 @@ function CanvasBackgroundSelector() {
     </div>
   );
 }
+
 
 function CommonFooter() {
   return (

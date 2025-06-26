@@ -41,6 +41,7 @@ import { OrbitControls, Environment } from "@react-three/drei";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { useStudioContext } from "..";
 import { UploadPromptBox } from "./UploadPromptBox";
+import { Button } from "@/components/ui/button";
 
 type CanvasViewsState = {
   rotation: { x: number; y: number };
@@ -70,12 +71,15 @@ export default function CanvasViews() {
         updateState: updateState,
       }}
     >
-      <div className="w-full h-full">
-        {!studioState.uploadedImage ? (
-          <UploadPromptBox />
-        ) : (
-          <PerspectiveCollage />
-        )}
+      <div className="w-full h-full flex flex-col">
+        <div className="flex-1">
+          {!studioState.uploadedImage ? (
+            <UploadPromptBox />
+          ) : (
+            <PerspectiveCollage />
+          )}
+        </div>
+        {/* ViewAngleButtons는 PerspectiveCollage 내부에서 렌더링 */}
       </div>
     </CanvasViewsContext.Provider>
   );
@@ -92,12 +96,21 @@ function PerspectiveCollage() {
   const baseCameraDistance = 0.25;
   const cameraDistanceMultiplier = 0.0005;
 
-  useEffect(function updateCameraDistance() {
-    const distance =
-      baseCameraDistance +
-      (Math.abs(state.rotation.y) + Math.abs(state.rotation.x)) * cameraDistanceMultiplier;
-    setCameraDistance(distance);
-  }, [state.rotation.x, state.rotation.y, baseCameraDistance, cameraDistanceMultiplier]);
+  useEffect(
+    function updateCameraDistance() {
+      const distance =
+        baseCameraDistance +
+        (Math.abs(state.rotation.y) + Math.abs(state.rotation.x)) *
+          cameraDistanceMultiplier;
+      setCameraDistance(distance);
+    },
+    [
+      state.rotation.x,
+      state.rotation.y,
+      baseCameraDistance,
+      cameraDistanceMultiplier,
+    ]
+  );
 
   useEffect(function initializeThreeJS() {
     RectAreaLightUniformsLib.init();
@@ -207,6 +220,7 @@ function PerspectiveCollage() {
           enableRotate={false}
         />
       </Canvas>
+      <ViewAngleButtons />
     </div>
   );
 }
@@ -422,12 +436,15 @@ function CanvasFrame() {
     return texture;
   }
 
-  useEffect(function updateMeshRotation() {
-    if (meshRef.current) {
-      meshRef.current.rotation.x = (state.rotation.x * Math.PI) / 180;
-      meshRef.current.rotation.y = (state.rotation.y * Math.PI) / 180;
-    }
-  }, [state.rotation]);
+  useEffect(
+    function updateMeshRotation() {
+      if (meshRef.current) {
+        meshRef.current.rotation.x = (state.rotation.x * Math.PI) / 180;
+        meshRef.current.rotation.y = (state.rotation.y * Math.PI) / 180;
+      }
+    },
+    [state.rotation]
+  );
 
   if (!texture) return null;
 
@@ -502,4 +519,44 @@ function createCanvasTexture() {
 
   ctx.putImageData(imageData, 0, 0);
   return canvas;
+}
+
+function ViewAngleButtons() {
+  const { updateState } = useCanvasViewsContext();
+
+  const viewAngles = [
+    { name: "정면", rotation: { x: 0, y: 0 }, icon: "📷" },
+    { name: "우측면", rotation: { x: 0, y: 40 }, icon: "👉" },
+    { name: "좌측면", rotation: { x: 0, y: -40 }, icon: "👈" },
+    { name: "상단뷰", rotation: { x: 25, y: 0 }, icon: "👆" },
+    { name: "우상단", rotation: { x: 20, y: 45 }, icon: "↗️" },
+    { name: "좌상단", rotation: { x: 20, y: -45 }, icon: "↖️" },
+    { name: "입체감", rotation: { x: -20, y: -45 }, icon: "🎯" },
+  ];
+
+  const handleAngleChange = (targetRotation: { x: number; y: number }) => {
+    updateState({ rotation: targetRotation });
+  };
+
+  return (
+    <div className="absolute bottom-4 left-4 z-10">
+      <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+        <h4 className="text-xs font-medium mb-2 text-gray-700">빠른 각도</h4>
+        <div className="flex flex-wrap gap-1">
+          {viewAngles.map((angle) => (
+            <Button
+              key={angle.name}
+              variant="outline"
+              size="sm"
+              onClick={() => handleAngleChange(angle.rotation)}
+              className="text-xs h-7 px-2 flex items-center gap-1 bg-white/80 hover:bg-white"
+            >
+              <span className="text-xs">{angle.icon}</span>
+              <span className="hidden sm:inline">{angle.name}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
