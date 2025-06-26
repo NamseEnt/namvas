@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { createContext, useContext, useState } from "react";
 
@@ -14,7 +19,7 @@ type HomePageState = {
 
 const HomePageContext = createContext<{
   state: HomePageState;
-  setState: (updates: Partial<HomePageState>) => void;
+  updateState: (updates: Partial<HomePageState>) => void;
   handleCreateCanvas: () => void;
   handleGoogleLogin: () => void;
   handleXLogin: () => void;
@@ -49,7 +54,7 @@ function HomePage() {
     <HomePageContext.Provider
       value={{
         state,
-        setState: updateState,
+        updateState,
         handleCreateCanvas,
         handleGoogleLogin,
         handleXLogin,
@@ -67,7 +72,7 @@ function HomePage() {
 
 function PageHeader() {
   const { handleGoogleLogin, handleXLogin } = useHomePageContext();
-  
+
   return (
     <header className="border-b bg-card">
       <div className="container mx-auto px-4 py-4">
@@ -146,7 +151,7 @@ function ValueProposition() {
 
 function CTASection() {
   const { handleCreateCanvas } = useHomePageContext();
-  
+
   return (
     <div className="pt-4">
       <Button
@@ -194,12 +199,13 @@ function PageFooter() {
 }
 
 function LoginModal() {
-  const { state, setState, handleGoogleLogin, handleXLogin } = useHomePageContext();
+  const { state, updateState, handleGoogleLogin, handleXLogin } =
+    useHomePageContext();
 
   return (
-    <Dialog 
-      open={state.isLoginModalOpen} 
-      onOpenChange={(open) => setState({ isLoginModalOpen: open })}
+    <Dialog
+      open={state.isLoginModalOpen}
+      onOpenChange={(open) => updateState({ isLoginModalOpen: open })}
     >
       <DialogContent className="sm:max-w-md bg-white">
         <DialogHeader>

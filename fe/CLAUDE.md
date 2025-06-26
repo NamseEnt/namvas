@@ -109,7 +109,7 @@ type ComponentState = {
 
 const ComponentNameContext = createContext<{
   state: ComponentState;
-  setState: (updates: Partial<ComponentState>) => void;
+  updateState: (updates: Partial<ComponentState>) => void;
   handler1: () => void;
   handler2: (param: string) => void;
 }>(null as any);
@@ -164,7 +164,7 @@ export default function MyComponent() {
 
   return (
     <MyComponentContext.Provider
-      value={{ state, setState: updateState, handler }}
+      value={{ state, updateState: updateState, handler }}
     >
       <div>
         <SubComponent1 />
@@ -175,12 +175,12 @@ export default function MyComponent() {
 }
 
 function SubComponent1() {
-  const { state, setState, handler } = useMyComponentContext();
+  const { state, updateState, handler } = useMyComponentContext();
   return (
     <div onClick={handler}>
       <input
         value={state.field1}
-        onChange={(e) => setState({ field1: e.target.value })}
+        onChange={(e) => updateState({ field1: e.target.value })}
       />
     </div>
   );
@@ -190,7 +190,7 @@ function SubComponent1() {
 ### Core Principles
 
 1. **Single state object**: Use one state object instead of multiple useState calls
-2. **Partial updates**: Use `Partial<StateType>` for setState to allow partial updates
+2. **Partial updates**: Use `Partial<StateType>` for updateState to allow partial updates
 3. **Inline types**: Define state type separately, context type inline
 4. **null as any**: Initialize with `null as any` (no undefined checks needed)
 5. **Simple hooks**: Return `useContext()` directly
