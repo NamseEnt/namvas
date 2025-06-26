@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { createContext, useContext, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import CanvasViews from "./canvas-views";
+import CanvasViews from "./_canvas-views";
 
 export const Route = createFileRoute("/studio/")({
   component: StudioPage,

@@ -63,8 +63,21 @@
     - 우면 CE = w: 6mm, h: 150mm
     - 하면 CE = w: 100mm, h: 6mm
 
+# 렌더링
+하나의 offline canvas elemenet에 three.js로 캔버스 액자를 렌더링 한 다음에
+그것을 각 뷰의 ctx에 그려서 사용자에게 보여준다.
+
 */
-import { useEffect, useRef, useState, createContext, useContext } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  createContext,
+  useContext,
+  useMemo,
+} from "react";
+import { CanvasTexture } from "three";
+import * as THREE from "three";
 import { useStudioContext } from ".";
 
 type CanvasViewsState = {
@@ -224,228 +237,6 @@ function UploadPromptBox() {
   );
 }
 
-function PerspectiveCollage() {
-  const { state, handleMainCanvasInteraction, handleWheel } =
-    useCanvasViewsContext();
-
-  // 그리드 레이아웃 정의: 110033 / 112233 / 45566778 / 45566778 / 99
-  const gridLayout = [
-    [1, 1, 0, 0, 3, 3],
-    [1, 1, 2, 2, 3, 3],
-    [4, 5, 5, 6, 6, 7, 7, 8],
-    [4, 5, 5, 6, 6, 7, 7, 8],
-    [null, null, 9, 9, null, null, null, null],
-  ];
-
-  return (
-    <div className="w-full h-full p-4">
-      <div className="grid grid-cols-8 grid-rows-5 gap-2 h-full">
-        {gridLayout.map((row, rowIndex) =>
-          row.map((viewId, colIndex) => {
-            if (viewId === null) {
-              return <div key={`${rowIndex}-${colIndex}`} />;
-            }
-
-            const isMainView = viewId === 6; // 앞면
-
-            return (
-              <div
-                key={`${rowIndex}-${colIndex}-${viewId}`}
-                className="bg-white border border-gray-300 rounded overflow-hidden"
-                style={{
-                  gridColumn: getGridSpan(
-                    viewId,
-                    rowIndex,
-                    colIndex,
-                    gridLayout
-                  ).col,
-                  gridRow: getGridSpan(viewId, rowIndex, colIndex, gridLayout)
-                    .row,
-                }}
-              >
-                <CanvasView
-                  viewId={viewId}
-                  isMainView={isMainView}
-                  onInteraction={
-                    isMainView ? handleMainCanvasInteraction : undefined
-                  }
-                  onWheel={isMainView ? handleWheel : undefined}
-                />
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-}
-
-function CanvasView({
-  viewId,
-  isMainView,
-  onInteraction,
-  onWheel,
-}: {
-  viewId: number;
-  isMainView: boolean;
-  onInteraction?: (e: React.MouseEvent) => void;
-  onWheel?: (e: React.WheelEvent) => void;
-}) {
-  const { state: studioState } = useStudioContext();
-  const { state } = useCanvasViewsContext();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !studioState.uploadedImage) {
-      return;
-    }
-
-    const ctx = canvas.getContext("2d")!;
-    const canvasRect = canvas.getBoundingClientRect();
-    canvas.width = canvasRect.width;
-    canvas.height = canvasRect.height;
-
-    const { top, left, front, right, bottom } = state.fiveSideCanvasElements;
-
-    console.log(
-      "viewId",
-      viewId,
-      "width",
-      canvas.width,
-      "height",
-      canvas.height
-    );
-
-    // TODO: 각 CanvasView에 맞게 위 element들을 이용하여 그려야한다.
-    switch (viewId) {
-      case TOP:
-        {
-          ctx.save();
-          ctx.translate(
-            canvas.width / 2 - top.width / 2,
-            canvas.height / 2 - top.height / 2
-          );
-          ctx.drawImage(top, 0, 0);
-          ctx.restore();
-        }
-        break;
-
-      case LEFT_FRONT:
-        {
-        }
-        break;
-
-      case FRONT:
-        {
-          console.log(front.width, front.height);
-          ctx.save();
-          ctx.translate(
-            canvas.width / 2 - front.width / 2,
-            canvas.height / 2 - front.height / 2
-          );
-          ctx.drawImage(front, 0, 0);
-          ctx.restore();
-        }
-        break;
-
-      default:
-        break;
-    }
-  }, [studioState.uploadedImage, state.fiveSideCanvasElements]);
-
-  return (
-    <div className="w-full h-full relative">
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full"
-        style={{
-          cursor: isMainView
-            ? state.isDragging
-              ? "grabbing"
-              : "grab"
-            : "default",
-        }}
-        onMouseDown={onInteraction}
-        onMouseMove={onInteraction}
-        onMouseUp={onInteraction}
-        onWheel={onWheel}
-      />
-      <div className="absolute top-1 left-1 text-xs bg-black bg-opacity-50 text-white px-1 rounded">
-        {viewId}: {viewConfigs[viewId].name}
-      </div>
-    </div>
-  );
-}
-
-// 그리드 스팬 계산 헬퍼 함수
-function getGridSpan(
-  viewId: number,
-  rowIndex: number,
-  colIndex: number,
-  gridLayout: (number | null)[][]
-) {
-  // 각 셀의 시작 위치와 스팬 계산
-  const spans: Record<number, { col: string; row: string }> = {
-    0: { col: "3 / 5", row: "1 / 2" }, // 110033 첫 번째 줄
-    1: { col: "1 / 3", row: "1 / 3" }, // 110033, 112233
-    2: { col: "3 / 5", row: "2 / 3" }, // 112233 두 번째 줄
-    3: { col: "5 / 7", row: "1 / 3" }, // 110033, 112233
-    4: { col: "1 / 2", row: "3 / 5" }, // 45566778 왼쪽
-    5: { col: "2 / 4", row: "3 / 5" }, // 45566778
-    6: { col: "4 / 6", row: "3 / 5" }, // 45566778 중앙 (메인)
-    7: { col: "6 / 8", row: "3 / 5" }, // 45566778
-    8: { col: "8 / 9", row: "3 / 5" }, // 45566778 오른쪽
-    9: { col: "3 / 5", row: "5 / 6" }, // 99 아래쪽
-  };
-
-  return spans[viewId] || { col: "auto", row: "auto" };
-}
-
-const viewConfigs = [
-  {
-    name: "상",
-  },
-  {
-    name: "좌/상",
-  },
-  {
-    name: "전/상",
-  },
-  {
-    name: "우/상",
-  },
-  {
-    name: "좌",
-  },
-  {
-    name: "좌/전",
-  },
-  {
-    name: "전",
-  },
-  {
-    name: "우/상",
-  },
-  {
-    name: "우",
-  },
-  {
-    name: "하",
-  },
-];
-
-const TOP = 0;
-const LEFT_TOP = 1;
-const FRONT_TOP = 2;
-const RIGHT_TOP = 3;
-const LEFT = 4;
-const LEFT_FRONT = 5;
-const FRONT = 6;
-const RIGHT_FRONT = 7;
-const RIGHT = 8;
-const BOTTOM = 9;
-
 type FiveSideCanvasElements = {
   top: OffscreenCanvas;
   left: OffscreenCanvas;
@@ -460,6 +251,13 @@ function generateFiveSideCanvasElements(): FiveSideCanvasElements {
   const front = new OffscreenCanvas(100, 150);
   const right = new OffscreenCanvas(6, 150);
   const bottom = new OffscreenCanvas(100, 6);
+
+  // 기본 흰색으로 초기화
+  [top, left, front, right, bottom].forEach((canvas) => {
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  });
 
   return { top, left, front, right, bottom };
 }
@@ -575,4 +373,43 @@ function renderBigCanvasToFiveSideCanvasElements(
       bottom.width,
       bottom.height
     );
+}
+
+function PerspectiveCollage() {
+  const { state, handleMainCanvasInteraction, handleWheel } =
+    useCanvasViewsContext();
+
+  // 그리드 레이아웃 정의: 110033 / 112233 / 45566778 / 45566778 / 99
+  const gridLayout = [
+    [1, 1, 0, 0, 3, 3],
+    [1, 1, 2, 2, 3, 3],
+    [4, 5, 5, 6, 6, 7, 7, 8],
+    [4, 5, 5, 6, 6, 7, 7, 8],
+    [null, null, 9, 9, null, null, null, null],
+  ];
+
+  return (
+    <div className="w-full h-full p-4">
+      <div className="grid grid-cols-8 grid-rows-5 gap-2 h-full">
+        {gridLayout.map((row, rowIndex) =>
+          row.map((viewId, colIndex) => {
+            if (viewId === null) {
+              return <div key={`${rowIndex}-${colIndex}`} />;
+            }
+
+            const isMainView = viewId === 6; // 앞면
+
+            return (
+              <div
+                key={`${rowIndex}-${colIndex}-${viewId}`}
+                className="bg-white border border-gray-300 rounded overflow-hidden"
+              >
+                <CanvasView />
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
 }
