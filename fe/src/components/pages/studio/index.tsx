@@ -7,10 +7,9 @@ import { type SideProcessing } from "./types";
 export type StudioState = {
   uploadedImage: HTMLImageElement | null;
   imageDataUrl: string | null;
-  imageScale: number;
-  imagePosition: { x: number; y: number };
+  mmPerPixel: number; // millimeters per pixel ratio
+  imageCenterXy: { x: number; y: number }; // in millimeters
   sideProcessing: SideProcessing;
-  qualityWarning: boolean;
   canvasBackgroundColor: string;
 };
 
@@ -18,7 +17,7 @@ const StudioContext = createContext<{
   state: StudioState;
   updateState: (updates: Partial<StudioState>) => void;
   handleImageUpload: (file: File) => void;
-  handleScaleChange: (scale: number) => void;
+  handleMmPerPixelChange: (mmPerPixel: number) => void;
   handlePositionChange: (position: { x: number; y: number }) => void;
   handleOrder: () => void;
 } | null>(null);
@@ -35,14 +34,15 @@ export default function StudioPage() {
   const [state, setState] = useState<StudioState>({
     uploadedImage: null,
     imageDataUrl: null,
-    imageScale: 1,
-    imagePosition: { x: 0, y: 0 },
+    mmPerPixel: 1, // will be auto-calculated on image upload
+    imageCenterXy: { x: 0, y: 0 }, // in millimeters
     sideProcessing: {
       type: "clip",
     },
-    qualityWarning: false,
     canvasBackgroundColor: "dark-pattern",
   });
+
+  console.log("[STUDIO DEBUG] Current state:", state);
 
   const updateState = useCallback((updates: Partial<StudioState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -56,9 +56,18 @@ export default function StudioPage() {
         const img = new Image();
         img.src = dataUrl;
         img.onload = () => {
+          // Auto-fit image so largest dimension fits 4x6 inch canvas
+          const canvasWidth = 101.6; // mm (4 inches)
+          const canvasHeight = 152.4; // mm (6 inches)
+          const maxDimension = Math.max(canvasWidth, canvasHeight);
+          
+          const imageMaxDimension = Math.max(img.width, img.height);
+          const autoFitMmPerPixel = maxDimension / imageMaxDimension;
+          
           updateState({
             uploadedImage: img,
             imageDataUrl: dataUrl,
+            mmPerPixel: autoFitMmPerPixel,
           });
         };
       };
@@ -67,15 +76,10 @@ export default function StudioPage() {
     [updateState]
   );
 
-  const handleScaleChange = useCallback(
-    (scale: number) => {
-      const targetResolution = 1772 * 1181;
-      const currentResolution = Math.floor(targetResolution * scale * scale);
-      const hasWarning = currentResolution < targetResolution;
-
+  const handleMmPerPixelChange = useCallback(
+    (mmPerPixel: number) => {
       updateState({
-        imageScale: scale,
-        qualityWarning: hasWarning,
+        mmPerPixel: mmPerPixel,
       });
     },
     [updateState]
@@ -83,7 +87,8 @@ export default function StudioPage() {
 
   const handlePositionChange = useCallback(
     (position: { x: number; y: number }) => {
-      updateState({ imagePosition: position });
+      console.log("[STUDIO DEBUG] Position change:", position);
+      updateState({ imageCenterXy: position });
     },
     [updateState]
   );
@@ -98,13 +103,13 @@ export default function StudioPage() {
         state,
         updateState: updateState,
         handleImageUpload,
-        handleScaleChange,
+        handleMmPerPixelChange,
         handlePositionChange,
         handleOrder,
       }}
     >
-      <div className="min-h-screen bg-background">
-        <div className="flex min-h-screen lg:flex-row flex-col">
+      <div className="h-screen bg-background flex flex-col">
+        <div className="flex flex-1 lg:flex-row flex-col overflow-hidden">
           <LeftPreviewArea />
           <RightSideArea />
         </div>
@@ -125,7 +130,7 @@ function RightSideArea() {
 
 function CommonFooter() {
   return (
-    <footer className="bg-card border-t border-border py-8">
+    <footer className="bg-card border-t border-border py-4">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center text-sm text-muted-foreground">
           © 2024 NAMVAS. All rights reserved.

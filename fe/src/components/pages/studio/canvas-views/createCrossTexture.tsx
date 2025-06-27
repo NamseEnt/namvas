@@ -4,14 +4,14 @@ import { type SideProcessing } from "../types";
 
 export function createCrossTexture({
   uploadedImage,
-  imageScale,
-  imagePosition,
+  mmPerPixel,
+  imageCenterXy,
   sideProcessing,
   canvasTextureImg,
 }: {
   uploadedImage: HTMLImageElement;
-  imageScale: number;
-  imagePosition: { x: number; y: number };
+  mmPerPixel: number; // millimeters per pixel ratio
+  imageCenterXy: { x: number; y: number }; // in millimeters
   sideProcessing: SideProcessing;
   canvasTextureImg: HTMLImageElement;
 }) {
@@ -51,8 +51,8 @@ export function createCrossTexture({
   function drawImage() {
     ctx.save();
     ctx.translate(frontCenterX, frontCenterY);
-    ctx.scale(imageScale, imageScale);
-    ctx.translate(imagePosition.x, imagePosition.y);
+    ctx.translate(centerXpx, centerYpx);
+    ctx.scale(canvasScale, canvasScale);
     ctx.drawImage(
       uploadedImage,
       -uploadedImage.width / 2,
@@ -60,6 +60,15 @@ export function createCrossTexture({
     );
     ctx.restore();
   }
+
+  // Convert mm to pixels for canvas drawing
+  // imageCenterXy is already in mm, pixelScale converts to canvas pixels
+  const centerXpx = imageCenterXy.x * pixelScale / 1000;
+  const centerYpx = imageCenterXy.y * pixelScale / 1000;
+  
+  // Convert mmPerPixel to canvas scale
+  // mmPerPixel is mm/pixel, pixelScale is pixels/meter, so: mm/pixel * pixels/meter / 1000 = dimensionless scale
+  const canvasScale = mmPerPixel * pixelScale / 1000;
 
   ctx.save();
 
@@ -96,8 +105,8 @@ export function createCrossTexture({
         // left
         ctx.save();
         ctx.translate(frontCenterX, frontCenterY);
-        ctx.scale(-imageScale, imageScale);
-        ctx.translate(imagePosition.x + uploadedImage.width, imagePosition.y);
+        ctx.scale(-canvasScale, canvasScale);
+        ctx.translate(centerXpx + uploadedImage.width, centerYpx);
         ctx.drawImage(
           uploadedImage,
           -uploadedImage.width / 2,
@@ -108,8 +117,8 @@ export function createCrossTexture({
         // right
         ctx.save();
         ctx.translate(frontCenterX, frontCenterY);
-        ctx.scale(-imageScale, imageScale);
-        ctx.translate(imagePosition.x - uploadedImage.width, imagePosition.y);
+        ctx.scale(-canvasScale, canvasScale);
+        ctx.translate(centerXpx - uploadedImage.width, centerYpx);
         ctx.drawImage(
           uploadedImage,
           -uploadedImage.width / 2,
@@ -120,8 +129,8 @@ export function createCrossTexture({
         // up
         ctx.save();
         ctx.translate(frontCenterX, frontCenterY);
-        ctx.scale(imageScale, -imageScale);
-        ctx.translate(imagePosition.x, imagePosition.y + uploadedImage.height);
+        ctx.scale(canvasScale, -canvasScale);
+        ctx.translate(centerXpx, centerYpx + uploadedImage.height);
         ctx.drawImage(
           uploadedImage,
           -uploadedImage.width / 2,
@@ -132,8 +141,8 @@ export function createCrossTexture({
         // down
         ctx.save();
         ctx.translate(frontCenterX, frontCenterY);
-        ctx.scale(imageScale, -imageScale);
-        ctx.translate(imagePosition.x, imagePosition.y - uploadedImage.height);
+        ctx.scale(canvasScale, -canvasScale);
+        ctx.translate(centerXpx, centerYpx - uploadedImage.height);
         ctx.drawImage(
           uploadedImage,
           -uploadedImage.width / 2,

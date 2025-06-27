@@ -106,15 +106,6 @@ export function LeftPreviewArea() {
       >
         <CanvasViews />
       </div>
-
-      {state.qualityWarning && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex-shrink-0">
-          <p className="text-sm text-yellow-800">
-            ⚠️ 현재 해상도가 권장 해상도보다 낮습니다. 인쇄 품질이 저하될 수
-            있어요.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

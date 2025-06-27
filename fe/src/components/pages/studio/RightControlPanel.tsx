@@ -7,9 +7,48 @@ export function RightControlPanel() {
     state,
     updateState,
     handleImageUpload,
-    handleScaleChange,
+    handleMmPerPixelChange,
     handlePositionChange,
   } = useStudioContext();
+
+  // Calculate DPI based on current image display size
+  const calculateDPI = () => {
+    if (!state.uploadedImage) {
+      return null;
+    }
+
+    const img = state.uploadedImage;
+    const mmPerPixel = state.mmPerPixel;
+
+    // displaySize(mm) = imageSize(pixels) * mmPerPixel(mm/pixel)
+    const displayWidthMm = img.width * mmPerPixel;
+    const displayHeightMm = img.height * mmPerPixel;
+
+    // Convert mm to inches (1 inch = 25.4 mm)
+    const displayWidthInches = displayWidthMm / 25.4;
+    const displayHeightInches = displayHeightMm / 25.4;
+
+    // Calculate DPI
+    const dpiX = img.width / displayWidthInches;
+    const dpiY = img.height / displayHeightInches;
+
+    // Debug info
+    console.log("[DPI DEBUG]", {
+      imageSize: `${img.width}×${img.height}px`,
+      mmPerPixel: mmPerPixel.toFixed(4),
+      displaySizeMm: `${displayWidthMm.toFixed(1)}×${displayHeightMm.toFixed(1)}mm`,
+      dpi: `${Math.round(dpiX)}×${Math.round(dpiY)}`,
+    });
+
+    return {
+      dpiX: Math.round(dpiX),
+      dpiY: Math.round(dpiY),
+      displayWidthMm: displayWidthMm.toFixed(1),
+      displayHeightMm: displayHeightMm.toFixed(1),
+    };
+  };
+
+  const dpiInfo = calculateDPI();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -36,17 +75,26 @@ export function RightControlPanel() {
       {/* 크기 조절 */}
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">
-          크기: {Math.round(state.imageScale * 100)}%
+          해상도: {Math.round(25.4 / state.mmPerPixel)} DPI
         </label>
         <input
           type="range"
-          min="0.1"
-          max="3"
-          step="0.1"
-          value={state.imageScale}
-          onChange={(e) => handleScaleChange(parseFloat(e.target.value))}
+          min="50"
+          max="600"
+          step="1"
+          value={Math.round(25.4 / state.mmPerPixel)}
+          onChange={(e) =>
+            handleMmPerPixelChange(25.4 / parseFloat(e.target.value))
+          }
           className="w-full"
         />
+        {dpiInfo && (
+          <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+            <div>
+              표시 크기: {dpiInfo.displayWidthMm} × {dpiInfo.displayHeightMm} mm
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 위치 조절 */}
@@ -55,18 +103,18 @@ export function RightControlPanel() {
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-xs text-gray-500">
-              X: {state.imagePosition.x.toFixed(1)}
+              X: {state.imageCenterXy.x.toFixed(1)}mm
             </label>
             <input
               type="range"
-              min="-100"
-              max="100"
-              step="1"
-              value={state.imagePosition.x}
+              min="-50.8"
+              max="50.8"
+              step="0.1"
+              value={state.imageCenterXy.x}
               onChange={(e) =>
                 handlePositionChange({
-                  ...state.imagePosition,
-                  x: parseInt(e.target.value),
+                  ...state.imageCenterXy,
+                  x: parseFloat(e.target.value),
                 })
               }
               className="w-full"
@@ -74,18 +122,18 @@ export function RightControlPanel() {
           </div>
           <div>
             <label className="text-xs text-gray-500">
-              Y: {state.imagePosition.y.toFixed(1)}
+              Y: {state.imageCenterXy.y.toFixed(1)}mm
             </label>
             <input
               type="range"
-              min="-100"
-              max="100"
-              step="1"
-              value={state.imagePosition.y}
+              min="-76.2"
+              max="76.2"
+              step="0.1"
+              value={state.imageCenterXy.y}
               onChange={(e) =>
                 handlePositionChange({
-                  ...state.imagePosition,
-                  y: parseInt(e.target.value),
+                  ...state.imageCenterXy,
+                  y: parseFloat(e.target.value),
                 })
               }
               className="w-full"

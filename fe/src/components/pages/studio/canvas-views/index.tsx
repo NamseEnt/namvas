@@ -43,6 +43,7 @@ import { useStudioContext } from "..";
 import { UploadPromptBox } from "./UploadPromptBox";
 import { Button } from "@/components/ui/button";
 import { createCrossTexture } from "./createCrossTexture";
+import { CrossTextureMinimap } from "./CrossTextureMinimap";
 
 type CanvasViewsState = {
   rotation: { x: number; y: number };
@@ -249,16 +250,8 @@ function PerspectiveCollage() {
         />
       </Canvas>
       <ViewAngleButtons />
-      <div className="absolute top-4 right-4 z-10">
-        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm">
-          <span className="text-sm text-gray-600">
-            여기에 사진을 드래그 앤 드롭
-          </span>
-          <div className="w-6 h-6 border-2 border-solid border-gray-400 rounded bg-white/50 flex items-center justify-center">
-            <div className="w-3 h-3 border border-solid border-gray-300 rounded bg-gray-100"></div>
-          </div>
-        </div>
-      </div>
+      <ImageFitButtons />
+      <CrossTextureMinimap />
     </div>
   );
 }
@@ -290,15 +283,15 @@ function CanvasFrame() {
     }
     return createCrossTexture({
       uploadedImage: studioState.uploadedImage,
-      imageScale: studioState.imageScale,
-      imagePosition: studioState.imagePosition,
+      mmPerPixel: studioState.mmPerPixel,
+      imageCenterXy: studioState.imageCenterXy,
       sideProcessing: studioState.sideProcessing,
       canvasTextureImg: canvasTextureImg,
     });
   }, [
     studioState.uploadedImage,
-    studioState.imageScale,
-    studioState.imagePosition,
+    studioState.mmPerPixel,
+    studioState.imageCenterXy,
     studioState.sideProcessing,
     canvasTextureImg,
   ]);
@@ -327,9 +320,10 @@ function CanvasFrame() {
 /**
  * meter unit
  */
+// 4x6 inch canvas frame = 101.6mm × 152.4mm
 export const canvasProductSize = {
-  width: 0.1,
-  height: 0.15,
+  width: 0.1016, // 4 inches = 101.6mm
+  height: 0.1524, // 6 inches = 152.4mm
   depth: 0.006,
 };
 
@@ -537,6 +531,178 @@ function ViewAngleButtons() {
             >
               <span className="text-xs">{angle.icon}</span>
               <span className="hidden sm:inline">{angle.name}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type FitType = "top" | "bottom" | "left" | "right";
+type FitScope = "front" | "side";
+
+function ImageFitButtons() {
+  const { state: studioState, updateState: updateStudioState } =
+    useStudioContext();
+
+  if (!studioState.uploadedImage) {
+    return null;
+  }
+
+  const calculateFitMmPerPixel = (fitType: FitType, fitScope: FitScope) => {
+    const img = studioState.uploadedImage;
+    if (!img) {
+      return 1;
+    }
+
+    // Image dimensions in pixels
+    const imageWidth = img.width;
+    const imageHeight = img.height;
+    
+    // Image center coordinates in mm
+    const centerX = studioState.imageCenterXy.x;
+    const centerY = studioState.imageCenterXy.y;
+    
+    // Canvas dimensions in mm
+    const frontWidth = 101.6; // mm (4 inches)
+    const frontHeight = 152.4; // mm (6 inches)
+    const sideThickness = 6; // mm
+    
+    let canvasWidth: number, canvasHeight: number;
+    
+    if (fitScope === "front") {
+      canvasWidth = frontWidth;
+      canvasHeight = frontHeight;
+    } else {
+      canvasWidth = frontWidth + sideThickness * 2;
+      canvasHeight = frontHeight + sideThickness * 2;
+    }
+    
+    let mmPerPixel: number;
+    
+    switch (fitType) {
+      case "left":
+        // Left fit: image left edge touches canvas left edge
+        // centerX - (imageWidth/2) * mmPerPixel = -canvasWidth/2
+        // mmPerPixel = (centerX + canvasWidth/2) / (imageWidth/2)
+        mmPerPixel = (centerX + canvasWidth/2) / (imageWidth/2);
+        break;
+      
+      case "right":
+        // Right fit: image right edge touches canvas right edge
+        // centerX + (imageWidth/2) * mmPerPixel = canvasWidth/2
+        // mmPerPixel = (canvasWidth/2 - centerX) / (imageWidth/2)
+        mmPerPixel = (canvasWidth/2 - centerX) / (imageWidth/2);
+        break;
+      
+      case "top":
+        // Top fit: image top edge touches canvas top edge
+        // centerY + (imageHeight/2) * mmPerPixel = canvasHeight/2
+        // mmPerPixel = (canvasHeight/2 - centerY) / (imageHeight/2)
+        mmPerPixel = (canvasHeight/2 - centerY) / (imageHeight/2);
+        break;
+      
+      case "bottom":
+        // Bottom fit: image bottom edge touches canvas bottom edge
+        // centerY - (imageHeight/2) * mmPerPixel = -canvasHeight/2
+        // mmPerPixel = (centerY + canvasHeight/2) / (imageHeight/2)
+        mmPerPixel = (centerY + canvasHeight/2) / (imageHeight/2);
+        break;
+      
+      default:
+        return 1;
+    }
+    
+    console.log(`[FIT CALC] ${fitType}-${fitScope}:`, {
+      imageCenter: `${centerX}, ${centerY}`,
+      canvasSize: `${canvasWidth} × ${canvasHeight}`,
+      imageSize: `${imageWidth} × ${imageHeight}`,
+      calculatedMmPerPixel: mmPerPixel.toFixed(4)
+    });
+    
+    return Math.max(0.001, mmPerPixel); // Prevent negative or zero values
+  };
+
+  const handleFitClick = (fitType: FitType, fitScope: FitScope) => {
+    const newMmPerPixel = calculateFitMmPerPixel(fitType, fitScope);
+    console.log(`[FIT TEST] ${fitType}-${fitScope}: mmPerPixel=${newMmPerPixel.toFixed(4)}`);
+    
+    // Validate mmPerPixel is reasonable
+    if (newMmPerPixel <= 0) {
+      console.error(`[FIT ERROR] Invalid mmPerPixel: ${newMmPerPixel} for ${fitType}-${fitScope}`);
+      return;
+    }
+    
+    updateStudioState({ mmPerPixel: newMmPerPixel });
+  };
+
+  const fitButtons = [
+    {
+      type: "top" as FitType,
+      scope: "front" as FitScope,
+      icon: "⬆️",
+      label: "상단-정면",
+    },
+    {
+      type: "top" as FitType,
+      scope: "side" as FitScope,
+      icon: "⬆️",
+      label: "상단-끝",
+    },
+    {
+      type: "bottom" as FitType,
+      scope: "front" as FitScope,
+      icon: "⬇️",
+      label: "하단-정면",
+    },
+    {
+      type: "bottom" as FitType,
+      scope: "side" as FitScope,
+      icon: "⬇️",
+      label: "하단-끝",
+    },
+    {
+      type: "left" as FitType,
+      scope: "front" as FitScope,
+      icon: "⬅️",
+      label: "좌측-정면",
+    },
+    {
+      type: "left" as FitType,
+      scope: "side" as FitScope,
+      icon: "⬅️",
+      label: "좌측-끝",
+    },
+    {
+      type: "right" as FitType,
+      scope: "front" as FitScope,
+      icon: "➡️",
+      label: "우측-정면",
+    },
+    {
+      type: "right" as FitType,
+      scope: "side" as FitScope,
+      icon: "➡️",
+      label: "우측-끝",
+    },
+  ];
+
+  return (
+    <div className="absolute bottom-4 right-4 z-10">
+      <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+        <h4 className="text-xs font-medium mb-2 text-gray-700">이미지 핏</h4>
+        <div className="grid grid-cols-2 gap-1">
+          {fitButtons.map((button) => (
+            <Button
+              key={`${button.type}-${button.scope}`}
+              variant="outline"
+              size="sm"
+              onClick={() => handleFitClick(button.type, button.scope)}
+              className="text-xs h-7 px-2 flex items-center gap-1 bg-white/80 hover:bg-white"
+            >
+              <span className="text-xs">{button.icon}</span>
+              <span className="text-xs">{button.label}</span>
             </Button>
           ))}
         </div>
