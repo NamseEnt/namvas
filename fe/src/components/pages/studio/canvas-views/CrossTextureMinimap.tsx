@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useStudioContext } from "..";
 import { createCrossTexture } from "./createCrossTexture";
+import { canvasProductSize } from ".";
+import * as THREE from "three";
 
 export function CrossTextureMinimap() {
   const { state } = useStudioContext();
@@ -49,8 +51,8 @@ export function CrossTextureMinimap() {
       // 배경 지우기
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Three.js texture의 image 데이터 가져오기
-      const textureCanvas = crossTexture.image as HTMLCanvasElement;
+      // Three.js texture의 canvas 데이터 가져오기
+      const textureCanvas = (crossTexture as THREE.CanvasTexture).source.data as HTMLCanvasElement;
 
       // 십자형 텍스처를 미니맵에 맞게 스케일링해서 그리기
       const scale =
@@ -68,69 +70,62 @@ export function CrossTextureMinimap() {
       ctx.drawImage(textureCanvas, x, y, scaledWidth, scaledHeight);
 
       // 십자형 구조의 테두리와 가이드라인 그리기
-      const frontWidth = 800 * scale;
-      const frontHeight = 1200 * scale;
-      const sideThickness = 50 * scale;
+      // createCrossTexture와 동일한 비율 사용
+      const pixelScale = 4000;
+      const frontWidth = canvasProductSize.width * pixelScale * scale;
+      const frontHeight = canvasProductSize.height * pixelScale * scale;
+      const sideThickness = canvasProductSize.depth * pixelScale * scale;
       
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
       
-      // 정면 영역 (빨간색 가이드라인)
-      ctx.strokeStyle = "rgba(255, 0, 0, 0.3)";
+      // 점선 스타일 설정
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
       ctx.lineWidth = 1;
-      ctx.strokeRect(
-        centerX - frontWidth / 2,
-        centerY - frontHeight / 2,
-        frontWidth,
-        frontHeight
-      );
-
-      // 십자형 테두리 (검정색)
-      ctx.strokeStyle = "black";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
       
-      // 상단 면
-      ctx.rect(
+      // 1. 상단 면 (점선)
+      ctx.strokeRect(
         centerX - frontWidth / 2,
         centerY - frontHeight / 2 - sideThickness,
         frontWidth,
         sideThickness
       );
       
-      // 하단 면
-      ctx.rect(
+      // 2. 하단 면 (점선)
+      ctx.strokeRect(
         centerX - frontWidth / 2,
         centerY + frontHeight / 2,
         frontWidth,
         sideThickness
       );
       
-      // 좌측 면
-      ctx.rect(
+      // 3. 좌측 면 (점선)
+      ctx.strokeRect(
         centerX - frontWidth / 2 - sideThickness,
         centerY - frontHeight / 2,
         sideThickness,
         frontHeight
       );
       
-      // 우측 면
-      ctx.rect(
+      // 4. 우측 면 (점선)
+      ctx.strokeRect(
         centerX + frontWidth / 2,
         centerY - frontHeight / 2,
         sideThickness,
         frontHeight
       );
       
-      // 정면
-      ctx.rect(
+      // 5. 정면 (점선)
+      ctx.strokeRect(
         centerX - frontWidth / 2,
         centerY - frontHeight / 2,
         frontWidth,
         frontHeight
       );
       
-      ctx.stroke();
+      // 점선 스타일 해제
+      ctx.setLineDash([]);
     },
     [crossTexture]
   );
