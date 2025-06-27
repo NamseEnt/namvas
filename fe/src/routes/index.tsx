@@ -23,9 +23,15 @@ const HomePageContext = createContext<{
   handleCreateCanvas: () => void;
   handleGoogleLogin: () => void;
   handleXLogin: () => void;
-}>(null as any);
+} | null>(null);
 
-const useHomePageContext = () => useContext(HomePageContext);
+const useHomePageContext = () => {
+  const context = useContext(HomePageContext);
+  if (!context) {
+    throw new Error('useHomePageContext must be used within HomePageContext');
+  }
+  return context;
+};
 
 function HomePage() {
   const [state, setState] = useState<HomePageState>({

@@ -50,9 +50,15 @@ type CanvasViewsState = {
 const CanvasViewsContext = createContext<{
   state: CanvasViewsState;
   updateState: (updates: Partial<CanvasViewsState>) => void;
-}>(null as any);
+} | null>(null);
 
-export const useCanvasViewsContext = () => useContext(CanvasViewsContext);
+export const useCanvasViewsContext = () => {
+  const context = useContext(CanvasViewsContext);
+  if (!context) {
+    throw new Error('useCanvasViewsContext must be used within CanvasViewsContext');
+  }
+  return context;
+};
 
 export default function CanvasViews() {
   const { state: studioState } = useStudioContext();
@@ -469,10 +475,10 @@ function CustomCanvasGeometry({
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
 
     // Y축 -90도 회전 후 정점 위치에 맞는 UV 수정
-    uvAttribute.setXY(0, leftRight, frontBottom); // 정점0 (뒤-아래) -> L 우하단
-    uvAttribute.setXY(1, leftLeft, frontBottom); // 정점1 (앞-아래) -> L 좌하단
-    uvAttribute.setXY(2, leftRight, frontTop); // 정점2 (뒤-위) -> L 우상단
-    uvAttribute.setXY(3, leftLeft, frontTop); // 정점3 (앞-위) -> L 좌상단
+    uvAttribute.setXY(0, leftLeft, frontBottom); // 정점0 (뒤-아래) -> L 좌하단
+    uvAttribute.setXY(1, leftRight, frontBottom); // 정점1 (앞-아래) -> L 우하단
+    uvAttribute.setXY(2, leftLeft, frontTop); // 정점2 (뒤-위) -> L 좌상단
+    uvAttribute.setXY(3, leftRight, frontTop); // 정점3 (앞-위) -> L 우상단
 
     uvAttribute.needsUpdate = true;
     return geo;
@@ -539,7 +545,7 @@ function CustomCanvasGeometry({
         rotation={[0, -Math.PI / 2, 0]}
         geometry={leftGeometry}
       >
-        <meshStandardMaterial map={crossTexture} toneMapped={false} />
+        <meshStandardMaterial map={crossTexture} toneMapped={false} side={THREE.DoubleSide} />
       </mesh>
 
       {/* 상단면 */}

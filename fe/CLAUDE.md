@@ -60,6 +60,7 @@ This is a React 19 application built with:
 
 - **Private sub-components**: Create sub-components within the same file, not in shared components
 - **Component-specific**: Sub-components are for that specific component only, not for reuse across different components
+- **Large sub-components**: If a sub-component becomes complex (over 50 lines) or has significant functionality, extract it to a separate `.tsx` file in the same directory
 
 ## Code Style Rules
 
