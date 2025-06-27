@@ -42,6 +42,7 @@ import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLigh
 import { useStudioContext } from "..";
 import { UploadPromptBox } from "./UploadPromptBox";
 import { Button } from "@/components/ui/button";
+import { createCrossTexture } from "./createCrossTexture";
 
 type CanvasViewsState = {
   rotation: { x: number; y: number };
@@ -55,7 +56,9 @@ const CanvasViewsContext = createContext<{
 export const useCanvasViewsContext = () => {
   const context = useContext(CanvasViewsContext);
   if (!context) {
-    throw new Error('useCanvasViewsContext must be used within CanvasViewsContext');
+    throw new Error(
+      "useCanvasViewsContext must be used within CanvasViewsContext"
+    );
   }
   return context;
 };
@@ -289,18 +292,14 @@ function CanvasFrame() {
       uploadedImage: studioState.uploadedImage,
       imageScale: studioState.imageScale,
       imagePosition: studioState.imagePosition,
-      canvasAngle: studioState.canvasAngle,
       sideProcessing: studioState.sideProcessing,
-      defaultColor: studioState.defaultColor,
       canvasTextureImg: canvasTextureImg,
     });
   }, [
     studioState.uploadedImage,
     studioState.imageScale,
     studioState.imagePosition,
-    studioState.canvasAngle,
     studioState.sideProcessing,
-    studioState.defaultColor,
     canvasTextureImg,
   ]);
 
@@ -328,76 +327,11 @@ function CanvasFrame() {
 /**
  * meter unit
  */
-const canvasProductSize = {
+export const canvasProductSize = {
   width: 0.1,
   height: 0.15,
   depth: 0.006,
 };
-
-function createCrossTexture({
-  uploadedImage,
-  imageScale,
-  imagePosition,
-  canvasAngle,
-  sideProcessing,
-  defaultColor,
-  canvasTextureImg,
-}: {
-  uploadedImage: HTMLImageElement;
-  imageScale: number;
-  imagePosition: { x: number; y: number };
-  canvasAngle: number;
-  sideProcessing: "white" | "color" | "mirror";
-  defaultColor: string;
-  canvasTextureImg: HTMLImageElement;
-}) {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d")!;
-
-  const pixelScale = 4000;
-
-  const frontWidth = canvasProductSize.width * pixelScale;
-  const frontHeight = canvasProductSize.height * pixelScale;
-  const thickness = canvasProductSize.depth * pixelScale;
-
-  canvas.width = frontWidth + thickness * 2; // 좌 + 정면 + 우
-  canvas.height = frontHeight + thickness * 2; // 상 + 정면 + 하
-
-  const baseColor = sideProcessing === "white" ? "#f8f5f0" : defaultColor;
-  ctx.fillStyle = baseColor;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // 정면 영역 중심점 먼저 계산
-  const frontCenterX = thickness + frontWidth / 2;
-  const frontCenterY = thickness + frontHeight / 2;
-
-  // 캔버스 텍스처 패턴 적용
-  const texturePattern = ctx.createPattern(canvasTextureImg, "repeat");
-  if (texturePattern) {
-    ctx.save();
-    ctx.fillStyle = texturePattern;
-    ctx.globalAlpha = 0.3;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
-  }
-
-  // 정면에 이미지 그리기
-  ctx.save();
-  ctx.translate(frontCenterX, frontCenterY);
-  ctx.scale(imageScale, imageScale);
-  ctx.translate(imagePosition.x, imagePosition.y);
-  ctx.rotate((canvasAngle * Math.PI) / 180);
-  ctx.drawImage(
-    uploadedImage,
-    -uploadedImage.width / 2,
-    -uploadedImage.height / 2
-  );
-  ctx.restore();
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  return texture;
-}
 
 function CustomCanvasGeometry({
   crossTexture,
@@ -491,16 +425,15 @@ function CustomCanvasGeometry({
     );
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
 
-    // X축 -90도 회전 후 정점 위치에 맞는 UV 설정
-    // 상단면: 원래 아래쪽 모서리가 앞쪽을 향함 (F와 맞닿음)
-    uvAttribute.setXY(0, frontLeft, topBottom); // 정점0 (앞-좌) -> T 좌하단
-    uvAttribute.setXY(1, frontRight, topBottom); // 정점1 (앞-우) -> T 우하단
-    uvAttribute.setXY(2, frontLeft, topTop); // 정점2 (뒤-좌) -> T 좌상단
-    uvAttribute.setXY(3, frontRight, topTop); // 정점3 (뒤-우) -> T 우상단
+    // 상단면: 위쪽을 바라보는 면 - 하단 텍스처 영역 사용
+    uvAttribute.setXY(0, frontLeft, bottomBottom); // 정점0 -> B 좌하단
+    uvAttribute.setXY(1, frontRight, bottomBottom); // 정점1 -> B 우하단
+    uvAttribute.setXY(2, frontLeft, bottomTop); // 정점2 -> B 좌상단
+    uvAttribute.setXY(3, frontRight, bottomTop); // 정점3 -> B 우상단
 
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [frontLeft, frontRight, topTop, topBottom]);
+  }, [frontLeft, frontRight, bottomTop, bottomBottom]);
 
   const bottomGeometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
@@ -509,16 +442,15 @@ function CustomCanvasGeometry({
     );
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
 
-    // X축 90도 회전 후 정점 위치에 맞는 UV 설정
-    // 하단면: 원래 위쪽 모서리가 앞쪽을 향함 (F와 맞닿음)
-    uvAttribute.setXY(0, frontLeft, bottomTop); // 정점0 (뒤-좌) -> B 좌상단
-    uvAttribute.setXY(1, frontRight, bottomTop); // 정점1 (뒤-우) -> B 우상단
-    uvAttribute.setXY(2, frontLeft, bottomBottom); // 정점2 (앞-좌) -> B 좌하단
-    uvAttribute.setXY(3, frontRight, bottomBottom); // 정점3 (앞-우) -> B 우하단
+    // 하단면: 아래쪽을 바라보는 면 - 상단 텍스처 영역 사용 (위아래 반전 수정)
+    uvAttribute.setXY(0, frontLeft, topBottom); // 정점0 -> T 좌하단
+    uvAttribute.setXY(1, frontRight, topBottom); // 정점1 -> T 우하단
+    uvAttribute.setXY(2, frontLeft, topTop); // 정점2 -> T 좌상단
+    uvAttribute.setXY(3, frontRight, topTop); // 정점3 -> T 우상단
 
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [frontLeft, frontRight, bottomTop, bottomBottom]);
+  }, [frontLeft, frontRight, topTop, topBottom]);
 
   return (
     <>
@@ -545,7 +477,11 @@ function CustomCanvasGeometry({
         rotation={[0, -Math.PI / 2, 0]}
         geometry={leftGeometry}
       >
-        <meshStandardMaterial map={crossTexture} toneMapped={false} side={THREE.DoubleSide} />
+        <meshStandardMaterial
+          map={crossTexture}
+          toneMapped={false}
+          side={THREE.DoubleSide}
+        />
       </mesh>
 
       {/* 상단면 */}

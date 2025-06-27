@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useStudioContext } from "./index";
+import { sideProcessingTypes } from "./types";
 
 export function RightControlPanel() {
   const {
@@ -8,7 +9,6 @@ export function RightControlPanel() {
     handleImageUpload,
     handleScaleChange,
     handlePositionChange,
-    handleAngleChange,
   } = useStudioContext();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,46 +94,53 @@ export function RightControlPanel() {
         </div>
       </div>
 
-      {/* 회전 */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">
-          회전: {state.canvasAngle}°
-        </label>
-        <input
-          type="range"
-          min="-180"
-          max="180"
-          step="1"
-          value={state.canvasAngle}
-          onChange={(e) => handleAngleChange(parseInt(e.target.value))}
-          className="w-full"
-        />
-      </div>
-
       {/* 사이드 처리 */}
       <div className="mb-8">
         <label className="block text-sm font-medium mb-2">사이드 처리</label>
         <div className="grid grid-cols-3 gap-2">
-          {(["white", "color", "mirror"] as const).map((option) => (
+          {sideProcessingTypes.map((type) => (
             <Button
-              key={option}
-              variant={state.sideProcessing === option ? "default" : "outline"}
+              key={type}
+              variant={
+                state.sideProcessing.type === type ? "default" : "outline"
+              }
               size="sm"
-              onClick={() => updateState({ sideProcessing: option })}
+              onClick={() =>
+                updateState({
+                  sideProcessing:
+                    type === "color"
+                      ? { type: "color", color: "#ffffff" }
+                      : { type: type },
+                })
+              }
             >
-              {option === "white"
-                ? "화이트"
-                : option === "color"
-                  ? "컬러"
-                  : "미러"}
+              {(() => {
+                switch (type) {
+                  case "none":
+                    return "없음";
+                  case "clip":
+                    return "자르기";
+                  case "color":
+                    return "단색";
+                  case "flip":
+                    return "뒤집기";
+                }
+              })()}
             </Button>
           ))}
         </div>
-        {state.sideProcessing === "color" && (
+        {state.sideProcessing.type === "color" && (
           <input
             type="color"
-            value={state.defaultColor}
-            onChange={(e) => updateState({ defaultColor: e.target.value })}
+            value={state.sideProcessing.color}
+            onChange={(e) =>
+              updateState({
+                sideProcessing: {
+                  type: "color",
+                  color: e.target.value,
+                },
+              })
+            }
             className="w-full mt-2 h-10 rounded border border-border"
           />
         )}
