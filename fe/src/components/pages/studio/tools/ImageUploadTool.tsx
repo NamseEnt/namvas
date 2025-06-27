@@ -1,7 +1,10 @@
+import { useRef } from "react";
 import { useStudioContext } from "..";
+import { Button } from "@/components/ui/button";
 
 export function ImageUploadTool() {
-  const { handleImageUpload } = useStudioContext();
+  const { state, handleImageUpload } = useStudioContext();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -10,43 +13,54 @@ export function ImageUploadTool() {
     }
   };
 
+  const handleEditClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="space-y-3">
       <h4 className="text-sm font-medium text-gray-700">이미지 업로드</h4>
-      <div className="flex items-center justify-center w-full">
-        <label
-          htmlFor="file-upload"
-          className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
-        >
-          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            <svg
-              className="w-6 h-6 mb-2 text-gray-500"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 20 16"
-            >
-              <path
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
-              />
-            </svg>
-            <p className="text-xs text-gray-500 text-center">
-              이미지를 선택하거나<br />드래그하여 업로드
-            </p>
+      
+      {!state.imageDataUrl ? (
+        <div className="space-y-2">
+          <Button
+            onClick={handleEditClick}
+            variant="outline"
+            className="w-full"
+          >
+            이미지 선택
+          </Button>
+          <p className="text-xs text-gray-500 text-center">
+            JPG, PNG 등의 이미지 파일을 선택해주세요
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="relative rounded-lg overflow-hidden bg-gray-100">
+            <img
+              src={state.imageDataUrl}
+              alt="업로드된 이미지"
+              className="w-full h-32 object-contain"
+            />
           </div>
-          <input
-            id="file-upload"
-            type="file"
-            className="hidden"
-            accept="image/*"
-            onChange={handleFileChange}
-          />
-        </label>
-      </div>
+          <Button
+            onClick={handleEditClick}
+            variant="outline"
+            size="sm"
+            className="w-full"
+          >
+            다른 이미지 선택
+          </Button>
+        </div>
+      )}
+      
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept="image/*"
+        onChange={handleFileChange}
+      />
     </div>
   );
 }

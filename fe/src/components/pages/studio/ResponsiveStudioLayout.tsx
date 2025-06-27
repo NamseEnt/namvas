@@ -47,7 +47,14 @@ export function ResponsiveStudioLayout({
         </div>
 
         {/* Right: Tools + Mode Selection + Checkout */}
-        <div className="w-80 flex flex-col bg-white border-l border-gray-200">
+        <div className="flex-1 flex flex-col bg-white border-l border-gray-200">
+          {/* Desktop checkout button - top block */}
+          {checkoutButton && (
+            <div className="flex-shrink-0 p-4 bg-white border-b border-gray-200">
+              {checkoutButton}
+            </div>
+          )}
+          
           {/* Tools Block */}
           <div className="flex-1 p-4 overflow-y-auto">
             {toolsArea}
@@ -57,13 +64,6 @@ export function ResponsiveStudioLayout({
           <div className="flex-shrink-0 bg-gray-50 border-t border-gray-200 p-3">
             {modeSelector}
           </div>
-
-          {/* Desktop checkout button - bottom block */}
-          {checkoutButton && (
-            <div className="flex-shrink-0 border-t border-gray-200 p-4 bg-white">
-              {checkoutButton}
-            </div>
-          )}
         </div>
       </div>
     </>
