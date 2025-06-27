@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsAgreementRouteImport } from './routes/terms-agreement'
+import { Route as OrderRouteImport } from './routes/order'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioIndexRouteImport } from './routes/studio/index'
 
 const TermsAgreementRoute = TermsAgreementRouteImport.update({
   id: '/terms-agreement',
   path: '/terms-agreement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrderRoute = OrderRouteImport.update({
+  id: '/order',
+  path: '/order',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,30 +37,34 @@ const StudioIndexRoute = StudioIndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/order': typeof OrderRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/studio': typeof StudioIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/order': typeof OrderRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/studio': typeof StudioIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/order': typeof OrderRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/studio/': typeof StudioIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/terms-agreement' | '/studio'
+  fullPaths: '/' | '/order' | '/terms-agreement' | '/studio'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/terms-agreement' | '/studio'
-  id: '__root__' | '/' | '/terms-agreement' | '/studio/'
+  to: '/' | '/order' | '/terms-agreement' | '/studio'
+  id: '__root__' | '/' | '/order' | '/terms-agreement' | '/studio/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  OrderRoute: typeof OrderRoute
   TermsAgreementRoute: typeof TermsAgreementRoute
   StudioIndexRoute: typeof StudioIndexRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/terms-agreement'
       fullPath: '/terms-agreement'
       preLoaderRoute: typeof TermsAgreementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/order': {
+      id: '/order'
+      path: '/order'
+      fullPath: '/order'
+      preLoaderRoute: typeof OrderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  OrderRoute: OrderRoute,
   TermsAgreementRoute: TermsAgreementRoute,
   StudioIndexRoute: StudioIndexRoute,
 }
