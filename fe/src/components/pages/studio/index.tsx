@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import CanvasViews from "./canvas-views";
 
-type StudioState = {
+export type StudioState = {
   uploadedImage: HTMLImageElement | null;
   imageDataUrl: string | null;
   imageScale: number;
@@ -84,12 +84,16 @@ export default function StudioPage() {
   }, []);
 
   const handleOrder = useCallback(async () => {
-    if (!state.uploadedImage || !state.imageDataUrl) return;
+    if (!state.uploadedImage || !state.imageDataUrl) {
+      return;
+    }
 
     // 최종 렌더링을 위한 캔버스 생성
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
 
     // Set canvas to 300DPI for 10x15cm (approx 1181x1772 pixels at 300DPI)
     canvas.width = 1181;
@@ -113,7 +117,9 @@ export default function StudioPage() {
 
       // Convert to blob and send to server
       canvas.toBlob(async (blob) => {
-        if (!blob) return;
+        if (!blob) {
+          return;
+        }
 
         const formData = new FormData();
         formData.append("image", blob, "final-design.png");
@@ -154,7 +160,7 @@ export default function StudioPage() {
       <div className="min-h-screen bg-background">
         <div className="flex min-h-screen lg:flex-row flex-col">
           <LeftPreviewArea />
-          <RightControlPanel />
+          <RightSideArea />
         </div>
         <CommonFooter />
       </div>
@@ -162,29 +168,28 @@ export default function StudioPage() {
   );
 }
 
-
 function LeftPreviewArea() {
   const { state } = useStudioContext();
 
   const backgroundOptions = [
-    { 
-      name: "어두운 회색", 
+    {
+      name: "어두운 회색",
       value: "dark-pattern",
       style: {
         background: `
           radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px),
           #1e293b
         `,
-        backgroundSize: '60px 60px'
-      }
+        backgroundSize: "60px 60px",
+      },
     },
-    { 
-      name: "베이지", 
+    {
+      name: "베이지",
       value: "bg-amber-50",
-      style: {}
+      style: {},
     },
-    { 
-      name: "나무결", 
+    {
+      name: "나무결",
       value: "wood-texture",
       style: {
         background: `
@@ -192,11 +197,11 @@ function LeftPreviewArea() {
           repeating-linear-gradient(180deg, rgba(190, 149, 96, 0.1) 0px, rgba(190, 149, 96, 0.1) 1px, transparent 1px, transparent 20px),
           repeating-linear-gradient(0deg, rgba(200, 158, 102, 0.05) 0px, rgba(200, 158, 102, 0.05) 2px, transparent 2px, transparent 15px)
         `,
-        backgroundColor: '#d4a574'
-      }
+        backgroundColor: "#d4a574",
+      },
     },
-    { 
-      name: "종이", 
+    {
+      name: "종이",
       value: "paper-texture",
       style: {
         background: `
@@ -205,11 +210,11 @@ function LeftPreviewArea() {
           radial-gradient(circle at 50% 50%, #faf0e6 0%, transparent 50%),
           #fefefe
         `,
-        backgroundSize: '20px 20px, 25px 25px, 15px 15px, 100%'
-      }
+        backgroundSize: "20px 20px, 25px 25px, 15px 15px, 100%",
+      },
     },
-    { 
-      name: "콘크리트", 
+    {
+      name: "콘크리트",
       value: "concrete-texture",
       style: {
         background: `
@@ -219,37 +224,40 @@ function LeftPreviewArea() {
           linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
           #f0f0f0
         `,
-        backgroundSize: '50px 50px, 30px 30px, 40px 40px, 10px 10px, 100%'
-      }
+        backgroundSize: "50px 50px, 30px 30px, 40px 40px, 10px 10px, 100%",
+      },
     },
-    { 
-      name: "패브릭", 
+    {
+      name: "패브릭",
       value: "fabric-texture",
       style: {
         background: `
           repeating-linear-gradient(45deg, #f8f8f8 0px, #f8f8f8 2px, #e0e0e0 2px, #e0e0e0 4px),
           repeating-linear-gradient(-45deg, transparent 0px, transparent 2px, rgba(200, 200, 200, 0.1) 2px, rgba(200, 200, 200, 0.1) 4px),
           #f5f5f5
-        `
-      }
+        `,
+      },
     },
-    { 
-      name: "도트", 
+    {
+      name: "도트",
       value: "dot-pattern",
       style: {
         background: `
           radial-gradient(circle at 50% 50%, #e0e0e0 1.5px, transparent 1.5px),
           #f8f8f8
         `,
-        backgroundSize: '25px 25px'
-      }
-    }
+        backgroundSize: "25px 25px",
+      },
+    },
   ];
 
-  const currentOption = backgroundOptions.find(opt => opt.value === state.canvasBackgroundColor);
-  const canvasStyle = currentOption && !state.canvasBackgroundColor.startsWith('bg-') 
-    ? currentOption.style 
-    : {};
+  const currentOption = backgroundOptions.find(
+    (opt) => opt.value === state.canvasBackgroundColor
+  );
+  const canvasStyle =
+    currentOption && !state.canvasBackgroundColor.startsWith("bg-")
+      ? currentOption.style
+      : {};
 
   return (
     <div className="flex-1 p-6 bg-background relative overflow-hidden flex flex-col">
@@ -258,8 +266,8 @@ function LeftPreviewArea() {
         <CanvasBackgroundSelector />
       </div>
 
-      <div 
-        className={`w-full flex-1 border border-border rounded-lg ${state.canvasBackgroundColor.startsWith('bg-') ? state.canvasBackgroundColor : ''}`}
+      <div
+        className={`w-full flex-1 border border-border rounded-lg ${state.canvasBackgroundColor.startsWith("bg-") ? state.canvasBackgroundColor : ""}`}
         style={canvasStyle}
       >
         <CanvasViews />
@@ -277,6 +285,15 @@ function LeftPreviewArea() {
   );
 }
 
+function RightSideArea() {
+  return (
+    <div className="w-full lg:w-80 flex flex-col bg-card border-l border-border">
+      <RightControlPanel />
+      <OrderBlock />
+    </div>
+  );
+}
+
 function RightControlPanel() {
   const {
     state,
@@ -285,7 +302,6 @@ function RightControlPanel() {
     handleScaleChange,
     handlePositionChange,
     handleAngleChange,
-    handleOrder,
   } = useStudioContext();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,7 +312,7 @@ function RightControlPanel() {
   };
 
   return (
-    <div className="w-full lg:w-80 p-6 bg-card border-l border-border">
+    <div className="flex-1 overflow-y-auto p-6">
       <h2 className="text-lg font-semibold mb-6">편집 도구</h2>
 
       {/* 이미지 업로드 */}
@@ -415,18 +431,6 @@ function RightControlPanel() {
           />
         )}
       </div>
-
-      {/* 주문하기 */}
-      <div className="border-t border-border pt-6">
-        <Button
-          onClick={handleOrder}
-          disabled={!state.uploadedImage}
-          className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-          size="lg"
-        >
-          주문하기
-        </Button>
-      </div>
     </div>
   );
 }
@@ -435,24 +439,24 @@ function CanvasBackgroundSelector() {
   const { state, updateState } = useStudioContext();
 
   const backgroundOptions = [
-    { 
-      name: "어두운 회색", 
+    {
+      name: "어두운 회색",
       value: "dark-pattern",
       style: {
         background: `
           radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px),
           #1e293b
         `,
-        backgroundSize: '60px 60px'
-      }
+        backgroundSize: "60px 60px",
+      },
     },
-    { 
-      name: "베이지", 
+    {
+      name: "베이지",
       value: "bg-amber-50",
-      style: {}
+      style: {},
     },
-    { 
-      name: "나무결", 
+    {
+      name: "나무결",
       value: "wood-texture",
       style: {
         background: `
@@ -460,11 +464,11 @@ function CanvasBackgroundSelector() {
           repeating-linear-gradient(180deg, rgba(190, 149, 96, 0.1) 0px, rgba(190, 149, 96, 0.1) 1px, transparent 1px, transparent 20px),
           repeating-linear-gradient(0deg, rgba(200, 158, 102, 0.05) 0px, rgba(200, 158, 102, 0.05) 2px, transparent 2px, transparent 15px)
         `,
-        backgroundColor: '#d4a574'
-      }
+        backgroundColor: "#d4a574",
+      },
     },
-    { 
-      name: "종이", 
+    {
+      name: "종이",
       value: "paper-texture",
       style: {
         background: `
@@ -473,11 +477,11 @@ function CanvasBackgroundSelector() {
           radial-gradient(circle at 50% 50%, #faf0e6 0%, transparent 50%),
           #fefefe
         `,
-        backgroundSize: '20px 20px, 25px 25px, 15px 15px, 100%'
-      }
+        backgroundSize: "20px 20px, 25px 25px, 15px 15px, 100%",
+      },
     },
-    { 
-      name: "콘크리트", 
+    {
+      name: "콘크리트",
       value: "concrete-texture",
       style: {
         background: `
@@ -487,31 +491,31 @@ function CanvasBackgroundSelector() {
           linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
           #f0f0f0
         `,
-        backgroundSize: '50px 50px, 30px 30px, 40px 40px, 10px 10px, 100%'
-      }
+        backgroundSize: "50px 50px, 30px 30px, 40px 40px, 10px 10px, 100%",
+      },
     },
-    { 
-      name: "패브릭", 
+    {
+      name: "패브릭",
       value: "fabric-texture",
       style: {
         background: `
           repeating-linear-gradient(45deg, #f8f8f8 0px, #f8f8f8 2px, #e0e0e0 2px, #e0e0e0 4px),
           repeating-linear-gradient(-45deg, transparent 0px, transparent 2px, rgba(200, 200, 200, 0.1) 2px, rgba(200, 200, 200, 0.1) 4px),
           #f5f5f5
-        `
-      }
+        `,
+      },
     },
-    { 
-      name: "도트", 
+    {
+      name: "도트",
       value: "dot-pattern",
       style: {
         background: `
           radial-gradient(circle at 50% 50%, #e0e0e0 1.5px, transparent 1.5px),
           #f8f8f8
         `,
-        backgroundSize: '25px 25px'
-      }
-    }
+        backgroundSize: "25px 25px",
+      },
+    },
   ];
 
   return (
@@ -519,7 +523,9 @@ function CanvasBackgroundSelector() {
       {backgroundOptions.map((option) => (
         <Button
           key={option.value}
-          variant={state.canvasBackgroundColor === option.value ? "default" : "outline"}
+          variant={
+            state.canvasBackgroundColor === option.value ? "default" : "outline"
+          }
           size="sm"
           onClick={() => updateState({ canvasBackgroundColor: option.value })}
           className="text-xs"
@@ -531,6 +537,22 @@ function CanvasBackgroundSelector() {
   );
 }
 
+function OrderBlock() {
+  const { state, handleOrder } = useStudioContext();
+
+  return (
+    <div className="border-t border-border bg-card p-6">
+      <Button
+        onClick={handleOrder}
+        disabled={!state.uploadedImage}
+        className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+        size="lg"
+      >
+        주문하기
+      </Button>
+    </div>
+  );
+}
 
 function CommonFooter() {
   return (

@@ -48,6 +48,10 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 94.1%;
   }
+
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
 @theme inline {
@@ -161,7 +165,20 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
+}
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
   }
+  25% {
+    transform: rotate(3deg);
+  }
+  75% {
+    transform: rotate(-3deg);
+  }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.6s ease-in-out infinite;
 }
