@@ -41,7 +41,6 @@ import { OrbitControls } from "@react-three/drei";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { useStudioContext } from "..";
 import { UploadPromptBox } from "./UploadPromptBox";
-import { Button } from "@/components/ui/button";
 import { createCrossTexture } from "./createCrossTexture";
 import { CrossTextureMinimap } from "./CrossTextureMinimap";
 
@@ -81,15 +80,12 @@ export default function CanvasViews() {
         updateState: updateState,
       }}
     >
-      <div className="w-full h-full flex flex-col">
-        <div className="flex-1">
-          {!studioState.uploadedImage ? (
-            <UploadPromptBox />
-          ) : (
-            <PerspectiveCollage />
-          )}
-        </div>
-        {/* ViewAngleButtons는 PerspectiveCollage 내부에서 렌더링 */}
+      <div className="w-full h-full">
+        {!studioState.uploadedImage ? (
+          <UploadPromptBox />
+        ) : (
+          <PerspectiveCollage />
+        )}
       </div>
     </CanvasViewsContext.Provider>
   );
@@ -249,8 +245,6 @@ function PerspectiveCollage() {
           enableRotate={false}
         />
       </Canvas>
-      <ViewAngleButtons />
-      <ImageFitButtons />
       <CrossTextureMinimap />
     </div>
   );
@@ -471,11 +465,7 @@ function CustomCanvasGeometry({
         rotation={[0, -Math.PI / 2, 0]}
         geometry={leftGeometry}
       >
-        <meshStandardMaterial
-          map={crossTexture}
-          toneMapped={false}
-          side={THREE.DoubleSide}
-        />
+        <meshStandardMaterial map={crossTexture} toneMapped={false} />
       </mesh>
 
       {/* 상단면 */}
@@ -499,205 +489,3 @@ function CustomCanvasGeometry({
   );
 }
 
-function ViewAngleButtons() {
-  const { updateState } = useCanvasViewsContext();
-
-  const viewAngles = [
-    { name: "정면", rotation: { x: 0, y: 0 }, icon: "📷" },
-    { name: "우측면", rotation: { x: 0, y: 40 }, icon: "👉" },
-    { name: "좌측면", rotation: { x: 0, y: -40 }, icon: "👈" },
-    { name: "상단뷰", rotation: { x: 25, y: 0 }, icon: "👆" },
-    { name: "우상단", rotation: { x: 20, y: 45 }, icon: "↗️" },
-    { name: "좌상단", rotation: { x: 20, y: -45 }, icon: "↖️" },
-    { name: "입체감", rotation: { x: -20, y: -45 }, icon: "🎯" },
-  ];
-
-  const handleAngleChange = (targetRotation: { x: number; y: number }) => {
-    updateState({ rotation: targetRotation });
-  };
-
-  return (
-    <div className="absolute bottom-4 left-4 z-10">
-      <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
-        <h4 className="text-xs font-medium mb-2 text-gray-700">빠른 각도</h4>
-        <div className="flex flex-wrap gap-1">
-          {viewAngles.map((angle) => (
-            <Button
-              key={angle.name}
-              variant="outline"
-              size="sm"
-              onClick={() => handleAngleChange(angle.rotation)}
-              className="text-xs h-7 px-2 flex items-center gap-1 bg-white/80 hover:bg-white"
-            >
-              <span className="text-xs">{angle.icon}</span>
-              <span className="hidden sm:inline">{angle.name}</span>
-            </Button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type FitType = "top" | "bottom" | "left" | "right";
-type FitScope = "front" | "side";
-
-function ImageFitButtons() {
-  const { state: studioState, updateState: updateStudioState } =
-    useStudioContext();
-
-  if (!studioState.uploadedImage) {
-    return null;
-  }
-
-  const calculateFitMmPerPixel = (fitType: FitType, fitScope: FitScope) => {
-    const img = studioState.uploadedImage;
-    if (!img) {
-      return 1;
-    }
-
-    // Image dimensions in pixels
-    const imageWidth = img.width;
-    const imageHeight = img.height;
-    
-    // Image center coordinates in mm
-    const centerX = studioState.imageCenterXy.x;
-    const centerY = studioState.imageCenterXy.y;
-    
-    // Canvas dimensions in mm
-    const frontWidth = 101.6; // mm (4 inches)
-    const frontHeight = 152.4; // mm (6 inches)
-    const sideThickness = 6; // mm
-    
-    let canvasWidth: number, canvasHeight: number;
-    
-    if (fitScope === "front") {
-      canvasWidth = frontWidth;
-      canvasHeight = frontHeight;
-    } else {
-      canvasWidth = frontWidth + sideThickness * 2;
-      canvasHeight = frontHeight + sideThickness * 2;
-    }
-    
-    let mmPerPixel: number;
-    
-    switch (fitType) {
-      case "left":
-        // Left fit: image left edge touches canvas left edge
-        // centerX - (imageWidth/2) * mmPerPixel = -canvasWidth/2
-        // mmPerPixel = (centerX + canvasWidth/2) / (imageWidth/2)
-        mmPerPixel = (centerX + canvasWidth/2) / (imageWidth/2);
-        break;
-      
-      case "right":
-        // Right fit: image right edge touches canvas right edge
-        // centerX + (imageWidth/2) * mmPerPixel = canvasWidth/2
-        // mmPerPixel = (canvasWidth/2 - centerX) / (imageWidth/2)
-        mmPerPixel = (canvasWidth/2 - centerX) / (imageWidth/2);
-        break;
-      
-      case "top":
-        // Top fit: image top edge touches canvas top edge
-        // centerY + (imageHeight/2) * mmPerPixel = canvasHeight/2
-        // mmPerPixel = (canvasHeight/2 - centerY) / (imageHeight/2)
-        mmPerPixel = (canvasHeight/2 - centerY) / (imageHeight/2);
-        break;
-      
-      case "bottom":
-        // Bottom fit: image bottom edge touches canvas bottom edge
-        // centerY - (imageHeight/2) * mmPerPixel = -canvasHeight/2
-        // mmPerPixel = (centerY + canvasHeight/2) / (imageHeight/2)
-        mmPerPixel = (centerY + canvasHeight/2) / (imageHeight/2);
-        break;
-      
-      default:
-        return 1;
-    }
-    
-    
-    return Math.max(0.001, mmPerPixel); // Prevent negative or zero values
-  };
-
-  const handleFitClick = (fitType: FitType, fitScope: FitScope) => {
-    const newMmPerPixel = calculateFitMmPerPixel(fitType, fitScope);
-    
-    if (newMmPerPixel <= 0) {
-      return;
-    }
-    
-    updateStudioState({ mmPerPixel: newMmPerPixel });
-  };
-
-  const fitButtons = [
-    {
-      type: "top" as FitType,
-      scope: "front" as FitScope,
-      icon: "⬆️",
-      label: "상단-정면",
-    },
-    {
-      type: "top" as FitType,
-      scope: "side" as FitScope,
-      icon: "⬆️",
-      label: "상단-끝",
-    },
-    {
-      type: "bottom" as FitType,
-      scope: "front" as FitScope,
-      icon: "⬇️",
-      label: "하단-정면",
-    },
-    {
-      type: "bottom" as FitType,
-      scope: "side" as FitScope,
-      icon: "⬇️",
-      label: "하단-끝",
-    },
-    {
-      type: "left" as FitType,
-      scope: "front" as FitScope,
-      icon: "⬅️",
-      label: "좌측-정면",
-    },
-    {
-      type: "left" as FitType,
-      scope: "side" as FitScope,
-      icon: "⬅️",
-      label: "좌측-끝",
-    },
-    {
-      type: "right" as FitType,
-      scope: "front" as FitScope,
-      icon: "➡️",
-      label: "우측-정면",
-    },
-    {
-      type: "right" as FitType,
-      scope: "side" as FitScope,
-      icon: "➡️",
-      label: "우측-끝",
-    },
-  ];
-
-  return (
-    <div className="absolute bottom-4 right-4 z-10">
-      <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
-        <h4 className="text-xs font-medium mb-2 text-gray-700">이미지 핏</h4>
-        <div className="grid grid-cols-2 gap-1">
-          {fitButtons.map((button) => (
-            <Button
-              key={`${button.type}-${button.scope}`}
-              variant="outline"
-              size="sm"
-              onClick={() => handleFitClick(button.type, button.scope)}
-              className="text-xs h-7 px-2 flex items-center gap-1 bg-white/80 hover:bg-white"
-            >
-              <span className="text-xs">{button.icon}</span>
-              <span className="text-xs">{button.label}</span>
-            </Button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}

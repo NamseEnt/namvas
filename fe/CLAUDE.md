@@ -50,6 +50,13 @@ This is a React 19 application built with:
 - CSS variables defined in `src/styles.css` for consistent theming
 - Utility function `cn()` in `src/lib/utils.ts` for conditional class merging
 
+#### shadcn/ui Component Installation
+
+- **NEVER manually write shadcn/ui components**: Always use the CLI to install them
+- **Use `npx shadcn@latest add <component-name>`**: This is the correct way to add components
+- **Components are installed, not written**: shadcn/ui components should be installed using the official CLI tool
+- **Example**: `npx shadcn@latest add card checkbox input label textarea`
+
 ### Testing
 
 - Vitest configured with jsdom for DOM testing

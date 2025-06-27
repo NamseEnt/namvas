@@ -1,8 +1,15 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import { LeftPreviewArea } from "./LeftPreviewArea";
-import { RightControlPanel } from "./RightControlPanel";
-import { OrderBlock } from "./OrderBlock";
 import { type SideProcessing } from "./types";
+import { 
+  ToolModeProvider, 
+  ModeSelector, 
+  ToolsArea, 
+  ViewAngleButtons, 
+  ImageFitButtons 
+} from "./tools";
+import { ResponsiveStudioLayout } from "./ResponsiveStudioLayout";
+import { Button } from "@/components/ui/button";
 
 export type StudioState = {
   uploadedImage: HTMLImageElement | null;
@@ -107,22 +114,33 @@ export default function StudioPage() {
       }}
     >
       <div className="h-screen bg-background flex flex-col">
-        <div className="flex flex-1 lg:flex-row flex-col overflow-hidden">
-          <LeftPreviewArea />
-          <RightSideArea />
+        <div className="flex-1 overflow-hidden">
+          <ToolModeProvider>
+            <ResponsiveStudioLayout
+              canvasArea={<LeftPreviewArea />}
+              toolsArea={
+                <ToolsArea 
+                  viewTools={<ViewAngleButtons />}
+                  imageTools={<ImageFitButtons />}
+                />
+              }
+              modeSelector={<ModeSelector />}
+              checkoutButton={
+                <Button
+                  onClick={handleOrder}
+                  disabled={!state.uploadedImage}
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                  size="lg"
+                >
+                  주문하기
+                </Button>
+              }
+            />
+          </ToolModeProvider>
         </div>
         <CommonFooter />
       </div>
     </StudioContext.Provider>
-  );
-}
-
-function RightSideArea() {
-  return (
-    <div className="w-full lg:w-80 flex flex-col bg-card border-l border-border">
-      <RightControlPanel />
-      <OrderBlock />
-    </div>
   );
 }
 
