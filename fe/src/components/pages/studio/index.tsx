@@ -42,7 +42,6 @@ export default function StudioPage() {
     canvasBackgroundColor: "dark-pattern",
   });
 
-  console.log("[STUDIO DEBUG] Current state:", state);
 
   const updateState = useCallback((updates: Partial<StudioState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -87,7 +86,6 @@ export default function StudioPage() {
 
   const handlePositionChange = useCallback(
     (position: { x: number; y: number }) => {
-      console.log("[STUDIO DEBUG] Position change:", position);
       updateState({ imageCenterXy: position });
     },
     [updateState]

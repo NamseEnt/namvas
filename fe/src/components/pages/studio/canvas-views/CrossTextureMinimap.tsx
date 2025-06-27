@@ -20,14 +20,14 @@ export function CrossTextureMinimap() {
     }
     return createCrossTexture({
       uploadedImage: state.uploadedImage,
-      imageScale: state.imageScale,
+      mmPerPixel: state.mmPerPixel,
       imageCenterXy: state.imageCenterXy,
       sideProcessing: state.sideProcessing,
       canvasTextureImg: canvasTextureImg,
     });
   }, [
     state.uploadedImage,
-    state.imageScale,
+    state.mmPerPixel,
     state.imageCenterXy,
     state.sideProcessing,
     canvasTextureImg,
@@ -66,6 +66,71 @@ export function CrossTextureMinimap() {
       const y = (canvas.height - scaledHeight) / 2;
 
       ctx.drawImage(textureCanvas, x, y, scaledWidth, scaledHeight);
+
+      // 십자형 구조의 테두리와 가이드라인 그리기
+      const frontWidth = 800 * scale;
+      const frontHeight = 1200 * scale;
+      const sideThickness = 50 * scale;
+      
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      
+      // 정면 영역 (빨간색 가이드라인)
+      ctx.strokeStyle = "rgba(255, 0, 0, 0.3)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(
+        centerX - frontWidth / 2,
+        centerY - frontHeight / 2,
+        frontWidth,
+        frontHeight
+      );
+
+      // 십자형 테두리 (검정색)
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      // 상단 면
+      ctx.rect(
+        centerX - frontWidth / 2,
+        centerY - frontHeight / 2 - sideThickness,
+        frontWidth,
+        sideThickness
+      );
+      
+      // 하단 면
+      ctx.rect(
+        centerX - frontWidth / 2,
+        centerY + frontHeight / 2,
+        frontWidth,
+        sideThickness
+      );
+      
+      // 좌측 면
+      ctx.rect(
+        centerX - frontWidth / 2 - sideThickness,
+        centerY - frontHeight / 2,
+        sideThickness,
+        frontHeight
+      );
+      
+      // 우측 면
+      ctx.rect(
+        centerX + frontWidth / 2,
+        centerY - frontHeight / 2,
+        sideThickness,
+        frontHeight
+      );
+      
+      // 정면
+      ctx.rect(
+        centerX - frontWidth / 2,
+        centerY - frontHeight / 2,
+        frontWidth,
+        frontHeight
+      );
+      
+      ctx.stroke();
     },
     [crossTexture]
   );

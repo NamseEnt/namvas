@@ -614,23 +614,14 @@ function ImageFitButtons() {
         return 1;
     }
     
-    console.log(`[FIT CALC] ${fitType}-${fitScope}:`, {
-      imageCenter: `${centerX}, ${centerY}`,
-      canvasSize: `${canvasWidth} × ${canvasHeight}`,
-      imageSize: `${imageWidth} × ${imageHeight}`,
-      calculatedMmPerPixel: mmPerPixel.toFixed(4)
-    });
     
     return Math.max(0.001, mmPerPixel); // Prevent negative or zero values
   };
 
   const handleFitClick = (fitType: FitType, fitScope: FitScope) => {
     const newMmPerPixel = calculateFitMmPerPixel(fitType, fitScope);
-    console.log(`[FIT TEST] ${fitType}-${fitScope}: mmPerPixel=${newMmPerPixel.toFixed(4)}`);
     
-    // Validate mmPerPixel is reasonable
     if (newMmPerPixel <= 0) {
-      console.error(`[FIT ERROR] Invalid mmPerPixel: ${newMmPerPixel} for ${fitType}-${fitScope}`);
       return;
     }
     

@@ -32,13 +32,6 @@ export function RightControlPanel() {
     const dpiX = img.width / displayWidthInches;
     const dpiY = img.height / displayHeightInches;
 
-    // Debug info
-    console.log("[DPI DEBUG]", {
-      imageSize: `${img.width}×${img.height}px`,
-      mmPerPixel: mmPerPixel.toFixed(4),
-      displaySizeMm: `${displayWidthMm.toFixed(1)}×${displayHeightMm.toFixed(1)}mm`,
-      dpi: `${Math.round(dpiX)}×${Math.round(dpiY)}`,
-    });
 
     return {
       dpiX: Math.round(dpiX),
