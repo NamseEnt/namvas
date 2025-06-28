@@ -1,5 +1,7 @@
 {
   "name": "shared",
+  "type": "module",
+  "main": "apiSpec.ts",
   "dependencies": {
     "typescript": "^5.8.3"
   }

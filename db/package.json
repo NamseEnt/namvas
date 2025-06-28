@@ -1,5 +1,7 @@
 {
   "name": "db",
+  "type": "module",
+  "main": "src/index.ts",
   "scripts": {},
   "devDependencies": {
     "@types/node": "^22.15.33",

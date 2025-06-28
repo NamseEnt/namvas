@@ -19,7 +19,7 @@ class LocalDbClient extends DynamoDBClient {
       driver: sqlite3.Database,
     });
   }
-  async send(command) {
+  async send(command: any) {
     const db = await this.db;
 
     await db.exec(

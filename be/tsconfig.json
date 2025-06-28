@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "composite": false,
+    "strict": true,
+    "downlevelIteration": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "db": ["../db/src/index.ts"],
+      "shared": ["../shared/apiSpec.ts"]
+    },
+    "types": [
+      "bun-types"
+    ]
+  },
+  "include": [
+    "src/**/*",
+    "tests/**/*",
+    "../db/src/**/*",
+    "../shared/**/*"
+  ]
+}
