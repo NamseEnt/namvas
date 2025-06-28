@@ -6,6 +6,10 @@
     "build:lambda": "npx esbuild src/lambda-entry.ts --outfile=dist/lambda-entry.js --platform=browser --target=es2022 --format=esm --bundle --minify --external:@aws-sdk --external:@smithy"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "@types/aws-lambda": "^8.10.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.839.0"
   }
 }

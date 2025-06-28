@@ -4,7 +4,7 @@ import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import * as esbuild from "esbuild";
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 const LLRT_PATH = process.env.LLRT_PATH || "./llrt";
 const BE_PATH = process.env.BE_PATH || "../be";
 
@@ -36,7 +36,7 @@ async function setupEsbuild() {
   esbuildContext = await esbuild.context({
     entryPoints: [join(BE_PATH, "src/local-entry.ts")],
     outfile: join(BE_PATH, "dist/local-entry.js"),
-    platform: "browser",
+    platform: "node",
     target: "es2022",
     format: "esm",
     bundle: true,
