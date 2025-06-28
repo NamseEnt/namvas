@@ -1,14 +1,23 @@
 import type { ApiHandler } from "../types";
-import { getDbClient } from "db";
+import { getSession } from "db";
 
 export const getMe: ApiHandler<"getMe"> = async (_req) => {
   try {
-    const isProduction = process.env.NODE_ENV === "production";
-    const _dbClient = getDbClient(isProduction);
+    // TODO: 쿠키에서 세션 ID 가져오기
+    const sessionId = "temporary-session-id";
+    
+    const session = await getSession(sessionId);
+    
+    if (!session) {
+      return {
+        ok: false,
+        reason: "NOT_LOGGED_IN",
+      };
+    }
     
     return {
       ok: true,
-      tosAgreed: false,
+      tosAgreed: session.tosAgreed || false,
     };
   } catch (_error) {
     return {

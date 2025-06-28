@@ -24,30 +24,52 @@ class LocalDbClient extends DynamoDBClient {
 
     await db.exec(
       `CREATE TABLE IF NOT EXISTS ${command.input.TableName} (
-        key TEXT PRIMARY KEY,
-        value TEXT)`
+        pk TEXT NOT NULL,
+        sk TEXT NOT NULL,
+        data TEXT,
+        PRIMARY KEY (pk, sk)
+      )`
     );
 
     if (command instanceof GetItemCommand) {
-      const key = Object.entries(command.input.Key!)
-        .map(([key, value]) => [key, value.S])
-        .join("_");
-      const item = await db.get(
-        `SELECT value FROM ${command.input.TableName} WHERE key = ${key}`
+      const pk = command.input.Key!["$p"]?.S;
+      const sk = command.input.Key!["$s"]?.S || "_";
+      
+      const row = await db.get(
+        `SELECT data FROM ${command.input.TableName} WHERE pk = ? AND sk = ?`,
+        [pk, sk]
       );
-      return { Item: item ? JSON.parse(item.value) : null };
+      
+      if (!row) {
+        return { Item: null };
+      }
+      
+      const data = row.data ? JSON.parse(row.data) : {};
+      return { 
+        Item: {
+          $p: { S: pk },
+          $s: { S: sk },
+          ...data
+        }
+      };
     }
 
     if (command instanceof PutItemCommand) {
-      const key = Object.entries(command.input.Item!)
-        .map(([key, value]) => [key, value.S])
-        .join("_");
-      const value = JSON.stringify(command.input.Item);
+      const item = command.input.Item!;
+      const pk = item["$p"]?.S;
+      const sk = item["$s"]?.S || "_";
+      
+      // $p, $s를 제외한 나머지 데이터
+      const { $p: _p, $s: _s, ...data } = item;
+      
       await db.run(
-        `INSERT INTO ${command.input.TableName} (key, value) VALUES (${key}, ${value})`
+        `INSERT OR REPLACE INTO ${command.input.TableName} (pk, sk, data) VALUES (?, ?, ?)`,
+        [pk, sk, JSON.stringify(data)]
       );
+      
+      return {};
     }
 
-    throw new Error(`Not implemented: ${command.name}`);
+    throw new Error(`Not implemented: ${command.constructor.name}`);
   }
 }

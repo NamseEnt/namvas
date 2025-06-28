@@ -1,0 +1,17 @@
+{
+  "name": "schema-gen",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "gen": "bun run src/index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.33",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "typescript": "^5.8.3"
+  }
+}
