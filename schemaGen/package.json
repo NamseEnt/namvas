@@ -1,11 +1,10 @@
 {
   "name": "schema-gen",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "src/typescript-cli.ts",
   "scripts": {
-    "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
-    "gen": "bun run src/index.ts"
+    "schema": "bun run src/typescript-cli.ts",
+    "gen": "bun run src/typescript-cli.ts"
   },
   "devDependencies": {
     "@types/node": "^22.15.33",
