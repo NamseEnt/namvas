@@ -1,7 +1,10 @@
 import { SchemaDefinition, SchemaProperty } from './parser.js';
 
 export function generateCRUDFunctions(schemas: SchemaDefinition[]): string {
-  let output = '';
+  let output = `import { dbClient } from './index.js';
+import { GetCommand, PutCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+
+`;
 
   for (const schema of schemas) {
     const typeName = capitalizeFirst(schema.name);
@@ -36,17 +39,28 @@ export function generateCRUDFunctions(schemas: SchemaDefinition[]): string {
 
 function generateGetFunction(schemaName: string, typeName: string, pkProperty: SchemaProperty): string {
   return `export async function get${typeName}({${pkProperty.name}}: {${pkProperty.name}: ${pkProperty.type}}) {
-    // TODO: Implement get${typeName}
-    // Query database for ${schemaName} where ${pkProperty.name} = ${pkProperty.name}
-    throw new Error('Not implemented');
+    const result = await dbClient.get({
+        TableName: 'main',
+        Key: {
+            $p: \`${schemaName}/id=\${${pkProperty.name}}\`,
+            $s: '_'
+        }
+    });
+    
+    return result.Item;
 }`;
 }
 
 function generatePutFunction(schemaName: string, typeName: string): string {
   return `export async function put${typeName}(${schemaName}: Docs['${schemaName}']) {
-    // TODO: Implement put${typeName}
-    // Insert or update ${schemaName} in database
-    throw new Error('Not implemented');
+    await dbClient.put({
+        TableName: 'main',
+        Item: {
+            $p: \`${schemaName}/id=\${${schemaName}.id}\`,
+            $s: '_',
+            ...${schemaName}
+        }
+    });
 }`;
 }
 
