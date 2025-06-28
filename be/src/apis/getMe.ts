@@ -1,11 +1,26 @@
 import type { ApiHandler } from "../types";
+import { getSession } from "db";
 
-export const getMe: ApiHandler<"getMe"> = async (_body, req) => {
+export const getMe: ApiHandler<"getMe"> = async ({}, req) => {
   try {
-    const sessionId = req.cookies.get("sessionId") || "temporary-session-id";
+    const sessionId = req.cookies.get("sessionId");
+    
+    if (!sessionId) {
+      return {
+        ok: false,
+        reason: "NOT_LOGGED_IN",
+      };
+    }
 
-    // TODO: Implement actual session lookup
-    // For now, return mock data
+    const session = await getSession({ id: sessionId });
+    
+    if (!session) {
+      return {
+        ok: false,
+        reason: "NOT_LOGGED_IN",
+      };
+    }
+
     return {
       ok: true,
       tosAgreed: false,

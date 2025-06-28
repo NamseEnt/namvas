@@ -2,7 +2,6 @@ import { SchemaEvolution, DocumentDefinition } from './evolution-types.js';
 
 export function generateEvolutionCRUD(evolution: SchemaEvolution): string {
   let output = `import { dbClient } from './index.js';
-import { GetCommand, PutCommand, DeleteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 `;
 
@@ -26,14 +25,6 @@ import { GetCommand, PutCommand, DeleteCommand, QueryCommand } from '@aws-sdk/li
 
     // Generate put function
     output += generatePutFunction(docName, typeName, evolution.currentVersion);
-    output += '\n\n';
-
-    // Generate delete function
-    output += generateDeleteFunction(docName, typeName, pkField);
-    output += '\n\n';
-
-    // Generate list function
-    output += generateListFunction(docName, typeName);
     output += '\n\n';
   }
 
@@ -62,13 +53,13 @@ function generateTypeDefinitions(evolution: SchemaEvolution): string {
 
 function generateGetFunction(docName: string, typeName: string, pkField: any): string {
   return `export async function get${typeName}({${pkField.name}}: {${pkField.name}: ${getTypeScriptType(pkField.type)}}): Promise<Docs['${docName}'] | null> {
-  const result = await dbClient.send(new GetCommand({
+  const result = await dbClient.get({
     TableName: 'main',
     Key: {
       $p: \`${docName}/id=\${${pkField.name}}\`,
       $s: '_'
     }
-  }));
+  });
   
   if (!result.Item) {
     return null;
@@ -88,44 +79,13 @@ function generatePutFunction(docName: string, typeName: string, currentVersion: 
     ...${docName}
   };
   
-  await dbClient.send(new PutCommand({
+  await dbClient.put({
     TableName: 'main',
     Item: item
-  }));
+  });
 }`;
 }
 
-function generateDeleteFunction(docName: string, typeName: string, pkField: any): string {
-  return `export async function delete${typeName}({${pkField.name}}: {${pkField.name}: ${getTypeScriptType(pkField.type)}}): Promise<void> {
-  await dbClient.send(new DeleteCommand({
-    TableName: 'main',
-    Key: {
-      $p: \`${docName}/id=\${${pkField.name}}\`,
-      $s: '_'
-    }
-  }));
-}`;
-}
-
-function generateListFunction(docName: string, typeName: string): string {
-  return `export async function list${typeName}s(options?: {limit?: number; lastKey?: string}): Promise<{items: Docs['${docName}'][], lastKey?: string}> {
-  const result = await dbClient.send(new QueryCommand({
-    TableName: 'main',
-    IndexName: 'GSI1',
-    KeyConditionExpression: '$gsi1pk = :docType',
-    ExpressionAttributeValues: {
-      ':docType': '${docName}'
-    },
-    Limit: options?.limit,
-    ExclusiveStartKey: options?.lastKey ? JSON.parse(options.lastKey) : undefined
-  }));
-  
-  const items = (result.Items || []).map(item => migrate${typeName}(item));
-  const lastKey = result.LastEvaluatedKey ? JSON.stringify(result.LastEvaluatedKey) : undefined;
-  
-  return { items, lastKey };
-}`;
-}
 
 function findPrimaryKeyField(docDef: DocumentDefinition) {
   // Look for 'id' field first, then any field that might be a primary key
