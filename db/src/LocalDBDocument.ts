@@ -1,10 +1,8 @@
 import {
   GetCommand,
   GetCommandInput,
-  GetCommandOutput,
   PutCommand,
   PutCommandInput,
-  PutCommandOutput,
 } from "@aws-sdk/lib-dynamodb";
 import Database from "bun:sqlite";
 
@@ -117,5 +115,33 @@ export class LocalDBDocument {
     }
 
     throw new Error(`Not implemented: ${command.constructor.name}`);
+  }
+
+  async query(args: any): Promise<{ Items: any[] }> {
+    this.db.exec(
+      `CREATE TABLE IF NOT EXISTS ${args.TableName} (
+          pk TEXT NOT NULL,
+          sk TEXT NOT NULL,
+          data TEXT,
+          PRIMARY KEY (pk, sk)
+        )`
+    );
+
+    const pk = args.ExpressionAttributeValues[":pk"];
+
+    const rows = this.db
+      .query(`SELECT pk, sk, data FROM ${args.TableName} WHERE pk = ?`)
+      .all(pk) as Array<{ pk: string; sk: string; data: string }>;
+
+    const items = rows.map((row) => {
+      const data = row.data ? JSON.parse(row.data) : {};
+      return {
+        $p: row.pk,
+        $s: row.sk,
+        ...data,
+      };
+    });
+
+    return { Items: items };
   }
 }

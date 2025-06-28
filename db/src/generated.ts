@@ -82,7 +82,7 @@ export async function listSessions(options?: {limit?: number; lastKey?: string})
     ExclusiveStartKey: options?.lastKey ? JSON.parse(options.lastKey) : undefined
   }));
   
-  const items = (result.Items || []).map(item => migrateSession(item));
+  const items = (result.Items || []).map((item: any) => migrateSession(item));
   const lastKey = result.LastEvaluatedKey ? JSON.stringify(result.LastEvaluatedKey) : undefined;
   
   return { items, lastKey };
@@ -141,7 +141,7 @@ export async function listAccounts(options?: {limit?: number; lastKey?: string})
     ExclusiveStartKey: options?.lastKey ? JSON.parse(options.lastKey) : undefined
   }));
   
-  const items = (result.Items || []).map(item => migrateAccount(item));
+  const items = (result.Items || []).map((item: any) => migrateAccount(item));
   const lastKey = result.LastEvaluatedKey ? JSON.stringify(result.LastEvaluatedKey) : undefined;
   
   return { items, lastKey };
@@ -200,7 +200,7 @@ export async function listIdentitys(options?: {limit?: number; lastKey?: string}
     ExclusiveStartKey: options?.lastKey ? JSON.parse(options.lastKey) : undefined
   }));
   
-  const items = (result.Items || []).map(item => migrateIdentity(item));
+  const items = (result.Items || []).map((item: any) => migrateIdentity(item));
   const lastKey = result.LastEvaluatedKey ? JSON.stringify(result.LastEvaluatedKey) : undefined;
   
   return { items, lastKey };

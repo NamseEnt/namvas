@@ -11,4 +11,17 @@ export type ApiSpec = {
           reason: "NOT_LOGGED_IN";
         };
   };
+  loginWithGoogle: {
+    req: {
+      authorizationCode: string;
+    };
+    res:
+      | {
+          ok: true;
+        }
+      | {
+          ok: false;
+          reason: "INVALID_CODE" | "GOOGLE_API_ERROR";
+        };
+  };
 };
