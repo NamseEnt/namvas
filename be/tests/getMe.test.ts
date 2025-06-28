@@ -1,5 +1,5 @@
 import { test, expect } from "../src/utils/test-runner";
-import { getMe } from "../src/handlers/getMe";
+import { getMe } from "../src/apis/getMe";
 
 test("getMe handler - success response", async () => {
   const mockReq = { cookies: new Map() };
@@ -7,7 +7,7 @@ test("getMe handler - success response", async () => {
   
   expect(result).toMatchObject({
     ok: true,
-    tosAgreed: expect.any(Boolean),
+    tosAgreed: false,
   });
 });
 

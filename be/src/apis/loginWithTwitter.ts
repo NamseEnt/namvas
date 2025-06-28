@@ -1,24 +1,5 @@
 import type { ApiSpec } from "shared/apiSpec";
-// Import db functions with fallback for LLRT
-let dbClient: any;
-let putAccount: any;
-let putIdentity: any; 
-let putSession: any;
-
-try {
-  const db = await import("db");
-  dbClient = db.dbClient;
-  putAccount = db.putAccount;
-  putIdentity = db.putIdentity;
-  putSession = db.putSession;
-} catch {
-  // Fallback for LLRT environment
-  const stub = await import("../utils/llrt-db-stub");
-  dbClient = stub.dbClient;
-  putAccount = stub.putAccount;
-  putIdentity = stub.putIdentity;
-  putSession = stub.putSession;
-}
+import { dbClient, putAccount, putIdentity, putSession } from "db";
 
 // LLRT-compatible UUID generator using Web Crypto API
 async function generateUUID(): Promise<string> {
@@ -34,56 +15,56 @@ async function generateUUID(): Promise<string> {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
-export async function loginWithGoogle(
-  req: ApiSpec["loginWithGoogle"]["req"]
-): Promise<ApiSpec["loginWithGoogle"]["res"]> {
+export async function loginWithTwitter(
+  req: ApiSpec["loginWithTwitter"]["req"]
+): Promise<ApiSpec["loginWithTwitter"]["res"]> {
   try {
-    // Exchange authorization code for tokens
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    // Exchange authorization code for tokens using Twitter OAuth 2.0 with PKCE
+    const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
         code: req.authorizationCode,
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
+        client_id: process.env.TWITTER_CLIENT_ID!,
+        redirect_uri: process.env.TWITTER_REDIRECT_URI!,
         grant_type: 'authorization_code',
+        code_verifier: req.codeVerifier,
       }),
     });
 
     if (!tokenResponse.ok) {
-      console.error('Token exchange failed:', await tokenResponse.text());
+      console.error('Twitter token exchange failed:', await tokenResponse.text());
       return { ok: false, reason: "INVALID_CODE" };
     }
 
     const tokens = await tokenResponse.json();
     
     // Get user info using the access token
-    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    const userInfoResponse = await fetch('https://api.twitter.com/2/users/me?user.fields=id,name,username,profile_image_url', {
       headers: {
         'Authorization': `Bearer ${tokens.access_token}`,
       },
     });
 
     if (!userInfoResponse.ok) {
-      console.error('User info fetch failed:', await userInfoResponse.text());
-      return { ok: false, reason: "GOOGLE_API_ERROR" };
+      console.error('Twitter user info fetch failed:', await userInfoResponse.text());
+      return { ok: false, reason: "TWITTER_API_ERROR" };
     }
 
     const userInfo = await userInfoResponse.json();
-    const googleUserId = userInfo.id;
-    const email = userInfo.email;
-    const name = userInfo.name;
-    const picture = userInfo.picture;
+    const twitterUserId = userInfo.data.id;
+    const name = userInfo.data.name;
+    const username = userInfo.data.username;
+    const profileImageUrl = userInfo.data.profile_image_url;
 
     // Query for existing identity with provider and providerId
     const existingIdentityResult = await dbClient.query({
       TableName: 'main',
       KeyConditionExpression: 'pk = :pk',
       ExpressionAttributeValues: {
-        ':pk': `identity/provider=google/providerId=${googleUserId}`
+        ':pk': `identity/provider=twitter/providerId=${twitterUserId}`
       }
     });
 
@@ -103,11 +84,12 @@ export async function loginWithGoogle(
       await putIdentity({
         id: identityId,
         accountId,
-        provider: "google",
-        providerId: googleUserId,
-        email,
+        provider: "twitter",
+        providerId: twitterUserId,
+        email: null, // Twitter OAuth 2.0 doesn't provide email by default
         name,
-        profileImageUrl: picture,
+        username,
+        profileImageUrl,
         createdAt: now,
         updatedAt: now,
       });
@@ -116,7 +98,7 @@ export async function loginWithGoogle(
       await dbClient.put({
         TableName: 'main',
         Item: {
-          $p: `identity/provider=google/providerId=${googleUserId}`,
+          $p: `identity/provider=twitter/providerId=${twitterUserId}`,
           $s: '_',
           identityId
         }
@@ -141,7 +123,7 @@ export async function loginWithGoogle(
 
     return { ok: true };
   } catch (error) {
-    console.error("Google login error:", error);
-    return { ok: false, reason: "GOOGLE_API_ERROR" };
+    console.error("Twitter login error:", error);
+    return { ok: false, reason: "TWITTER_API_ERROR" };
   }
 }
