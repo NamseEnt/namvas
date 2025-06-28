@@ -9,7 +9,7 @@ export async function handler(event: any, context: any) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      message: 'Hello from LLRT!',
+      message: 'Hello from LLRT with auto-build!',
       path: event.path,
       method: event.httpMethod,
       timestamp: new Date().toISOString(),

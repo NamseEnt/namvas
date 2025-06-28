@@ -1,7 +1,8 @@
 import { serve } from "bun";
 import { spawn } from "bun";
-import { existsSync } from "fs";
+import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
+import * as esbuild from "esbuild";
 
 const PORT = process.env.PORT || 3000;
 const LLRT_PATH = process.env.LLRT_PATH || "./llrt";
@@ -14,6 +15,7 @@ interface PendingRequest {
 
 const requestQueue: PendingRequest[] = [];
 let currentRequest: PendingRequest | null = null;
+let esbuildContext: esbuild.BuildContext | null = null;
 
 async function checkLLRT(): Promise<boolean> {
   if (!existsSync(LLRT_PATH)) {
@@ -23,6 +25,31 @@ async function checkLLRT(): Promise<boolean> {
     return true; // Continue in test mode
   }
   return true;
+}
+
+async function setupEsbuild() {
+  const distPath = join(BE_PATH, "dist");
+  if (!existsSync(distPath)) {
+    mkdirSync(distPath, { recursive: true });
+  }
+
+  esbuildContext = await esbuild.context({
+    entryPoints: [join(BE_PATH, "src/local-entry.ts")],
+    outfile: join(BE_PATH, "dist/local-entry.js"),
+    platform: "browser",
+    target: "es2022",
+    format: "esm",
+    bundle: true,
+    minify: true,
+    external: ["@aws-sdk", "@smithy"],
+    logLevel: "info",
+  });
+
+  await esbuildContext.rebuild();
+  console.log("Initial build complete");
+
+  await esbuildContext.watch();
+  console.log("Watching for changes in", join(BE_PATH, "src"));
 }
 
 async function executeLLRT() {
@@ -142,3 +169,15 @@ console.log(`Local Lambda Emulator running on http://localhost:${PORT}`);
 if (!await checkLLRT()) {
   process.exit(1);
 }
+
+// Setup esbuild and start watching
+await setupEsbuild();
+
+// Cleanup on exit
+process.on("SIGINT", async () => {
+  console.log("\nShutting down...");
+  if (esbuildContext) {
+    await esbuildContext.dispose();
+  }
+  process.exit(0);
+});
