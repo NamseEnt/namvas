@@ -109,17 +109,20 @@ const lambdaPolicy = new aws.iam.RolePolicy("lambda-policy", {
     })),
 });
 
-// Lambda function for backend
+// Lambda function for backend (LLRT)
 const lambdaFunction = new aws.lambda.Function("backend-lambda", {
-    code: new pulumi.asset.FileArchive("../be/lambda"),
+    code: new pulumi.asset.FileArchive("../be/dist"),
     handler: "index.handler",
-    runtime: "nodejs20.x",
+    runtime: "provided.al2023",
     role: lambdaRole.arn,
     timeout: 30,
+    architectures: ["x86_64"],
+    layers: ["arn:aws:lambda:us-east-1:753240598075:layer:LLRTLayer-x86_64:20"], // Check latest version at https://github.com/awslabs/llrt/releases
     environment: {
         variables: {
             DYNAMODB_TABLE_NAME: dynamoTable.name,
             NODE_ENV: "production",
+            LAMBDA: "true",
         },
     },
 }, { dependsOn: [lambdaPolicy] });

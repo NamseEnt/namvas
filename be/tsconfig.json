@@ -18,14 +18,7 @@
       "db": ["../db/src/index.ts"],
       "shared": ["../shared/apiSpec.ts"]
     },
-    "types": [
-      "bun-types"
-    ]
+    "types": ["bun-types"]
   },
-  "include": [
-    "src/**/*",
-    "tests/**/*",
-    "../db/src/**/*",
-    "../shared/**/*"
-  ]
+  "include": ["src/**/*", "tests/**/*", "../db/src/**/*", "../shared/**/*"]
 }

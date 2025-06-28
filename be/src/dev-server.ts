@@ -21,7 +21,19 @@ const server = Bun.serve({
         if (!handler) {
           throw new Error(`Handler not found for endpoint: ${endpoint}`);
         }
-        const result = await handler(reqBody);
+        const cookies = new Map<string, string>();
+        // Parse cookies from request headers
+        const cookieHeader = request.headers.get("cookie");
+        if (cookieHeader) {
+          cookieHeader.split(';').forEach((cookie: string) => {
+            const [key, value] = cookie.trim().split('=');
+            if (key && value) {
+              cookies.set(key, value);
+            }
+          });
+        }
+        
+        const result = await handler(reqBody, { cookies });
 
         return new Response(JSON.stringify(result), {
           status: 200,

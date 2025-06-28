@@ -69,10 +69,10 @@ jobs:
         npm test
     
     # Build
-    - name: Build backend
+    - name: Build backend for LLRT
       run: |
         cd be
-        bun run build
+        bun run build:llrt
     
     - name: Build frontend
       run: |
@@ -128,10 +128,10 @@ jobs:
         npm ci
     
     # Build
-    - name: Build backend
+    - name: Build backend for LLRT
       run: |
         cd be
-        bun run build
+        bun run build:llrt
     
     - name: Build frontend
       run: |

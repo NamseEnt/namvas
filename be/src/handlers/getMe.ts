@@ -1,20 +1,19 @@
 import type { ApiHandler } from "../types";
 import { getSession } from "db";
 
-export const getMe: ApiHandler<"getMe"> = async (_req) => {
+export const getMe: ApiHandler<"getMe"> = async (_body, req) => {
   try {
-    // TODO: 쿠키에서 세션 ID 가져오기
-    const sessionId = "temporary-session-id";
-    
-    const session = await getSession(sessionId);
-    
+    const sessionId = req.cookies.get("sessionId") || "temporary-session-id";
+
+    const session = await getSession({id: sessionId});
+
     if (!session) {
       return {
         ok: false,
         reason: "NOT_LOGGED_IN",
       };
     }
-    
+
     return {
       ok: true,
       tosAgreed: session.tosAgreed || false,

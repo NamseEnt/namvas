@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "bun run src/dev-server.ts",
-    "build": "bun build src/lambda/index.ts --outdir lambda --target node",
+    "build": "bun build src/lambda/index.ts --outdir dist --target node --minify",
+    "build:llrt": "esbuild src/lambda/index.ts --platform=browser --target=es2023 --format=esm --bundle --minify --external:@aws-sdk --external:@smithy --external:bun:sqlite --outfile=dist/index.js",
     "test": "bun test",
     "test:watch": "bun test --watch"
   },
@@ -13,8 +14,9 @@
     "shared": "file:../shared"
   },
   "devDependencies": {
-    "@types/node": "^22.15.33",
-    "typescript": "^5.8.3",
-    "bun-types": "latest"
+    "@aws-sdk/types": "^3.664.0",
+    "@types/bun": "^1.2.17",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.8.3"
   }
 }
