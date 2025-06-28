@@ -42,15 +42,15 @@ export function ResponsiveStudioLayout({
       {/* Desktop Layout (horizontal split) */}
       <div className="hidden lg:flex h-full">
         {/* Left: Canvas Block */}
-        <div className="flex-1 relative">
+        <div className="w-1/2 relative">
           {canvasArea}
         </div>
 
         {/* Right: Tools + Mode Selection + Checkout */}
-        <div className="flex-1 flex flex-col bg-white border-l border-gray-200">
+        <div className="w-1/2 flex flex-col bg-white border-l border-gray-200">
           {/* Desktop checkout button - top block */}
           {checkoutButton && (
-            <div className="flex-shrink-0 p-4 bg-white border-b border-gray-200">
+            <div className="flex-shrink-0 p-4 bg-white border-b border-gray-200 flex justify-end">
               {checkoutButton}
             </div>
           )}

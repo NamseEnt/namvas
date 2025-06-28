@@ -52,17 +52,17 @@ export default function CanvasView({ angle, textureUrl, texture, className }: {
 
   if (!canvasTextureImg) {
     return (
-      <div className={`w-full aspect-[3/4] bg-gray-200 flex items-center justify-center rounded-lg ${className}`}>
+      <div className={`bg-gray-200 flex items-center justify-center rounded-lg ${className || 'aspect-[3/4] w-full'}`}>
         <div className="text-gray-500">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className={`w-full aspect-[3/4] rounded-lg overflow-hidden ${className}`}>
+    <div className={`rounded-lg overflow-hidden ${className || 'aspect-[3/4] w-full'}`}>
       <Canvas
         camera={{
-          position: [0, 0, 0.25],
+          position: [0, 0, 0.35],
           fov: 35,
         }}
         style={{ width: "100%", height: "100%" }}

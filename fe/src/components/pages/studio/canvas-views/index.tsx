@@ -30,8 +30,6 @@
 import {
   useEffect,
   useState,
-  createContext,
-  useContext,
   useMemo,
   useRef,
 } from "react";
@@ -39,55 +37,23 @@ import * as THREE from "three";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
-import { useStudioContext } from "..";
+import { useStudioContext, useCanvasViewsContext } from "..";
 import { UploadPromptBox } from "./UploadPromptBox";
 import { createCrossTexture } from "./createCrossTexture";
 import { CrossTextureMinimap } from "./CrossTextureMinimap";
 
-type CanvasViewsState = {
-  rotation: { x: number; y: number };
-};
-
-const CanvasViewsContext = createContext<{
-  state: CanvasViewsState;
-  updateState: (updates: Partial<CanvasViewsState>) => void;
-} | null>(null);
-
-export const useCanvasViewsContext = () => {
-  const context = useContext(CanvasViewsContext);
-  if (!context) {
-    throw new Error(
-      "useCanvasViewsContext must be used within CanvasViewsContext"
-    );
-  }
-  return context;
-};
 
 export default function CanvasViews() {
   const { state: studioState } = useStudioContext();
-  const [state, setState] = useState<CanvasViewsState>({
-    rotation: { x: 0, y: 0 },
-  });
-
-  const updateState = (updates: Partial<CanvasViewsState>) => {
-    setState((prev) => ({ ...prev, ...updates }));
-  };
 
   return (
-    <CanvasViewsContext.Provider
-      value={{
-        state,
-        updateState: updateState,
-      }}
-    >
-      <div className="w-full h-full">
-        {!studioState.uploadedImage ? (
-          <UploadPromptBox />
-        ) : (
-          <PerspectiveCollage />
-        )}
-      </div>
-    </CanvasViewsContext.Provider>
+    <div className="w-full h-full">
+      {!studioState.uploadedImage ? (
+        <UploadPromptBox />
+      ) : (
+        <PerspectiveCollage />
+      )}
+    </div>
   );
 }
 
@@ -97,11 +63,14 @@ function PerspectiveCollage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
   const lastMousePosition = useRef({ x: 0, y: 0 });
-  const [cameraDistance, setCameraDistance] = useState(0.25);
+  // 초기 카메라 거리도 캔버스 크기에 비례하게 설정
+  const initialCameraDistance = Math.sqrt(canvasProductSize.width ** 2 + canvasProductSize.height ** 2) * 1.5;
+  const [cameraDistance, setCameraDistance] = useState(initialCameraDistance);
 
-  // 카메라 거리 설정 변수들
-  const baseCameraDistance = 0.25;
-  const cameraDistanceMultiplier = 0.0005;
+  // 카메라 거리 설정 변수들 - 캔버스 크기에 비례
+  const canvasDiagonal = Math.sqrt(canvasProductSize.width ** 2 + canvasProductSize.height ** 2);
+  const baseCameraDistance = canvasDiagonal * 1.5; // 캔버스 대각선의 1.5배
+  const cameraDistanceMultiplier = canvasDiagonal * 0.003;
 
   useEffect(
     function updateCameraDistance() {
@@ -215,7 +184,7 @@ function PerspectiveCollage() {
       <Canvas
         ref={canvasRef}
         camera={{
-          position: [0, 0, 0.25],
+          position: [0, 0, initialCameraDistance],
           fov: 35,
         }}
         style={{ width: "100%", height: "100%" }}

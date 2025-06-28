@@ -98,75 +98,75 @@ export default function OrderPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <CanvasView angle="front" textureUrl={textureUrl} />
-                  <CanvasView angle="rightBottomUp" textureUrl={textureUrl} />
-                  <CanvasView angle="leftTopDown" textureUrl={textureUrl} />
+                <div className="flex justify-center">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
+                    <CanvasView angle="front" textureUrl={textureUrl} className="h-56 md:h-72 w-56 md:w-72 mx-auto" />
+                    <CanvasView angle="rightBottomUp" textureUrl={textureUrl} className="h-56 md:h-72 w-56 md:w-72 mx-auto" />
+                    <CanvasView angle="leftTopDown" textureUrl={textureUrl} className="h-56 md:h-72 w-56 md:w-72 mx-auto" />
+                  </div>
                 </div>
                 
-                <div className="flex items-center justify-between">
+                <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold">10x15cm 커스텀 캔버스</h3>
                     <p className="text-gray-600">최종 디자인</p>
                   </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm">수량</span>
-                      <div className="flex items-center border rounded-md">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => updateOrderState({ quantity: Math.max(1, orderState.quantity - 1) })}
-                          disabled={orderState.quantity <= 1}
-                        >
-                          -
-                        </Button>
-                        <Input
-                          className="h-8 w-16 text-center border-0 focus-visible:ring-0"
-                          value={orderState.quantity}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value) || 1;
-                            updateOrderState({ quantity: Math.max(1, Math.min(99, value)) });
-                          }}
+
+                  <div className="max-w-lg mx-auto space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2 text-gray-700">추가 옵션</h4>
+                      <div className="flex items-center space-x-2 justify-center">
+                        <Checkbox
+                          id="plastic-stand"
+                          checked={orderState.hasPlasticStand}
+                          onCheckedChange={(checked) =>
+                            updateOrderState({ hasPlasticStand: checked as boolean })
+                          }
                         />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => updateOrderState({ quantity: Math.min(99, orderState.quantity + 1) })}
-                          disabled={orderState.quantity >= 99}
-                        >
-                          +
-                        </Button>
+                        <Label htmlFor="plastic-stand" className="text-sm font-medium">
+                          다이소 플라스틱 받침대 추가 (+{plasticStandPrice}원)
+                        </Label>
                       </div>
                     </div>
-                    <p className="text-xl font-bold">{subtotal.toLocaleString()}원</p>
+
+                    <div className="text-center space-y-2">
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="text-sm font-medium">수량</span>
+                        <div className="flex items-center border rounded-md">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => updateOrderState({ quantity: Math.max(1, orderState.quantity - 1) })}
+                            disabled={orderState.quantity <= 1}
+                          >
+                            -
+                          </Button>
+                          <Input
+                            className="h-8 w-16 text-center border-0 focus-visible:ring-0"
+                            value={orderState.quantity}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 1;
+                              updateOrderState({ quantity: Math.max(1, Math.min(99, value)) });
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => updateOrderState({ quantity: Math.min(99, orderState.quantity + 1) })}
+                            disabled={orderState.quantity >= 99}
+                          >
+                            +
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="text-xl font-bold text-blue-600">{(subtotal + optionPrice).toLocaleString()}원</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>추가 옵션</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="plastic-stand"
-                  checked={orderState.hasPlasticStand}
-                  onCheckedChange={(checked) =>
-                    updateOrderState({ hasPlasticStand: checked as boolean })
-                  }
-                />
-                <Label htmlFor="plastic-stand" className="text-sm font-medium">
-                  다이소 플라스틱 받침대 추가 (+{plasticStandPrice}원)
-                </Label>
               </div>
             </CardContent>
           </Card>

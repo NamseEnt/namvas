@@ -20,6 +20,10 @@ export type StudioState = {
   canvasBackgroundColor: string;
 };
 
+type CanvasViewsState = {
+  rotation: { x: number; y: number };
+};
+
 const StudioContext = createContext<{
   state: StudioState;
   updateState: (updates: Partial<StudioState>) => void;
@@ -37,6 +41,21 @@ export const useStudioContext = () => {
   return context;
 };
 
+const CanvasViewsContext = createContext<{
+  state: CanvasViewsState;
+  updateState: (updates: Partial<CanvasViewsState>) => void;
+} | null>(null);
+
+export const useCanvasViewsContext = () => {
+  const context = useContext(CanvasViewsContext);
+  if (!context) {
+    throw new Error(
+      "useCanvasViewsContext must be used within CanvasViewsContext"
+    );
+  }
+  return context;
+};
+
 export default function StudioPage() {
   const [state, setState] = useState<StudioState>({
     uploadedImage: null,
@@ -49,9 +68,16 @@ export default function StudioPage() {
     canvasBackgroundColor: "dark-pattern",
   });
 
+  const [canvasViewsState, setCanvasViewsState] = useState<CanvasViewsState>({
+    rotation: { x: 0, y: 0 },
+  });
 
   const updateState = useCallback((updates: Partial<StudioState>) => {
     setState((prev) => ({ ...prev, ...updates }));
+  }, []);
+
+  const updateCanvasViewsState = useCallback((updates: Partial<CanvasViewsState>) => {
+    setCanvasViewsState((prev) => ({ ...prev, ...updates }));
   }, []);
 
   const handleImageUpload = useCallback(
@@ -113,33 +139,40 @@ export default function StudioPage() {
         handleOrder,
       }}
     >
-      <div className="h-screen bg-background flex flex-col">
-        <div className="flex-1 overflow-hidden">
-          <ToolModeProvider>
-            <ResponsiveStudioLayout
-              canvasArea={<LeftPreviewArea />}
-              toolsArea={
-                <ToolsArea 
-                  viewTools={<ViewAngleButtons />}
-                  imageTools={<ImageFitButtons />}
-                />
-              }
-              modeSelector={<ModeSelector />}
-              checkoutButton={
-                <Button
-                  onClick={handleOrder}
-                  disabled={!state.uploadedImage}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-                  size="lg"
-                >
-                  주문하기
-                </Button>
-              }
-            />
-          </ToolModeProvider>
+      <CanvasViewsContext.Provider
+        value={{
+          state: canvasViewsState,
+          updateState: updateCanvasViewsState,
+        }}
+      >
+        <div className="h-screen bg-background flex flex-col">
+          <div className="flex-1 overflow-hidden">
+            <ToolModeProvider>
+              <ResponsiveStudioLayout
+                canvasArea={<LeftPreviewArea />}
+                toolsArea={
+                  <ToolsArea 
+                    viewTools={<ViewAngleButtons />}
+                    imageTools={<ImageFitButtons />}
+                  />
+                }
+                modeSelector={<ModeSelector />}
+                checkoutButton={
+                  <Button
+                    onClick={handleOrder}
+                    disabled={!state.uploadedImage}
+                    className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 px-6"
+                    size="lg"
+                  >
+                    주문하기
+                  </Button>
+                }
+              />
+            </ToolModeProvider>
+          </div>
+          <CommonFooter />
         </div>
-        <CommonFooter />
-      </div>
+      </CanvasViewsContext.Provider>
     </StudioContext.Provider>
   );
 }

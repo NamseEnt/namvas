@@ -44,9 +44,31 @@ export function CrossTextureMinimap() {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d")!;
 
-      // 캔버스 크기 설정
-      canvas.width = 200;
-      canvas.height = 200;
+      // 십자형 텍스처의 실제 크기 계산
+      const pixelScale = 4000;
+      const frontWidth = canvasProductSize.width * pixelScale;
+      const frontHeight = canvasProductSize.height * pixelScale;
+      const thickness = canvasProductSize.depth * pixelScale;
+      const textureWidth = frontWidth + thickness * 2;
+      const textureHeight = frontHeight + thickness * 2;
+      
+      // 종횡비 유지하며 캔버스 크기 조정 (최대 200x200)
+      const maxSize = 200;
+      const aspectRatio = textureWidth / textureHeight;
+      
+      let canvasWidth, canvasHeight;
+      if (aspectRatio > 1) {
+        // 가로가 더 긴 경우
+        canvasWidth = maxSize;
+        canvasHeight = maxSize / aspectRatio;
+      } else {
+        // 세로가 더 긴 경우
+        canvasWidth = maxSize * aspectRatio;
+        canvasHeight = maxSize;
+      }
+      
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
 
       // 배경 지우기
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -71,10 +93,9 @@ export function CrossTextureMinimap() {
 
       // 십자형 구조의 테두리와 가이드라인 그리기
       // createCrossTexture와 동일한 비율 사용
-      const pixelScale = 4000;
-      const frontWidth = canvasProductSize.width * pixelScale * scale;
-      const frontHeight = canvasProductSize.height * pixelScale * scale;
-      const sideThickness = canvasProductSize.depth * pixelScale * scale;
+      const frontWidthScaled = canvasProductSize.width * pixelScale * scale;
+      const frontHeightScaled = canvasProductSize.height * pixelScale * scale;
+      const sideThicknessScaled = canvasProductSize.depth * pixelScale * scale;
       
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
@@ -86,42 +107,42 @@ export function CrossTextureMinimap() {
       
       // 1. 상단 면 (점선)
       ctx.strokeRect(
-        centerX - frontWidth / 2,
-        centerY - frontHeight / 2 - sideThickness,
-        frontWidth,
-        sideThickness
+        centerX - frontWidthScaled / 2,
+        centerY - frontHeightScaled / 2 - sideThicknessScaled,
+        frontWidthScaled,
+        sideThicknessScaled
       );
       
       // 2. 하단 면 (점선)
       ctx.strokeRect(
-        centerX - frontWidth / 2,
-        centerY + frontHeight / 2,
-        frontWidth,
-        sideThickness
+        centerX - frontWidthScaled / 2,
+        centerY + frontHeightScaled / 2,
+        frontWidthScaled,
+        sideThicknessScaled
       );
       
       // 3. 좌측 면 (점선)
       ctx.strokeRect(
-        centerX - frontWidth / 2 - sideThickness,
-        centerY - frontHeight / 2,
-        sideThickness,
-        frontHeight
+        centerX - frontWidthScaled / 2 - sideThicknessScaled,
+        centerY - frontHeightScaled / 2,
+        sideThicknessScaled,
+        frontHeightScaled
       );
       
       // 4. 우측 면 (점선)
       ctx.strokeRect(
-        centerX + frontWidth / 2,
-        centerY - frontHeight / 2,
-        sideThickness,
-        frontHeight
+        centerX + frontWidthScaled / 2,
+        centerY - frontHeightScaled / 2,
+        sideThicknessScaled,
+        frontHeightScaled
       );
       
       // 5. 정면 (점선)
       ctx.strokeRect(
-        centerX - frontWidth / 2,
-        centerY - frontHeight / 2,
-        frontWidth,
-        frontHeight
+        centerX - frontWidthScaled / 2,
+        centerY - frontHeightScaled / 2,
+        frontWidthScaled,
+        frontHeightScaled
       );
       
       // 점선 스타일 해제
@@ -141,7 +162,7 @@ export function CrossTextureMinimap() {
         <canvas
           ref={canvasRef}
           className="border border-gray-200 rounded"
-          style={{ width: "200px", height: "200px" }}
+          style={{ maxWidth: "200px", maxHeight: "200px" }}
         />
       </div>
     </div>

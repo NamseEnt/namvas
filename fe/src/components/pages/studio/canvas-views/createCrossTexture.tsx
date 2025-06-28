@@ -32,7 +32,8 @@ export function createCrossTexture({
   const texturePattern = ctx.createPattern(canvasTextureImg, "repeat")!;
   ctx.save();
   ctx.fillStyle = texturePattern;
-  ctx.globalAlpha = 0.3;
+  ctx.globalAlpha = 0.15;
+  ctx.filter = "brightness(1.3) blur(0.5px)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.restore();
 
