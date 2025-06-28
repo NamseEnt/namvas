@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "bun run src/dev-server.ts",
     "build": "bun build src/lambda/index.ts --outdir dist --target node --minify",
-    "build:llrt": "esbuild src/lambda/index.ts --platform=browser --target=es2023 --format=esm --bundle --minify --external:@aws-sdk --external:@smithy --external:bun:sqlite --external:../db/src/LocalDBDocument --outfile=dist/index.js --metafile=dist/meta.json",
+    "build:llrt": "esbuild src/lambda/index.ts --platform=browser --target=es2023 --format=esm --bundle --minify --external:@aws-sdk/* --external:@smithy/* --external:bun:sqlite --external:db --outfile=dist/index.js --metafile=dist/meta.json",
+    "build:tests": "esbuild tests/*.test.ts --platform=browser --target=es2023 --format=esm --bundle --external:bun:test --external:db --outdir=dist/tests --entry-names=[name]",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "test": "bun test",

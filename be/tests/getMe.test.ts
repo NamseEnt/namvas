@@ -1,8 +1,9 @@
-import { test, expect } from "bun:test";
+import { test, expect } from "../src/utils/test-runner";
 import { getMe } from "../src/handlers/getMe";
 
 test("getMe handler - success response", async () => {
-  const result = await getMe({});
+  const mockReq = { cookies: new Map() };
+  const result = await getMe({}, mockReq);
   
   expect(result).toMatchObject({
     ok: true,
@@ -11,7 +12,8 @@ test("getMe handler - success response", async () => {
 });
 
 test("getMe handler - type safety", async () => {
-  const result = await getMe({});
+  const mockReq = { cookies: new Map() };
+  const result = await getMe({}, mockReq);
   
   if (result.ok) {
     expect(typeof result.tosAgreed).toBe("boolean");
@@ -21,7 +23,8 @@ test("getMe handler - type safety", async () => {
 });
 
 test("getMe handler - returns tosAgreed false by default", async () => {
-  const result = await getMe({});
+  const mockReq = { cookies: new Map() };
+  const result = await getMe({}, mockReq);
   
   if (result.ok) {
     expect(result.tosAgreed).toBe(false);

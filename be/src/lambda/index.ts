@@ -1,12 +1,19 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-lambda";
+import {
+  APIGatewayProxyEvent,
+  APIGatewayProxyResult,
+  Context,
+} from "aws-lambda";
 import { routes } from "../routes";
 
-export const handler = async (event: APIGatewayProxyEvent, _context: Context): Promise<APIGatewayProxyResult> => {
+export const handler = async (
+  event: APIGatewayProxyEvent,
+  _context: Context
+): Promise<APIGatewayProxyResult> => {
   try {
     // Handle API Gateway events
     if (event.httpMethod && event.path) {
       const endpoint = event.path.slice(1); // Remove leading /
-      
+
       if (event.httpMethod === "GET" && endpoint === "health") {
         return {
           statusCode: 200,
@@ -18,7 +25,10 @@ export const handler = async (event: APIGatewayProxyEvent, _context: Context): P
         };
       }
 
-      if (event.httpMethod === "POST" && Object.keys(routes).includes(endpoint)) {
+      if (
+        event.httpMethod === "POST" &&
+        Object.keys(routes).includes(endpoint)
+      ) {
         let reqBody = {};
         if (event.body) {
           try {
@@ -43,16 +53,16 @@ export const handler = async (event: APIGatewayProxyEvent, _context: Context): P
         const cookies = new Map<string, string>();
         // Parse cookies from event headers
         if (event.headers?.Cookie) {
-          event.headers.Cookie.split(';').forEach((cookie: string) => {
-            const [key, value] = cookie.trim().split('=');
+          event.headers.Cookie.split(";").forEach((cookie: string) => {
+            const [key, value] = cookie.trim().split("=");
             if (key && value) {
               cookies.set(key, value);
             }
           });
         }
-        
-        const result = await handler(reqBody, { cookies });
-        
+
+        const result = await handler(reqBody as any, { cookies });
+
         return {
           statusCode: 200,
           headers: {
@@ -93,12 +103,11 @@ export const handler = async (event: APIGatewayProxyEvent, _context: Context): P
       statusCode: 200,
       body: JSON.stringify({ message: "Event processed" }),
     };
-    
   } catch (error) {
     console.error("Lambda Error:", error);
     return {
       statusCode: 500,
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },

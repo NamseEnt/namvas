@@ -25,15 +25,15 @@ const server = Bun.serve({
         // Parse cookies from request headers
         const cookieHeader = request.headers.get("cookie");
         if (cookieHeader) {
-          cookieHeader.split(';').forEach((cookie: string) => {
-            const [key, value] = cookie.trim().split('=');
+          cookieHeader.split(";").forEach((cookie: string) => {
+            const [key, value] = cookie.trim().split("=");
             if (key && value) {
               cookies.set(key, value);
             }
           });
         }
-        
-        const result = await handler(reqBody, { cookies });
+
+        const result = await handler(reqBody as any, { cookies });
 
         return new Response(JSON.stringify(result), {
           status: 200,
