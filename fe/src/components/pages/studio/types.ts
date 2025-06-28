@@ -14,3 +14,8 @@ export type SideProcessing =
     };
 
 export const sideProcessingTypes = ["none", "clip", "color", "flip"] as const;
+
+export const CAMERA_ROTATION_LIMITS = {
+  maxXRotation: 25,
+  maxYRotation: 45,
+} as const;

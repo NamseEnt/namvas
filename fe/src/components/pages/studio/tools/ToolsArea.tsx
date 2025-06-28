@@ -4,6 +4,7 @@ import { ImageUploadTool } from "./ImageUploadTool";
 import { ImageSizeTool } from "./ImageSizeTool";
 import { ImagePositionTool } from "./ImagePositionTool";
 import { SideProcessingTool } from "./SideProcessingTool";
+import { CameraRotationTool } from "./CameraRotationTool";
 
 type ToolsAreaProps = {
   viewTools: React.ReactNode;
@@ -28,12 +29,18 @@ export function ToolsArea({ viewTools, imageTools, backgroundTools }: ToolsAreaP
 
       case "view":
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-3">
                 3D 뷰 각도 조절
               </h3>
               {viewTools}
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                카메라 회전 조절
+              </h3>
+              <CameraRotationTool />
             </div>
           </div>
         );

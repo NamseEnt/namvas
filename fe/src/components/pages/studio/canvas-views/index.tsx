@@ -38,9 +38,11 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { useStudioContext, useCanvasViewsContext } from "..";
+import { CAMERA_ROTATION_LIMITS } from "../types";
 import { UploadPromptBox } from "./UploadPromptBox";
 import { createCrossTexture } from "./createCrossTexture";
 import { CrossTextureMinimap } from "./CrossTextureMinimap";
+import { CameraRotationButtons } from "./CameraRotationButtons";
 
 
 export default function CanvasViews() {
@@ -110,8 +112,8 @@ function PerspectiveCollage() {
     const newRotationY = state.rotation.y + deltaX * sensitivity;
 
     // 뒷면이 보이지 않도록 자연스럽게 제한
-    const maxXRotation = 25;
-    const maxYRotation = 45;
+    const maxXRotation = CAMERA_ROTATION_LIMITS.maxXRotation;
+    const maxYRotation = CAMERA_ROTATION_LIMITS.maxYRotation;
 
     // 부드러운 제한을 위한 비선형 함수 적용
     const limitRotation = (value: number, max: number) => {
@@ -215,6 +217,7 @@ function PerspectiveCollage() {
         />
       </Canvas>
       <CrossTextureMinimap />
+      <CameraRotationButtons />
     </div>
   );
 }

@@ -52,8 +52,8 @@ export function CrossTextureMinimap() {
       const textureWidth = frontWidth + thickness * 2;
       const textureHeight = frontHeight + thickness * 2;
       
-      // 종횡비 유지하며 캔버스 크기 조정 (최대 200x200)
-      const maxSize = 200;
+      // 종횡비 유지하며 캔버스 크기 조정 (최대 160x160)
+      const maxSize = 160;
       const aspectRatio = textureWidth / textureHeight;
       
       let canvasWidth, canvasHeight;
@@ -162,7 +162,7 @@ export function CrossTextureMinimap() {
         <canvas
           ref={canvasRef}
           className="border border-gray-200 rounded"
-          style={{ maxWidth: "200px", maxHeight: "200px" }}
+          style={{ maxWidth: "160px", maxHeight: "160px" }}
         />
       </div>
     </div>
