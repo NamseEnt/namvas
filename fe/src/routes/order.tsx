@@ -97,40 +97,39 @@ export default function OrderPage() {
               <CardTitle>주문 내역</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                <div className="flex justify-center">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
-                    <CanvasView angle="front" textureUrl={textureUrl} className="h-56 md:h-72 w-56 md:w-72 mx-auto" />
-                    <CanvasView angle="rightBottomUp" textureUrl={textureUrl} className="h-56 md:h-72 w-56 md:w-72 mx-auto" />
-                    <CanvasView angle="leftTopDown" textureUrl={textureUrl} className="h-56 md:h-72 w-56 md:w-72 mx-auto" />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* 왼쪽: 캔버스 미리보기 (2/3) */}
+                <div className="lg:col-span-2 flex justify-center">
+                  <div className="flex gap-4">
+                    <CanvasView angle="front" textureUrl={textureUrl} className="h-56 w-42" />
+                    <CanvasView angle="rightBottomUp" textureUrl={textureUrl} className="h-56 w-42" />
+                    <CanvasView angle="leftTopDown" textureUrl={textureUrl} className="h-56 w-42" />
                   </div>
                 </div>
-                
+
+                {/* 오른쪽: 제품 정보 및 옵션 (1/3) */}
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold">10x15cm 커스텀 캔버스</h3>
                     <p className="text-gray-600">최종 디자인</p>
                   </div>
 
-                  <div className="max-w-lg mx-auto space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium mb-2 text-gray-700">추가 옵션</h4>
-                      <div className="flex items-center space-x-2 justify-center">
-                        <Checkbox
-                          id="plastic-stand"
-                          checked={orderState.hasPlasticStand}
-                          onCheckedChange={(checked) =>
-                            updateOrderState({ hasPlasticStand: checked as boolean })
-                          }
-                        />
-                        <Label htmlFor="plastic-stand" className="text-sm font-medium">
-                          다이소 플라스틱 받침대 추가 (+{plasticStandPrice}원)
-                        </Label>
-                      </div>
+                  <div className="space-y-3 ml-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="plastic-stand"
+                        checked={orderState.hasPlasticStand}
+                        onCheckedChange={(checked) =>
+                          updateOrderState({ hasPlasticStand: checked as boolean })
+                        }
+                      />
+                      <Label htmlFor="plastic-stand" className="text-sm font-medium">
+                        다이소 플라스틱 받침대 추가 (+{plasticStandPrice}원)
+                      </Label>
                     </div>
 
-                    <div className="text-center space-y-2">
-                      <div className="flex items-center justify-center gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
                         <span className="text-sm font-medium">수량</span>
                         <div className="flex items-center border rounded-md">
                           <Button
@@ -163,7 +162,7 @@ export default function OrderPage() {
                           </Button>
                         </div>
                       </div>
-                      <p className="text-xl font-bold text-blue-600">{(subtotal + optionPrice).toLocaleString()}원</p>
+                      <p className="text-xl font-bold text-gray-800">{(subtotal + optionPrice).toLocaleString()}원</p>
                     </div>
                   </div>
                 </div>
