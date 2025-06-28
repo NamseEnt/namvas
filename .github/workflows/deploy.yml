@@ -53,6 +53,11 @@ jobs:
         npm ci
     
     # Run tests
+    - name: Run backend linting (LLRT compatibility check)
+      run: |
+        cd be
+        bun run lint
+    
     - name: Run backend tests
       run: |
         cd be

@@ -1,30 +1,5 @@
+import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-lambda";
 import { routes } from "../routes";
-
-interface APIGatewayProxyEvent {
-  httpMethod: string;
-  path: string;
-  headers: { [name: string]: string | undefined };
-  body: string | null;
-  queryStringParameters: { [name: string]: string | undefined } | null;
-}
-
-interface APIGatewayProxyResult {
-  statusCode: number;
-  headers?: { [header: string]: boolean | number | string };
-  body: string;
-}
-
-interface Context {
-  callbackWaitsForEmptyEventLoop: boolean;
-  functionName: string;
-  functionVersion: string;
-  invokedFunctionArn: string;
-  memoryLimitInMB: string;
-  awsRequestId: string;
-  logGroupName: string;
-  logStreamName: string;
-  getRemainingTimeInMillis(): number;
-}
 
 export const handler = async (event: APIGatewayProxyEvent, _context: Context): Promise<APIGatewayProxyResult> => {
   try {

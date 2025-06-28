@@ -22,6 +22,17 @@ This is a React 19 application built with:
 - **Tailwind CSS + shadcn/ui** for styling and UI components
 - **Vitest** for testing with jsdom environment
 
+### Backend LLRT Compatibility
+
+⚠️ **IMPORTANT**: Backend runs on LLRT (Low Latency Runtime). When working with backend code:
+
+- **NEVER use Node.js built-in modules**: `fs`, `path`, `crypto`, `buffer`, `stream`, etc.
+- **NEVER use Bun-specific modules**: `bun:sqlite`, `bun:serve`, etc.
+- **NEVER use**: `Buffer`, `__dirname`, `__filename`, `require()`
+- **Only use**: Web APIs, ES2023 features, AWS SDK, `process.env`
+- **ESLint will catch violations**: Run `bun run lint` in `be/` directory
+- **Reference**: See `be/docs/LLRT-COMPATIBILITY.md` for full guide
+
 ### Routing Structure
 
 - Uses TanStack Router with file-based routing in `src/routes/`
