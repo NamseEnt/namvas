@@ -43,6 +43,7 @@ import { UploadPromptBox } from "./UploadPromptBox";
 import { createCrossTexture } from "./createCrossTexture";
 import { CrossTextureMinimap } from "./CrossTextureMinimap";
 import { CameraRotationButtons } from "./CameraRotationButtons";
+import { backgroundOptions } from "../constants/backgroundOptions";
 
 
 export default function CanvasViews() {
@@ -61,7 +62,7 @@ export default function CanvasViews() {
 
 function PerspectiveCollage() {
   const { state, updateState } = useCanvasViewsContext();
-  const { handleImageUpload } = useStudioContext();
+  const { handleImageUpload, state: studioState } = useStudioContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
   const lastMousePosition = useRef({ x: 0, y: 0 });
@@ -174,9 +175,15 @@ function PerspectiveCollage() {
     return () => document.removeEventListener("mouseup", handleGlobalMouseUp);
   }, []);
 
+  // 선택된 배경 스타일 가져오기
+  const selectedBackground = backgroundOptions.find(
+    (option) => option.value === studioState.canvasBackgroundColor
+  );
+
   return (
     <div
       className="w-full h-full relative cursor-grab active:cursor-grabbing"
+      style={selectedBackground?.style || {}}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

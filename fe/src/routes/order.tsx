@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,15 +7,32 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import CanvasView from '@/components/CanvasView';
+import { X, ArrowLeft } from 'lucide-react';
+import { type ArtworkDefinition } from '@/types/artwork';
+import { 
+  getArtworkFromStorage, 
+  getTextureFromStorage 
+} from '@/utils/storageManager';
 
 declare global {
   interface Window {
-    daum: any;
+    daum: {
+      Postcode: new (options: {
+        oncomplete: (data: {
+          userSelectedType: string;
+          roadAddress: string;
+          jibunAddress: string;
+          zonecode: string;
+        }) => void;
+      }) => {
+        open: () => void;
+      };
+    };
   }
 }
 
 const orderSearchSchema = {
-  texture: {
+  fromStudio: {
     optional: true,
   } as const,
 };
@@ -26,7 +43,19 @@ export const Route = createFileRoute('/order')({
 });
 
 export default function OrderPage() {
-  const { texture: textureUrl } = Route.useSearch();
+  const navigate = useNavigate();
+  const { fromStudio } = Route.useSearch();
+  
+  // Get data from storage if coming from studio
+  const [artworkDefinition, setArtworkDefinition] = useState<ArtworkDefinition | null>(null);
+  const [textureUrl, setTextureUrl] = useState<string | null>(null);
+  
+  useEffect(function loadDataFromStorage() {
+    if (fromStudio) {
+      getArtworkFromStorage().then(setArtworkDefinition);
+      getTextureFromStorage().then(setTextureUrl);
+    }
+  }, [fromStudio]);
   
   const [orderState, setOrderState] = useState<OrderState>({
     quantity: 1,
@@ -62,7 +91,29 @@ export default function OrderPage() {
   const totalPrice = subtotal + optionPrice + shippingFee;
 
   const handlePayment = () => {
-    console.log('네이버페이 결제 진행');
+    const orderId = "ORDER-" + Date.now().toString();
+    navigate({ 
+      to: "/order-complete", 
+      search: { 
+        orderId,
+        amount: totalPrice.toString()
+      } 
+    });
+  };
+
+  const handleBackToStudio = () => {
+    if (artworkDefinition) {
+      // Navigate back to studio (data already in localStorage)
+      navigate({
+        to: '/studio',
+        search: {
+          artwork: true, // Just a trigger to load from localStorage
+        },
+      });
+    } else {
+      // No artwork definition available, just go to studio
+      navigate({ to: '/studio' });
+    }
   };
 
   const searchAddress = () => {
@@ -72,7 +123,7 @@ export default function OrderPage() {
     }
 
     new window.daum.Postcode({
-      oncomplete: function(data: any) {
+      oncomplete: function(data) {
         const addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
         
         updateOrderState({
@@ -87,7 +138,19 @@ export default function OrderPage() {
 
   return (
     <div className="container mx-auto max-w-7xl p-4">
-      <h1 className="text-3xl font-bold mb-6">주문/결제</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">주문/결제</h1>
+        {artworkDefinition && (
+          <Button
+            onClick={handleBackToStudio}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            편집 화면으로 돌아가기
+          </Button>
+        )}
+      </div>
 
       <div className="space-y-8">
         {/* 상단: 상품 정보 (전체 폭) */}
@@ -287,7 +350,43 @@ export default function OrderPage() {
           </div>
         </div>
       </div>
+      <div className="mt-16">
+        <PageFooter />
+      </div>
     </div>
+  );
+}
+
+function PageFooter() {
+  return (
+    <footer className="border-t bg-card">
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex justify-center items-center gap-8">
+          <a
+            href="https://x.com/messages/compose?recipient_id=NAMVAS_X_ID"
+            className="text-muted-foreground hover:text-sky-600 transition-colors"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <X className="w-5 h-5" />
+          </a>
+          <div className="flex gap-6 text-sm">
+            <a
+              href="/terms"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              서비스 이용약관
+            </a>
+            <a
+              href="/privacy"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              개인정보처리방침
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 }
 

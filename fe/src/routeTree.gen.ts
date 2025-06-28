@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsAgreementRouteImport } from './routes/terms-agreement'
+import { Route as OrderCompleteRouteImport } from './routes/order-complete'
 import { Route as OrderRouteImport } from './routes/order'
+import { Route as MyRouteImport } from './routes/my'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioIndexRouteImport } from './routes/studio/index'
 
@@ -19,9 +21,19 @@ const TermsAgreementRoute = TermsAgreementRouteImport.update({
   path: '/terms-agreement',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrderCompleteRoute = OrderCompleteRouteImport.update({
+  id: '/order-complete',
+  path: '/order-complete',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrderRoute = OrderRouteImport.update({
   id: '/order',
   path: '/order',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyRoute = MyRouteImport.update({
+  id: '/my',
+  path: '/my',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -37,34 +49,61 @@ const StudioIndexRoute = StudioIndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/my': typeof MyRoute
   '/order': typeof OrderRoute
+  '/order-complete': typeof OrderCompleteRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/studio': typeof StudioIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/my': typeof MyRoute
   '/order': typeof OrderRoute
+  '/order-complete': typeof OrderCompleteRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/studio': typeof StudioIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/my': typeof MyRoute
   '/order': typeof OrderRoute
+  '/order-complete': typeof OrderCompleteRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/studio/': typeof StudioIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/order' | '/terms-agreement' | '/studio'
+  fullPaths:
+    | '/'
+    | '/my'
+    | '/order'
+    | '/order-complete'
+    | '/terms-agreement'
+    | '/studio'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/order' | '/terms-agreement' | '/studio'
-  id: '__root__' | '/' | '/order' | '/terms-agreement' | '/studio/'
+  to:
+    | '/'
+    | '/my'
+    | '/order'
+    | '/order-complete'
+    | '/terms-agreement'
+    | '/studio'
+  id:
+    | '__root__'
+    | '/'
+    | '/my'
+    | '/order'
+    | '/order-complete'
+    | '/terms-agreement'
+    | '/studio/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MyRoute: typeof MyRoute
   OrderRoute: typeof OrderRoute
+  OrderCompleteRoute: typeof OrderCompleteRoute
   TermsAgreementRoute: typeof TermsAgreementRoute
   StudioIndexRoute: typeof StudioIndexRoute
 }
@@ -78,11 +117,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsAgreementRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/order-complete': {
+      id: '/order-complete'
+      path: '/order-complete'
+      fullPath: '/order-complete'
+      preLoaderRoute: typeof OrderCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/order': {
       id: '/order'
       path: '/order'
       fullPath: '/order'
       preLoaderRoute: typeof OrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my': {
+      id: '/my'
+      path: '/my'
+      fullPath: '/my'
+      preLoaderRoute: typeof MyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -104,7 +157,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MyRoute: MyRoute,
   OrderRoute: OrderRoute,
+  OrderCompleteRoute: OrderCompleteRoute,
   TermsAgreementRoute: TermsAgreementRoute,
   StudioIndexRoute: StudioIndexRoute,
 }

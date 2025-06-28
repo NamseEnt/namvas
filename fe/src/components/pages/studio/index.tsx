@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { LeftPreviewArea } from "./LeftPreviewArea";
 import { type SideProcessing } from "./types";
+import { createCrossTexture } from "./canvas-views/createCrossTexture";
 import { 
   ToolModeProvider, 
   ModeSelector, 
@@ -10,6 +11,13 @@ import {
 } from "./tools";
 import { ResponsiveStudioLayout } from "./ResponsiveStudioLayout";
 import { Button } from "@/components/ui/button";
+import { useNavigate, useSearch } from '@tanstack/react-router';
+import { type ArtworkDefinition } from "@/types/artwork";
+import { 
+  saveArtworkToStorage, 
+  saveTextureToStorage,
+  getArtworkFromStorage 
+} from "@/utils/storageManager";
 
 export type StudioState = {
   uploadedImage: HTMLImageElement | null;
@@ -57,6 +65,21 @@ export const useCanvasViewsContext = () => {
 };
 
 export default function StudioPage() {
+  const navigate = useNavigate();
+  const search = useSearch({ from: '/studio/' });
+  
+  // Track if we've already restored from localStorage
+  const [hasRestoredFromStorage, setHasRestoredFromStorage] = useState(false);
+  
+  // Get artwork from storage (search params used only as a trigger)
+  const [artworkDefinition, setArtworkDefinition] = useState<ArtworkDefinition | null>(null);
+  
+  useEffect(function loadArtworkFromStorage() {
+    if (search.artwork && !hasRestoredFromStorage) {
+      getArtworkFromStorage().then(setArtworkDefinition);
+    }
+  }, [search.artwork, hasRestoredFromStorage]);
+
   const [state, setState] = useState<StudioState>({
     uploadedImage: null,
     imageDataUrl: null,
@@ -72,9 +95,20 @@ export default function StudioPage() {
     rotation: { x: 0, y: 0 },
   });
 
+  const [canvasTextureImg, setCanvasTextureImg] = useState<HTMLImageElement | null>(null);
+
   const updateState = useCallback((updates: Partial<StudioState>) => {
     setState((prev) => ({ ...prev, ...updates }));
   }, []);
+
+  const loadCanvasTexture = useCallback(() => {
+    if (canvasTextureImg) {
+      return;
+    }
+    const img = new Image();
+    img.onload = () => setCanvasTextureImg(img);
+    img.src = "./canvas-texture.jpg";
+  }, [canvasTextureImg]);
 
   const updateCanvasViewsState = useCallback((updates: Partial<CanvasViewsState>) => {
     setCanvasViewsState((prev) => ({ ...prev, ...updates }));
@@ -125,8 +159,91 @@ export default function StudioPage() {
   );
 
   const handleOrder = useCallback(async () => {
-    // TODO
-  }, []);
+    if (!state.uploadedImage || !state.imageDataUrl) {
+      return;
+    }
+
+    // Ensure canvas texture is loaded
+    if (!canvasTextureImg) {
+      loadCanvasTexture();
+      // Wait a bit for texture to load
+      const img = new Image();
+      img.onload = () => {
+        setCanvasTextureImg(img);
+        // Retry order after texture loads
+        setTimeout(() => handleOrder(), 50);
+      };
+      img.src = "./canvas-texture.jpg";
+      return;
+    }
+
+    try {
+      // Create artwork definition
+      const artworkDefinition: ArtworkDefinition = {
+        originalImageDataUrl: state.imageDataUrl,
+        mmPerPixel: state.mmPerPixel,
+        imageCenterXy: state.imageCenterXy,
+        sideProcessing: state.sideProcessing,
+        canvasBackgroundColor: state.canvasBackgroundColor,
+      };
+
+      // Save artwork to storage
+      await saveArtworkToStorage(artworkDefinition);
+
+      // Create cross texture for preview
+      const crossTexture = createCrossTexture({
+        uploadedImage: state.uploadedImage,
+        mmPerPixel: state.mmPerPixel,
+        imageCenterXy: state.imageCenterXy,
+        sideProcessing: state.sideProcessing,
+        canvasTextureImg: canvasTextureImg,
+      });
+
+      // Convert Three.js texture to data URL
+      const canvas = crossTexture.image as HTMLCanvasElement;
+      const textureDataUrl = canvas.toDataURL('image/png', 0.9);
+
+      // Save texture to storage
+      await saveTextureToStorage(textureDataUrl);
+
+      // Navigate to order page (just as a trigger, no data in URL)
+      navigate({
+        to: '/order',
+        search: {
+          fromStudio: true,
+        },
+      });
+    } catch (error) {
+      console.error('Error creating artwork for order:', error);
+    }
+  }, [state, canvasTextureImg, loadCanvasTexture, navigate]);
+
+  useEffect(function preloadCanvasTexture() {
+    loadCanvasTexture();
+  }, [loadCanvasTexture]);
+
+  useEffect(function restoreArtworkFromSearch() {
+    if (artworkDefinition && !hasRestoredFromStorage) {
+      // Restore artwork state from localStorage
+      const img = new Image();
+      img.onload = () => {
+        setState({
+          uploadedImage: img,
+          imageDataUrl: artworkDefinition.originalImageDataUrl,
+          mmPerPixel: artworkDefinition.mmPerPixel,
+          imageCenterXy: artworkDefinition.imageCenterXy,
+          sideProcessing: artworkDefinition.sideProcessing,
+          canvasBackgroundColor: artworkDefinition.canvasBackgroundColor,
+        });
+        // Mark as restored to prevent re-running
+        setHasRestoredFromStorage(true);
+        
+        // Remove artwork param from URL to prevent re-renders
+        navigate({ to: '/studio', search: {}, replace: true });
+      };
+      img.src = artworkDefinition.originalImageDataUrl;
+    }
+  }, [artworkDefinition, hasRestoredFromStorage, navigate]);
 
   return (
     <StudioContext.Provider
@@ -170,21 +287,8 @@ export default function StudioPage() {
               />
             </ToolModeProvider>
           </div>
-          <CommonFooter />
         </div>
       </CanvasViewsContext.Provider>
     </StudioContext.Provider>
-  );
-}
-
-function CommonFooter() {
-  return (
-    <footer className="bg-card border-t border-border py-4">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center text-sm text-muted-foreground">
-          © 2024 NAMVAS. All rights reserved.
-        </div>
-      </div>
-    </footer>
   );
 }

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,6 +34,7 @@ const useHomePageContext = () => {
 };
 
 function HomePage() {
+  const navigate = useNavigate();
   const [state, setState] = useState<HomePageState>({
     isLoginModalOpen: false,
   });
@@ -47,13 +48,11 @@ function HomePage() {
   };
 
   const handleGoogleLogin = () => {
-    console.log("Google login clicked");
-    updateState({ isLoginModalOpen: false });
+    navigate({ to: "/studio" });
   };
 
   const handleXLogin = () => {
-    console.log("X login clicked");
-    updateState({ isLoginModalOpen: false });
+    navigate({ to: "/studio" });
   };
 
   return (
@@ -129,7 +128,7 @@ function ProductShowcase() {
     <div className="flex justify-center mb-8">
       <div className="relative">
         <div
-          className="w-80 h-52 bg-amber-800 rounded-lg p-3 shadow-2xl transform perspective-1000"
+          className="w-52 h-80 bg-amber-800 rounded-lg p-3 shadow-2xl transform perspective-1000"
           style={{
             transform: "perspective(400px) rotateX(5deg) rotateY(-5deg)",
           }}
