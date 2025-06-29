@@ -4,6 +4,7 @@ import { getSession, isLoggedIn } from "./session";
 import { ApiRequest } from "./types";
 import { ddb } from "./__generated/db";
 import { loginWithGoogle } from "./api/loginWithGoogle";
+import { loginWithTwitter } from "./api/loginWithTwitter";
 
 export const apis: Apis = {
   getMe: async ({}, req) => {
@@ -27,9 +28,7 @@ export const apis: Apis = {
     return { ok: true };
   },
   loginWithGoogle,
-  loginWithTwitter: async ({}, req) => {
-    throw new Error("not implemented");
-  },
+  loginWithTwitter,
   createOrder: async ({}, req) => {
     throw new Error("not implemented");
   },
