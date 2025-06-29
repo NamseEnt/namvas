@@ -5,7 +5,7 @@ import { join } from "path";
 import * as esbuild from "esbuild";
 
 const PORT = process.env.PORT || 3002;
-const LLRT_PATH = process.env.LLRT_PATH || "./llrt";
+const LLRT_PATH = process.env.LLRT_PATH || "../llrt";
 const BE_PATH = process.env.BE_PATH || "../be";
 
 interface PendingRequest {
@@ -19,12 +19,9 @@ let esbuildContext: esbuild.BuildContext | null = null;
 
 async function checkLLRT(): Promise<boolean> {
   if (!existsSync(LLRT_PATH)) {
-    console.warn(`LLRT not found at ${LLRT_PATH}`);
-    console.warn(
-      "Please install LLRT from https://github.com/awslabs/llrt/releases"
-    );
-    console.warn("Running in test mode without LLRT");
-    return true; // Continue in test mode
+    console.error(`LLRT binary not found at ${LLRT_PATH}`);
+    console.error("Please run 'bun download-llrt.ts' from the root directory to download LLRT");
+    throw new Error("LLRT binary is required but not found");
   }
   return true;
 }
@@ -172,7 +169,10 @@ const server = serve({
 
 console.log(`Local Lambda Emulator running on http://localhost:${PORT}`);
 
-if (!(await checkLLRT())) {
+try {
+  await checkLLRT();
+} catch (error) {
+  console.error("Failed to initialize:", error.message);
   process.exit(1);
 }
 

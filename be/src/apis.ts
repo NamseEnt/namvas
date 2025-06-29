@@ -1,10 +1,28 @@
 import { ApiSpec } from "shared";
-import { isLoggedIn } from "./session/isLoggedIn";
+import { getSession, isLoggedIn } from "./session";
 import { ApiRequest } from "./types";
+import { ddb } from "db";
 
 export const apis: Apis = {
   getMe: async ({}, req) => {
-    throw new Error("not implemented");
+    const session = await getSession(req);
+    if (!session) {
+      return { ok: false, reason: "NOT_LOGGED_IN" };
+    }
+    const user = await ddb.getUser({ id: session.userId });
+    if (!user) {
+      return { ok: false, reason: "NOT_LOGGED_IN" };
+    }
+    return { ok: true, tosAgreed: user.tosAgreed };
+  },
+  logOut: async ({}, req) => {
+    const session = await getSession(req);
+    if (!session) {
+      return { ok: true };
+    }
+    await ddb.deleteSession({ id: session.id });
+    delete req.cookies.sessionId;
+    return { ok: true };
   },
   loginWithGoogle: async ({}, req) => {
     throw new Error("not implemented");

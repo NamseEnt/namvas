@@ -13,6 +13,12 @@ export type ApiSpec = {
           reason: "NOT_LOGGED_IN";
         };
   };
+  logOut: {
+    req: {};
+    res: {
+      ok: true;
+    };
+  };
   loginWithGoogle: {
     req: {
       authorizationCode: string;
@@ -175,7 +181,7 @@ export type ApiSpec = {
           ok: true;
           users: Array<{
             id: string;
-            joinDate: string;
+            joinedAt: string;
             orders: Order[];
           }>;
           total: number;

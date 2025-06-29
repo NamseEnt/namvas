@@ -1,7 +1,10 @@
 import { SchemaEvolution, DocumentDefinition } from './evolution-types.js';
 
 export function generateEvolutionCRUD(evolution: SchemaEvolution): string {
-  let output = `import { dbClient } from './index.js';
+  let output = `import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+
+const client = DynamoDBDocument.from(new DynamoDBClient());
 
 `;
 
@@ -9,7 +12,11 @@ export function generateEvolutionCRUD(evolution: SchemaEvolution): string {
   output += generateTypeDefinitions(evolution);
   output += '\n\n';
 
-  // Generate CRUD functions for each document
+  // Generate ddb object with CRUD functions
+  output += 'export const ddb = {\n';
+  
+  const functions: string[] = [];
+  
   for (const [docName, docDef] of evolution.documents) {
     const typeName = capitalizeFirst(docName);
     const pkField = findPrimaryKeyField(docDef);
@@ -20,13 +27,17 @@ export function generateEvolutionCRUD(evolution: SchemaEvolution): string {
     }
 
     // Generate get function with migration
-    output += generateGetFunction(docName, typeName, pkField);
-    output += '\n\n';
+    functions.push(generateGetFunction(docName, typeName, pkField));
 
     // Generate put function
-    output += generatePutFunction(docName, typeName, evolution.currentVersion);
-    output += '\n\n';
+    functions.push(generatePutFunction(docName, typeName, evolution.currentVersion));
+
+    // Generate delete function
+    functions.push(generateDeleteFunction(docName, typeName, pkField));
   }
+  
+  output += functions.join(',\n\n');
+  output += '\n};\n';
 
   return output;
 }
@@ -52,40 +63,51 @@ function generateTypeDefinitions(evolution: SchemaEvolution): string {
 }
 
 function generateGetFunction(docName: string, typeName: string, pkField: any): string {
-  return `export async function get${typeName}({${pkField.name}}: {${pkField.name}: ${getTypeScriptType(pkField.type)}}): Promise<Docs['${docName}'] | undefined> {
-  const result = await dbClient.get({
-    TableName: 'main',
-    Key: {
-      $p: \`${docName}/id=\${${pkField.name}}\`,
-      $s: '_'
+  return `  async get${typeName}({${pkField.name}}: {${pkField.name}: ${getTypeScriptType(pkField.type)}}): Promise<Docs['${docName}'] | undefined> {
+    const result = await client.get({
+      TableName: 'main',
+      Key: {
+        $p: \`${docName}/id=\${${pkField.name}}\`,
+        $s: '_'
+      }
+    });
+    
+    if (!result.Item) {
+      return undefined;
     }
-  });
-  
-  if (!result.Item) {
-    return undefined;
-  }
-  
-  // Apply migrations if needed
-  return migrate${typeName}(result.Item);
-}`;
+    
+    // Apply migrations if needed
+    return migrate${typeName}(result.Item);
+  }`;
 }
 
 function generatePutFunction(docName: string, typeName: string, currentVersion: number): string {
-  return `export async function put${typeName}(${docName}: Docs['${docName}']): Promise<void> {
-  const item = {
-    $p: \`${docName}/id=\${${docName}.id}\`,
-    $s: '_',
-    $v: ${currentVersion},
-    ...${docName}
-  };
-  
-  await dbClient.put({
-    TableName: 'main',
-    Item: item
-  });
-}`;
+  return `  async put${typeName}(${docName}: Docs['${docName}']): Promise<void> {
+    const item = {
+      $p: \`${docName}/id=\${${docName}.id}\`,
+      $s: '_',
+      $v: ${currentVersion},
+      ...${docName}
+    };
+    
+    await client.put({
+      TableName: 'main',
+      Item: item
+    });
+  }`;
 }
 
+function generateDeleteFunction(docName: string, typeName: string, pkField: any): string {
+  return `  async delete${typeName}({${pkField.name}}: {${pkField.name}: ${getTypeScriptType(pkField.type)}}): Promise<void> {
+    await client.delete({
+      TableName: 'main',
+      Key: {
+        $p: \`${docName}/id=\${${pkField.name}}\`,
+        $s: '_'
+      }
+    });
+  }`;
+}
 
 function findPrimaryKeyField(docDef: DocumentDefinition) {
   // Look for 'id' field first, then any field that might be a primary key
