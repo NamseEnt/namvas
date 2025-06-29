@@ -1,7 +1,11 @@
 import { handler } from "./handler";
-import type { LambdaFunctionURLEvent, Context } from "aws-lambda";
+import type { LambdaFunctionURLEvent } from "aws-lambda";
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
+if (!PORT) {
+  throw new Error("PORT is not set");
+}
+
 const emulatorUrl = `http://localhost:${PORT}`;
 
 async function main() {

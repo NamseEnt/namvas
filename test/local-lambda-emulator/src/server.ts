@@ -34,7 +34,7 @@ async function setupEsbuild() {
   }
 
   esbuildContext = await esbuild.context({
-    entryPoints: [join(BE_PATH, "src/local-entry.ts")],
+    entryPoints: [join(BE_PATH, "src/entry/local-entry.ts")],
     outfile: join(BE_PATH, "dist/local-entry.js"),
     platform: "node",
     target: "es2022",
