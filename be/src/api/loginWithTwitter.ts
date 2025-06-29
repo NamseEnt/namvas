@@ -1,5 +1,6 @@
 import { ddb } from "../__generated/db";
 import { Apis } from "../apis";
+import { generateId } from "../utils/uuid";
 
 export const loginWithTwitter: Apis["loginWithTwitter"] = async (
   { authorizationCode, codeVerifier },
@@ -55,7 +56,7 @@ export const loginWithTwitter: Apis["loginWithTwitter"] = async (
     });
     let userId = identity?.userId;
     if (!userId) {
-      userId = crypto.randomUUID();
+      userId = generateId();
       // TODO: Transaction
       await ddb.putUser({
         id: userId,
@@ -70,7 +71,7 @@ export const loginWithTwitter: Apis["loginWithTwitter"] = async (
     }
 
     // Create session
-    const sessionId = crypto.randomUUID();
+    const sessionId = generateId();
     await ddb.putSession({
       id: sessionId,
       userId,

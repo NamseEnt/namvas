@@ -1,5 +1,6 @@
 import { ddb } from "../__generated/db";
 import { Apis } from "../apis";
+import { generateId } from "../utils/uuid";
 
 export const loginWithGoogle: Apis["loginWithGoogle"] = async (
   { authorizationCode },
@@ -52,7 +53,7 @@ export const loginWithGoogle: Apis["loginWithGoogle"] = async (
     });
     let userId = identity?.userId;
     if (!userId) {
-      userId = crypto.randomUUID();
+      userId = generateId();
       // TODO: Transaction
       await ddb.putUser({
         id: userId,
@@ -67,7 +68,7 @@ export const loginWithGoogle: Apis["loginWithGoogle"] = async (
     }
 
     // Create session
-    const sessionId = crypto.randomUUID();
+    const sessionId = generateId();
     await ddb.putSession({
       id: sessionId,
       userId,

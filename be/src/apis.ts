@@ -1,11 +1,19 @@
 // IMPORTANT: Any API implementation exceeding 20 lines must be moved to a separate file in the api/ directory
 import { ApiSpec } from "shared";
-import { getSession, isLoggedIn } from "./session";
+import { getSession } from "./session";
 import { ApiRequest } from "./types";
 import { ddb } from "./__generated/db";
 import { loginWithGoogle } from "./api/loginWithGoogle";
 import { loginWithTwitter } from "./api/loginWithTwitter";
 import { getOriginalImageUploadUrl } from "./api/getOriginalImageUploadUrl";
+import { createOrder } from "./api/createOrder";
+import { getMyOrders } from "./api/getMyOrders";
+import { cancelOrder } from "./api/cancelOrder";
+import { adminGetDashboard } from "./api/adminGetDashboard";
+import { adminGetOrder } from "./api/adminGetOrder";
+import { adminGetOrders } from "./api/adminGetOrders";
+import { adminUpdateOrderStatus } from "./api/adminUpdateOrderStatus";
+import { adminGetUsers } from "./api/adminGetUsers";
 
 export const apis: Apis = {
   getMe: async ({}, req) => {
@@ -31,30 +39,14 @@ export const apis: Apis = {
   loginWithGoogle,
   loginWithTwitter,
   getOriginalImageUploadUrl,
-  createOrder: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  getMyOrders: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  cancelOrder: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  adminGetDashboard: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  adminGetOrder: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  adminGetOrders: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  adminUpdateOrderStatus: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  adminGetUsers: async ({}, req) => {
-    throw new Error("not implemented");
-  },
+  createOrder,
+  getMyOrders,
+  cancelOrder,
+  adminGetDashboard,
+  adminGetOrder,
+  adminGetOrders,
+  adminUpdateOrderStatus,
+  adminGetUsers,
 };
 
 export type Apis = {

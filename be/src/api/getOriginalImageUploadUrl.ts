@@ -1,6 +1,7 @@
 import { getSession } from "../session";
 import { Apis } from "../apis";
 import { s3 } from "../s3";
+import { generateId } from "../utils/uuid";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
@@ -19,7 +20,7 @@ export const getOriginalImageUploadUrl: Apis["getOriginalImageUploadUrl"] =
       }
 
       // Generate unique image ID
-      const imageId = crypto.randomUUID();
+      const imageId = generateId();
 
       // Create presigned URL for PUT operation
       const uploadUrl = await s3.getPresignedUploadUrl(
