@@ -2,10 +2,6 @@ import { apis } from "../src/apis";
 import { ddb } from "../src/__generated/db";
 import { ApiRequest } from "../src/types";
 
-// Store original functions
-const originalFetch = globalThis.fetch;
-const originalCrypto = globalThis.crypto;
-
 // Mock fetch
 let mockFetchResponses: any[] = [];
 globalThis.fetch = async (url: any, options?: any) => {

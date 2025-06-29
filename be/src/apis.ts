@@ -5,6 +5,7 @@ import { ApiRequest } from "./types";
 import { ddb } from "./__generated/db";
 import { loginWithGoogle } from "./api/loginWithGoogle";
 import { loginWithTwitter } from "./api/loginWithTwitter";
+import { getOriginalImageUploadUrl } from "./api/getOriginalImageUploadUrl";
 
 export const apis: Apis = {
   getMe: async ({}, req) => {
@@ -29,6 +30,7 @@ export const apis: Apis = {
   },
   loginWithGoogle,
   loginWithTwitter,
+  getOriginalImageUploadUrl,
   createOrder: async ({}, req) => {
     throw new Error("not implemented");
   },
@@ -36,9 +38,6 @@ export const apis: Apis = {
     throw new Error("not implemented");
   },
   cancelOrder: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  getOriginalImageUploadUrl: async ({}, req) => {
     throw new Error("not implemented");
   },
   adminGetDashboard: async ({}, req) => {

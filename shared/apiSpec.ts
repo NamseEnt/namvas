@@ -54,7 +54,7 @@ export type ApiSpec = {
       | {
           ok: true;
           uploadUrl: string;
-          s3Key: string;
+          imageId: string;
         }
       | {
           ok: false;
