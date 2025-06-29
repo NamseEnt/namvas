@@ -19,21 +19,22 @@ const client = DynamoDBDocument.from(new DynamoDBClient());
   
   for (const [docName, docDef] of evolution.documents) {
     const typeName = capitalizeFirst(docName);
-    const pkField = findPrimaryKeyField(docDef);
+    const pkFields = findPrimaryKeyFields(docDef);
 
-    if (!pkField) {
+
+    if (pkFields.length === 0) {
       console.warn(`No primary key found for document: ${docName}`);
       continue;
     }
 
     // Generate get function with migration
-    functions.push(generateGetFunction(docName, typeName, pkField));
+    functions.push(generateGetFunction(docName, typeName, pkFields));
 
     // Generate put function
-    functions.push(generatePutFunction(docName, typeName, evolution.currentVersion));
+    functions.push(generatePutFunction(docName, typeName, pkFields, evolution.currentVersion));
 
     // Generate delete function
-    functions.push(generateDeleteFunction(docName, typeName, pkField));
+    functions.push(generateDeleteFunction(docName, typeName, pkFields));
   }
   
   output += functions.join(',\n\n');
@@ -62,12 +63,16 @@ function generateTypeDefinitions(evolution: SchemaEvolution): string {
   return output;
 }
 
-function generateGetFunction(docName: string, typeName: string, pkField: any): string {
-  return `  async get${typeName}({${pkField.name}}: {${pkField.name}: ${getTypeScriptType(pkField.type)}}): Promise<Docs['${docName}'] | undefined> {
+function generateGetFunction(docName: string, typeName: string, pkFields: any[]): string {
+  const keyParams = pkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
+  const keyObject = pkFields.map(f => f.name).join(', ');
+  const keyString = pkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
+  
+  return `  async get${typeName}({${keyObject}}: {${keyParams}}): Promise<Docs['${docName}'] | undefined> {
     const result = await client.get({
       TableName: 'main',
       Key: {
-        $p: \`${docName}/id=\${${pkField.name}}\`,
+        $p: \`${docName}/${keyString}\`,
         $s: '_'
       }
     });
@@ -81,10 +86,12 @@ function generateGetFunction(docName: string, typeName: string, pkField: any): s
   }`;
 }
 
-function generatePutFunction(docName: string, typeName: string, currentVersion: number): string {
+function generatePutFunction(docName: string, typeName: string, pkFields: any[], currentVersion: number): string {
+  const keyString = pkFields.map(f => `${f.name}=\${${docName}.${f.name}}`).join('/');
+  
   return `  async put${typeName}(${docName}: Docs['${docName}']): Promise<void> {
     const item = {
-      $p: \`${docName}/id=\${${docName}.id}\`,
+      $p: \`${docName}/${keyString}\`,
       $s: '_',
       $v: ${currentVersion},
       ...${docName}
@@ -97,23 +104,37 @@ function generatePutFunction(docName: string, typeName: string, currentVersion: 
   }`;
 }
 
-function generateDeleteFunction(docName: string, typeName: string, pkField: any): string {
-  return `  async delete${typeName}({${pkField.name}}: {${pkField.name}: ${getTypeScriptType(pkField.type)}}): Promise<void> {
+function generateDeleteFunction(docName: string, typeName: string, pkFields: any[]): string {
+  const keyParams = pkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
+  const keyObject = pkFields.map(f => f.name).join(', ');
+  const keyString = pkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
+  
+  return `  async delete${typeName}({${keyObject}}: {${keyParams}}): Promise<void> {
     await client.delete({
       TableName: 'main',
       Key: {
-        $p: \`${docName}/id=\${${pkField.name}}\`,
+        $p: \`${docName}/${keyString}\`,
         $s: '_'
       }
     });
   }`;
 }
 
-function findPrimaryKeyField(docDef: DocumentDefinition) {
-  // Look for 'id' field first, then any field that might be a primary key
-  return docDef.fields.find(f => f.name === 'id') || 
-         docDef.fields.find(f => f.name.toLowerCase().includes('id')) ||
-         docDef.fields[0]; // fallback to first field
+function findPrimaryKeyFields(docDef: DocumentDefinition) {
+  // Find all fields marked as primary keys
+  const pkFields = docDef.fields.filter(f => f.isPrimaryKey);
+  
+  if (pkFields.length === 0) {
+    // Fallback to 'id' field if no primary keys are explicitly marked
+    const idField = docDef.fields.find(f => f.name === 'id');
+    if (idField) {
+      return [idField];
+    }
+    // Last fallback to first field
+    return docDef.fields.length > 0 ? [docDef.fields[0]] : [];
+  }
+  
+  return pkFields;
 }
 
 function getTypeScriptType(fieldType: string): string {

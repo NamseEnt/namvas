@@ -6,6 +6,7 @@ export interface FieldDefinition {
   name: string;
   type: FieldType;
   defaultValue?: string;
+  isPrimaryKey?: boolean;
 }
 
 export interface DocumentDefinition {

@@ -1,7 +1,9 @@
+// IMPORTANT: Any API implementation exceeding 20 lines must be moved to a separate file in the api/ directory
 import { ApiSpec } from "shared";
 import { getSession, isLoggedIn } from "./session";
 import { ApiRequest } from "./types";
 import { ddb } from "db";
+import { loginWithGoogle } from "./api/loginWithGoogle";
 
 export const apis: Apis = {
   getMe: async ({}, req) => {
@@ -24,9 +26,7 @@ export const apis: Apis = {
     delete req.cookies.sessionId;
     return { ok: true };
   },
-  loginWithGoogle: async ({}, req) => {
-    throw new Error("not implemented");
-  },
+  loginWithGoogle,
   loginWithTwitter: async ({}, req) => {
     throw new Error("not implemented");
   },
@@ -59,7 +59,7 @@ export const apis: Apis = {
   },
 };
 
-type Apis = {
+export type Apis = {
   [K in keyof ApiSpec]: (
     params: ApiSpec[K]["req"],
     req: ApiRequest

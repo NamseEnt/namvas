@@ -10,6 +10,22 @@ export const stringArray = Symbol('string[]');
 export const numberArray = Symbol('number[]');
 export const object = Symbol('object');
 
+// Primary key wrapper - create unique symbols
+const pkSymbols = new Map<string, TypeSymbol>();
+const pkMap = new Map<TypeSymbol, TypeSymbol>();
+
+export function pk(type: TypeSymbol): TypeSymbol {
+  // Create a unique symbol for this pk(type) combination
+  const typeDescription = type.description || type.toString();
+  const pkSymbolKey = `pk_${typeDescription}_${Math.random()}`;
+  const pkSymbol = Symbol(pkSymbolKey);
+  
+  pkSymbols.set(pkSymbolKey, type);
+  pkMap.set(pkSymbol, type);
+  
+  return pkSymbol;
+}
+
 // Type mapping
 type TypeSymbol = typeof string | typeof number | typeof boolean | typeof stringArray | typeof numberArray | typeof object;
 
@@ -37,7 +53,9 @@ export function getCommands(): SchemaCommand[] {
 
 // Helper function to convert symbol to field type
 function symbolToFieldType(symbol: TypeSymbol): FieldType {
-  const fieldType = typeSymbolToString.get(symbol);
+  // Check if it's a primary key wrapper
+  const originalType = pkMap.get(symbol) || symbol;
+  const fieldType = typeSymbolToString.get(originalType as TypeSymbol);
   if (!fieldType) {
     throw new Error(`Unknown type symbol: ${symbol.toString()}`);
   }
@@ -48,7 +66,8 @@ function symbolToFieldType(symbol: TypeSymbol): FieldType {
 export function newDocument(name: string, fields: Record<string, TypeSymbol>) {
   const fieldDefinitions = Object.entries(fields).map(([fieldName, typeSymbol]) => ({
     name: fieldName,
-    type: symbolToFieldType(typeSymbol)
+    type: symbolToFieldType(typeSymbol),
+    isPrimaryKey: pkMap.has(typeSymbol)
   }));
 
   const command: SchemaCommand = {

@@ -11,44 +11,22 @@ import {
   newDocument,
   addField,
   boolean,
+  pk,
 } from "../../schemaGen/src/typescript-api.js";
 
-// Create session document
 newDocument("session", {
-  id: string,
+  id: pk(string),
   userId: string,
 });
 
 newDocument("user", {
-  id: string,
+  id: pk(string),
   createdAt: string,
   tosAgreed: boolean,
 });
 
 newDocument("identity", {
-  id: string,
+  provider: pk(string),
+  providerId: pk(string),
   userId: string,
-  provider: string,
-  providerId: string,
-  createdAt: string,
-});
-
-newDocument("order", {
-  id: string,
-  orderNumber: string,
-  userId: string,
-  orderDate: string,
-  finalAmount: string,
-  status: string,
-  quantity: string,
-  hasPlasticStand: string,
-  artworkDefinition: string,
-  textureUrl: string,
-  printImageUrl: string,
-  thumbnailUrl: string,
-  trackingNumber: string,
-  adminMemo: string,
-  deliveryMemo: string,
-  recipient: string,
-  createdAt: string,
 });
