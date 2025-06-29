@@ -32,7 +32,13 @@ export async function handler(
       body: JSON.stringify({ error: "Not found" }),
     };
   }
-  const apiResult = await api(apiParams || {}, apiRequest);
+  if (!apiParams) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Bad request" }),
+    };
+  }
+  const apiResult = await api(JSON.parse(apiParams), apiRequest);
 
   return {
     statusCode: 200,

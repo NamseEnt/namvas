@@ -12,46 +12,31 @@ export const apis: Apis = {
   loginWithTwitter: async ({}, req) => {
     throw new Error("not implemented");
   },
-  getTextureUploadUrl: async ({}, req) => {
-    throw new Error("not implemented");
-  },
   createOrder: async ({}, req) => {
     throw new Error("not implemented");
   },
-  getOrders: async ({}, req) => {
+  getMyOrders: async ({}, req) => {
     throw new Error("not implemented");
   },
   cancelOrder: async ({}, req) => {
     throw new Error("not implemented");
   },
-  adminLogin: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  adminGetMe: async ({}, req) => {
+  getOriginalImageUploadUrl: async ({}, req) => {
     throw new Error("not implemented");
   },
   adminGetDashboard: async ({}, req) => {
     throw new Error("not implemented");
   },
-  adminGetOrders: async ({}, req) => {
+  adminGetOrder: async ({}, req) => {
     throw new Error("not implemented");
   },
-  adminGetOrderDetail: async ({}, req) => {
+  adminGetOrders: async ({}, req) => {
     throw new Error("not implemented");
   },
   adminUpdateOrderStatus: async ({}, req) => {
     throw new Error("not implemented");
   },
   adminGetUsers: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  adminGetUserDetail: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  adminGetSiteSettings: async ({}, req) => {
-    throw new Error("not implemented");
-  },
-  adminUpdateSiteSettings: async ({}, req) => {
     throw new Error("not implemented");
   },
 };
