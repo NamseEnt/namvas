@@ -52,7 +52,7 @@ function generateTypeDefinitions(evolution: SchemaEvolution): string {
 }
 
 function generateGetFunction(docName: string, typeName: string, pkField: any): string {
-  return `export async function get${typeName}({${pkField.name}}: {${pkField.name}: ${getTypeScriptType(pkField.type)}}): Promise<Docs['${docName}'] | null> {
+  return `export async function get${typeName}({${pkField.name}}: {${pkField.name}: ${getTypeScriptType(pkField.type)}}): Promise<Docs['${docName}'] | undefined> {
   const result = await dbClient.get({
     TableName: 'main',
     Key: {
@@ -62,7 +62,7 @@ function generateGetFunction(docName: string, typeName: string, pkField: any): s
   });
   
   if (!result.Item) {
-    return null;
+    return undefined;
   }
   
   // Apply migrations if needed

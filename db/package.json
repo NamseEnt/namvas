@@ -3,7 +3,9 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "test": "bun test"
+    "test": "bun test",
+    "schema": "cd ../schemaGen && bun run schema ../db/src/schema.ts ../db/src/generated.ts",
+    "schema:watch": "cd ../schemaGen && bun run watch ../db/src/schema.ts ../db/src/generated.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.2.17",

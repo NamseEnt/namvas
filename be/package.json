@@ -3,28 +3,18 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun run src/dev-server.ts",
-    "build": "bun build src/lambda/index.ts --outdir dist --target node --minify",
-    "build:llrt": "esbuild src/lambda/index.ts --platform=browser --target=es2023 --format=esm --bundle --minify --external:@aws-sdk/* --external:@smithy/* --external:bun:sqlite --external:db --outfile=dist/index.js --metafile=dist/meta.json",
-    "build:tests": "esbuild tests/*.test.ts --platform=browser --target=es2023 --format=esm --bundle --external:bun:test --external:db --outdir=dist/tests --entry-names=[name]",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "test": "bun test",
-    "test:watch": "bun test --watch"
+    "build:lambda": "npx esbuild src/entry/lambda-entry.ts --outfile=dist/lambda-entry.js --platform=browser --target=es2023 --format=esm --bundle --minify --external:@aws-sdk --external:@smithy"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.839.0",
     "db": "file:../db",
     "s3": "file:../s3",
     "shared": "file:../shared"
   },
   "devDependencies": {
-    "@aws-sdk/types": "^3.664.0",
-    "@types/aws-lambda": "^8.10.150",
-    "@types/bun": "^1.2.17",
-    "@typescript-eslint/eslint-plugin": "^8.35.0",
-    "@typescript-eslint/parser": "^8.35.0",
-    "esbuild": "^0.24.0",
-    "eslint": "^9.29.0",
+    "@types/aws-lambda": "^8.10.0",
+    "@types/node": "^20.19.2",
+    "esbuild": "^0.25.5",
     "typescript": "^5.8.3"
   }
 }

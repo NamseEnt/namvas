@@ -7,7 +7,7 @@
     "start": "bun run src/server.ts"
   },
   "dependencies": {
-    "esbuild": "^0.19.0"
+    "esbuild": "^0.25.5"
   },
   "devDependencies": {
     "@types/bun": "latest"

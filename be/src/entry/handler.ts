@@ -25,8 +25,14 @@ export async function handler(
     cookies: outCookies,
   };
 
-  const api = apis[apiName];
-  const apiResult = await api(apiParams, apiRequest);
+  const api = apis[apiName as keyof typeof apis];
+  if (!api) {
+    return {
+      statusCode: 404,
+      body: JSON.stringify({ error: "Not found" }),
+    };
+  }
+  const apiResult = await api(apiParams || {}, apiRequest);
 
   return {
     statusCode: 200,

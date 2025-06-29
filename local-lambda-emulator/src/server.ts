@@ -20,7 +20,9 @@ let esbuildContext: esbuild.BuildContext | null = null;
 async function checkLLRT(): Promise<boolean> {
   if (!existsSync(LLRT_PATH)) {
     console.warn(`LLRT not found at ${LLRT_PATH}`);
-    console.warn("Please install LLRT from https://github.com/awslabs/llrt/releases");
+    console.warn(
+      "Please install LLRT from https://github.com/awslabs/llrt/releases"
+    );
     console.warn("Running in test mode without LLRT");
     return true; // Continue in test mode
   }
@@ -36,8 +38,8 @@ async function setupEsbuild() {
   esbuildContext = await esbuild.context({
     entryPoints: [join(BE_PATH, "src/entry/local-entry.ts")],
     outfile: join(BE_PATH, "dist/local-entry.js"),
-    platform: "node",
-    target: "es2022",
+    platform: "browser",
+    target: "es2023",
     format: "esm",
     bundle: true,
     minify: true,
@@ -54,7 +56,7 @@ async function setupEsbuild() {
 
 async function executeLLRT() {
   const entryFile = join(BE_PATH, "dist", "local-entry.js");
-  
+
   if (!existsSync(entryFile)) {
     throw new Error(`Entry file not found: ${entryFile}`);
   }
@@ -122,7 +124,9 @@ const server = serve({
         executeLLRT().catch((error) => {
           console.error("LLRT execution error:", error);
           if (currentRequest) {
-            currentRequest.resolve(new Response("Internal Server Error", { status: 500 }));
+            currentRequest.resolve(
+              new Response("Internal Server Error", { status: 500 })
+            );
             currentRequest = null;
           }
         });
@@ -134,13 +138,15 @@ const server = serve({
     // Regular request - add to queue
     return new Promise<Response>((resolve) => {
       const pending = { req, resolve };
-      
+
       if (!currentRequest) {
         currentRequest = pending;
         executeLLRT().catch((error) => {
           console.error("LLRT execution error:", error);
           if (currentRequest) {
-            currentRequest.resolve(new Response("Internal Server Error", { status: 500 }));
+            currentRequest.resolve(
+              new Response("Internal Server Error", { status: 500 })
+            );
             currentRequest = null;
           }
         });
@@ -166,7 +172,7 @@ const server = serve({
 
 console.log(`Local Lambda Emulator running on http://localhost:${PORT}`);
 
-if (!await checkLLRT()) {
+if (!(await checkLLRT())) {
   process.exit(1);
 }
 
