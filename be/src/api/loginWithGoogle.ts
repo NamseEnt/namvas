@@ -1,4 +1,4 @@
-import { ddb } from "db";
+import { ddb } from "../__generated/db";
 import { Apis } from "../apis";
 
 export const loginWithGoogle: Apis["loginWithGoogle"] = async (

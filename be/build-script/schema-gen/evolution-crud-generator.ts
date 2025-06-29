@@ -3,14 +3,11 @@ import { SchemaEvolution, DocumentDefinition } from './evolution-types.js';
 export function generateEvolutionCRUD(evolution: SchemaEvolution): string {
   let output = `import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import type * as Schema from "../schema";
 
 const client = DynamoDBDocument.from(new DynamoDBClient());
 
 `;
-
-  // Generate type definitions first
-  output += generateTypeDefinitions(evolution);
-  output += '\n\n';
 
   // Generate ddb object with CRUD functions
   output += 'export const ddb = {\n';
@@ -31,7 +28,7 @@ const client = DynamoDBDocument.from(new DynamoDBClient());
     functions.push(generateGetFunction(docName, typeName, pkFields));
 
     // Generate put function
-    functions.push(generatePutFunction(docName, typeName, pkFields, evolution.currentVersion));
+    functions.push(generatePutFunction(docName, typeName, pkFields));
 
     // Generate delete function
     functions.push(generateDeleteFunction(docName, typeName, pkFields));
@@ -43,32 +40,13 @@ const client = DynamoDBDocument.from(new DynamoDBClient());
   return output;
 }
 
-function generateTypeDefinitions(evolution: SchemaEvolution): string {
-  let output = `export type Docs = {
-`;
-
-  for (const [docName, docDef] of evolution.documents) {
-    output += `  ${docName}: {
-`;
-    for (const field of docDef.fields) {
-      const optional = field.defaultValue !== undefined ? '?' : '';
-      output += `    ${field.name}${optional}: ${getTypeScriptType(field.type)};
-`;
-    }
-    output += `  };
-`;
-  }
-
-  output += `};`;
-  return output;
-}
 
 function generateGetFunction(docName: string, typeName: string, pkFields: any[]): string {
   const keyParams = pkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
   const keyObject = pkFields.map(f => f.name).join(', ');
   const keyString = pkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
   
-  return `  async get${typeName}({${keyObject}}: {${keyParams}}): Promise<Docs['${docName}'] | undefined> {
+  return `  async get${typeName}({${keyObject}}: {${keyParams}}): Promise<Schema.${docName} | undefined> {
     const result = await client.get({
       TableName: 'main',
       Key: {
@@ -81,19 +59,17 @@ function generateGetFunction(docName: string, typeName: string, pkFields: any[])
       return undefined;
     }
     
-    // Apply migrations if needed
-    return migrate${typeName}(result.Item);
+    return result.Item as Schema.${docName};
   }`;
 }
 
-function generatePutFunction(docName: string, typeName: string, pkFields: any[], currentVersion: number): string {
+function generatePutFunction(docName: string, typeName: string, pkFields: any[]): string {
   const keyString = pkFields.map(f => `${f.name}=\${${docName}.${f.name}}`).join('/');
   
-  return `  async put${typeName}(${docName}: Docs['${docName}']): Promise<void> {
+  return `  async put${typeName}(${docName}: Schema.${docName}): Promise<void> {
     const item = {
       $p: \`${docName}/${keyString}\`,
       $s: '_',
-      $v: ${currentVersion},
       ...${docName}
     };
     

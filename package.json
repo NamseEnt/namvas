@@ -2,8 +2,7 @@
   "scripts": {
     "start:docker": "docker-compose up",
     "start:lambda": "cd local-lambda-emulator && bun run dev",
-    "watch:schema": "cd db && bun run schema:watch",
-    "dev": "concurrently -k -p \"[{name}]\" -n \"Docker,Lambda,Schema\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"npm:start:docker\" \"npm:start:lambda\" \"npm:watch:schema\""
+    "dev": "concurrently -k -p \"[{name}]\" -n \"Docker,Lambda,Schema\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"npm:start:docker\" \"npm:start:lambda\""
   },
   "devDependencies": {
     "concurrently": "^9.2.0"

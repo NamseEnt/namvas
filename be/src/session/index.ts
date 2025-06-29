@@ -1,10 +1,10 @@
-import { Docs } from "db/src/generated";
+import { ddb } from "../__generated/db";
+import { Session } from "../schema";
 import { ApiRequest } from "../types";
-import { ddb } from "db";
 
 export async function getSession(
   req: ApiRequest
-): Promise<Docs["session"] | undefined> {
+): Promise<Session | undefined> {
   const sessionId = req.cookies.sessionId;
   if (!sessionId) {
     return;

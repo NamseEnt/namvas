@@ -2,7 +2,7 @@
 import { ApiSpec } from "shared";
 import { getSession, isLoggedIn } from "./session";
 import { ApiRequest } from "./types";
-import { ddb } from "db";
+import { ddb } from "./__generated/db";
 import { loginWithGoogle } from "./api/loginWithGoogle";
 
 export const apis: Apis = {

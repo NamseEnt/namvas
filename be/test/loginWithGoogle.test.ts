@@ -1,5 +1,5 @@
 import { apis } from "../src/apis";
-import { ddb } from "db";
+import { ddb } from "../src/__generated/db";
 import { ApiRequest } from "../src/types";
 
 // Store original functions
@@ -29,9 +29,7 @@ describe("loginWithGoogle", () => {
   });
 
   test("should return INVALID_CODE when token exchange fails", async () => {
-    mockFetchResponses = [
-      { ok: false, json: async () => ({}) }
-    ];
+    mockFetchResponses = [{ ok: false, json: async () => ({}) }];
 
     const req: ApiRequest = { cookies: {}, headers: {} };
     const result = await apis.loginWithGoogle(
@@ -45,7 +43,7 @@ describe("loginWithGoogle", () => {
   test("should return GOOGLE_API_ERROR when user info fetch fails", async () => {
     mockFetchResponses = [
       { ok: true, json: async () => ({ access_token: "mock-access-token" }) },
-      { ok: false, json: async () => ({}) }
+      { ok: false, json: async () => ({}) },
     ];
 
     const req: ApiRequest = { cookies: {}, headers: {} };
@@ -60,11 +58,14 @@ describe("loginWithGoogle", () => {
   test("should create new user and session for new Google user", async () => {
     mockFetchResponses = [
       { ok: true, json: async () => ({ access_token: "mock-access-token" }) },
-      { ok: true, json: async () => ({
-        id: "google-123",
-        email: "test@example.com", 
-        name: "Test User"
-      }) }
+      {
+        ok: true,
+        json: async () => ({
+          id: "google-123",
+          email: "test@example.com",
+          name: "Test User",
+        }),
+      },
     ];
 
     ddb.getIdentity = () => Promise.resolve(undefined);
@@ -85,14 +86,22 @@ describe("loginWithGoogle", () => {
   test("should create session for existing Google user", async () => {
     mockFetchResponses = [
       { ok: true, json: async () => ({ access_token: "mock-access-token" }) },
-      { ok: true, json: async () => ({
-        id: "google-123",
-        email: "test@example.com",
-        name: "Test User"
-      }) }
+      {
+        ok: true,
+        json: async () => ({
+          id: "google-123",
+          email: "test@example.com",
+          name: "Test User",
+        }),
+      },
     ];
 
-    ddb.getIdentity = () => Promise.resolve({ userId: "existing-user-123", provider: "google", providerId: "google-123" });
+    ddb.getIdentity = () =>
+      Promise.resolve({
+        userId: "existing-user-123",
+        provider: "google",
+        providerId: "google-123",
+      });
     ddb.putSession = () => Promise.resolve();
 
     const req: ApiRequest = { cookies: {}, headers: {} };

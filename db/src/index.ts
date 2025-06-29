@@ -1,1 +1,0 @@
-export { ddb } from "./generated";
