@@ -1,32 +1,61 @@
+import { ApiSpec } from "shared";
 import { isLoggedIn } from "./session/isLoggedIn";
 import { ApiRequest } from "./types";
 
 export const apis: Apis = {
-  me: async ({}, req) => {
-    if (await isLoggedIn(req)) {
-      return {
-        ok: true,
-      };
-    }
-
-    return {
-      ok: false,
-      error: "NOT_LOGGED_IN",
-    };
+  getMe: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  loginWithGoogle: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  loginWithTwitter: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  getTextureUploadUrl: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  createOrder: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  getOrders: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  cancelOrder: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  adminLogin: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  adminGetMe: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  adminGetDashboard: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  adminGetOrders: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  adminGetOrderDetail: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  adminUpdateOrderStatus: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  adminGetUsers: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  adminGetUserDetail: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  adminGetSiteSettings: async ({}, req) => {
+    throw new Error("not implemented");
+  },
+  adminUpdateSiteSettings: async ({}, req) => {
+    throw new Error("not implemented");
   },
 };
 
-type ApiSpec = {
-  me: {
-    req: {};
-    res:
-      | { ok: true }
-      | {
-          ok: false;
-          error: "NOT_LOGGED_IN";
-        };
-  };
-};
 type Apis = {
   [K in keyof ApiSpec]: (
     params: ApiSpec[K]["req"],
