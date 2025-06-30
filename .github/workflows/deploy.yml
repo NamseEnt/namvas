@@ -84,6 +84,8 @@ jobs:
 
       # Deploy infrastructure
       - name: Deploy with Pulumi
+        env:
+          PULUMI_CONFIG_PASSPHRASE: ""
         run: |
           cd infrastructure
           pulumi stack select dev --create
