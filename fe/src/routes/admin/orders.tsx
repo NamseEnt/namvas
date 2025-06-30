@@ -42,9 +42,10 @@ export default function AdminOrders() {
   });
 
   const handleStatusFilter = (newStatus: string | undefined) => {
+    const validatedStatus: OrderStatus | undefined = isValidOrderStatus(newStatus) ? newStatus as OrderStatus : undefined;
     navigate({
       to: "/admin/orders",
-      search: { status: newStatus, search, page: 1 },
+      search: { status: validatedStatus, search, page: 1 },
     });
   };
 
