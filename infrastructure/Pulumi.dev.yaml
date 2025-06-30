@@ -1,4 +1,3 @@
-encryptionsalt: v1:DPYUsycmVmI=:v1:AlxFfdUXK8ESLlVA:42B1dsBBgmiEOWFSIH17vadVr5nmGQ==
 config:
   aws:region: ap-northeast-2
   infrastructure:domainName: "namvas.com"
