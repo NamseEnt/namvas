@@ -1,5 +1,4 @@
 encryptionsalt: v1:DPYUsycmVmI=:v1:AlxFfdUXK8ESLlVA:42B1dsBBgmiEOWFSIH17vadVr5nmGQ==
 config:
-  aws:region: us-east-1
-  # 도메인을 설정하려면 아래 주석을 해제하고 도메인 이름을 입력하세요
-  # infrastructure:domainName: "your-domain.com"
+  aws:region: ap-northeast-2
+  infrastructure:domainName: "namvas.com"

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,20 +14,20 @@ function generateCodeVerifier(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   return btoa(String.fromCharCode(...array))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
 }
 
 async function generateCodeChallenge(codeVerifier: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(codeVerifier);
-  const buffer = await crypto.subtle.digest('SHA-256', data);
+  const buffer = await crypto.subtle.digest("SHA-256", data);
   const array = new Uint8Array(buffer);
   return btoa(String.fromCharCode(...array))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
 }
 
 export const Route = createFileRoute("/")({
@@ -49,13 +49,12 @@ const HomePageContext = createContext<{
 const useHomePageContext = () => {
   const context = useContext(HomePageContext);
   if (!context) {
-    throw new Error('useHomePageContext must be used within HomePageContext');
+    throw new Error("useHomePageContext must be used within HomePageContext");
   }
   return context;
 };
 
 function HomePage() {
-  const navigate = useNavigate();
   const [state, setState] = useState<HomePageState>({
     isLoginModalOpen: false,
   });
@@ -70,13 +69,21 @@ function HomePage() {
 
   const handleGoogleLogin = () => {
     // Create Google OAuth URL
-    const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-    googleAuthUrl.searchParams.set('client_id', import.meta.env.VITE_GOOGLE_CLIENT_ID);
-    googleAuthUrl.searchParams.set('redirect_uri', import.meta.env.VITE_GOOGLE_REDIRECT_URI);
-    googleAuthUrl.searchParams.set('response_type', 'code');
-    googleAuthUrl.searchParams.set('scope', 'openid email profile');
-    googleAuthUrl.searchParams.set('state', 'google_login');
-    
+    const googleAuthUrl = new URL(
+      "https://accounts.google.com/o/oauth2/v2/auth"
+    );
+    googleAuthUrl.searchParams.set(
+      "client_id",
+      import.meta.env.VITE_GOOGLE_CLIENT_ID
+    );
+    googleAuthUrl.searchParams.set(
+      "redirect_uri",
+      import.meta.env.VITE_GOOGLE_REDIRECT_URI
+    );
+    googleAuthUrl.searchParams.set("response_type", "code");
+    googleAuthUrl.searchParams.set("scope", "openid email profile");
+    googleAuthUrl.searchParams.set("state", "google_login");
+
     // Redirect to Google OAuth
     window.location.href = googleAuthUrl.toString();
   };
@@ -85,20 +92,26 @@ function HomePage() {
     // Generate code verifier and challenge for PKCE
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = await generateCodeChallenge(codeVerifier);
-    
+
     // Store code verifier in sessionStorage for later use
-    sessionStorage.setItem('twitter_code_verifier', codeVerifier);
-    
+    sessionStorage.setItem("twitter_code_verifier", codeVerifier);
+
     // Create Twitter OAuth URL
-    const twitterAuthUrl = new URL('https://twitter.com/i/oauth2/authorize');
-    twitterAuthUrl.searchParams.set('response_type', 'code');
-    twitterAuthUrl.searchParams.set('client_id', import.meta.env.VITE_TWITTER_CLIENT_ID);
-    twitterAuthUrl.searchParams.set('redirect_uri', import.meta.env.VITE_TWITTER_REDIRECT_URI);
-    twitterAuthUrl.searchParams.set('scope', 'tweet.read users.read');
-    twitterAuthUrl.searchParams.set('state', 'state'); // You might want to generate a random state
-    twitterAuthUrl.searchParams.set('code_challenge', codeChallenge);
-    twitterAuthUrl.searchParams.set('code_challenge_method', 'S256');
-    
+    const twitterAuthUrl = new URL("https://twitter.com/i/oauth2/authorize");
+    twitterAuthUrl.searchParams.set("response_type", "code");
+    twitterAuthUrl.searchParams.set(
+      "client_id",
+      import.meta.env.VITE_TWITTER_CLIENT_ID
+    );
+    twitterAuthUrl.searchParams.set(
+      "redirect_uri",
+      import.meta.env.VITE_TWITTER_REDIRECT_URI
+    );
+    twitterAuthUrl.searchParams.set("scope", "tweet.read users.read");
+    twitterAuthUrl.searchParams.set("state", "state"); // You might want to generate a random state
+    twitterAuthUrl.searchParams.set("code_challenge", codeChallenge);
+    twitterAuthUrl.searchParams.set("code_challenge_method", "S256");
+
     // Redirect to Twitter OAuth
     window.location.href = twitterAuthUrl.toString();
   };

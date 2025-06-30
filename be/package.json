@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build:lambda": "tsx build-script/build.ts lambda",
-    "test": "tsx build-script/build.ts test && cd .. && ./llrt test -d be/dist"
+    "build:lambda": "bun build-script/lambda.ts",
+    "test": "bun build-script/test.ts && cd .. && ./llrt test -d be/dist"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.839.0",
@@ -17,7 +17,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^20.19.2",
     "esbuild": "^0.25.5",
-    "tsx": "^4.20.3",
+    "llrt-types": "./types",
     "typescript": "^5.8.3"
   }
 }

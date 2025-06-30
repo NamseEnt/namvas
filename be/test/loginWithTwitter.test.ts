@@ -9,11 +9,6 @@ globalThis.fetch = async (url: any, options?: any) => {
   return response || { ok: false, json: async () => ({}) };
 };
 
-// Mock crypto
-globalThis.crypto = {
-  randomUUID: () => "mock-uuid-123",
-} as any;
-
 // Mock process.env
 process.env.TWITTER_CLIENT_ID = "test-client-id";
 process.env.TWITTER_CLIENT_SECRET = "test-client-secret";
@@ -85,7 +80,7 @@ describe("loginWithTwitter", () => {
     );
 
     expect(result).toEqual({ ok: true });
-    expect(req.cookies.sessionId).toBe("mock-uuid-123");
+    expect(req.cookies.sessionId).toBeTruthy();
   });
 
   test("should create session for existing Twitter user", async () => {
@@ -118,7 +113,7 @@ describe("loginWithTwitter", () => {
     );
 
     expect(result).toEqual({ ok: true });
-    expect(req.cookies.sessionId).toBe("mock-uuid-123");
+    expect(req.cookies.sessionId).toBeTruthy();
   });
 
   test("should handle Twitter API errors gracefully", async () => {

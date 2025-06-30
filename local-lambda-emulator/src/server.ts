@@ -1,8 +1,7 @@
-import { serve } from "bun";
-import { spawn } from "bun";
+import { serve, spawn } from "bun";
 import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
-import * as esbuild from "esbuild";
+import { buildLocal } from "../../be/build-script/build-api";
 
 const PORT = process.env.PORT || 3002;
 const LLRT_PATH = process.env.LLRT_PATH || "../llrt";
@@ -15,40 +14,27 @@ interface PendingRequest {
 
 const requestQueue: PendingRequest[] = [];
 let currentRequest: PendingRequest | null = null;
-let esbuildContext: esbuild.BuildContext | null = null;
+let buildContext: any = null;
 
 async function checkLLRT(): Promise<boolean> {
   if (!existsSync(LLRT_PATH)) {
     console.error(`LLRT binary not found at ${LLRT_PATH}`);
-    console.error("Please run 'bun download-llrt.ts' from the root directory to download LLRT");
+    console.error(
+      "Please run 'bun download-llrt.ts' from the root directory to download LLRT"
+    );
     throw new Error("LLRT binary is required but not found");
   }
   return true;
 }
 
-async function setupEsbuild() {
+async function setupBuild() {
   const distPath = join(BE_PATH, "dist");
   if (!existsSync(distPath)) {
     mkdirSync(distPath, { recursive: true });
   }
 
-  esbuildContext = await esbuild.context({
-    entryPoints: [join(BE_PATH, "src/entry/local-entry.ts")],
-    outfile: join(BE_PATH, "dist/local-entry.js"),
-    platform: "browser",
-    target: "es2023",
-    format: "esm",
-    bundle: true,
-    minify: true,
-    external: ["@aws-sdk", "@smithy"],
-    logLevel: "info",
-  });
-
-  await esbuildContext.rebuild();
-  console.log("Initial build complete");
-
-  await esbuildContext.watch();
-  console.log("Watching for changes in", join(BE_PATH, "src"));
+  // Build with watch mode using the API
+  buildContext = await buildLocal(true);
 }
 
 async function executeLLRT() {
@@ -71,7 +57,6 @@ async function executeLLRT() {
     stderr: "pipe",
   });
 
-  const output = await new Response(proc.stdout).text();
   const errors = await new Response(proc.stderr).text();
 
   if (errors) {
@@ -81,7 +66,7 @@ async function executeLLRT() {
   await proc.exited;
 }
 
-const server = serve({
+serve({
   port: PORT,
   async fetch(req) {
     const url = new URL(req.url);
@@ -176,14 +161,14 @@ try {
   process.exit(1);
 }
 
-// Setup esbuild and start watching
-await setupEsbuild();
+// Setup build and start watching
+await setupBuild();
 
 // Cleanup on exit
 process.on("SIGINT", async () => {
   console.log("\nShutting down...");
-  if (esbuildContext) {
-    await esbuildContext.dispose();
+  if (buildContext) {
+    await buildContext.dispose();
   }
   process.exit(0);
 });

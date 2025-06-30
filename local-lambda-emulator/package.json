@@ -6,9 +6,6 @@
     "dev": "bun run src/server.ts",
     "start": "bun run src/server.ts"
   },
-  "dependencies": {
-    "esbuild": "^0.25.5"
-  },
   "devDependencies": {
     "@types/bun": "latest"
   }

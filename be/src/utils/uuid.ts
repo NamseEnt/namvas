@@ -1,5 +1,5 @@
-import { uuidv7 } from "llrt:uuid";
+import { v7 } from "llrt:uuid";
 
 export const generateId = (): string => {
-  return uuidv7();
+  return v7();
 };

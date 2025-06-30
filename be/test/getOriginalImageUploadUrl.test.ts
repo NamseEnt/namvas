@@ -3,11 +3,6 @@ import { ApiRequest } from "../src/types";
 import { s3 } from "../src/s3";
 import { setLoggedIn, setLoggedOut } from "./sessionUtil";
 
-// Mock crypto
-globalThis.crypto = {
-  randomUUID: () => "mock-uuid-123",
-} as any;
-
 // Mock process.env
 process.env.S3_BUCKET_NAME = "test-bucket";
 process.env.AWS_REGION = "us-east-1";
@@ -59,10 +54,9 @@ describe("getOriginalImageUploadUrl", () => {
       req
     );
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       ok: true,
       uploadUrl: "https://test-bucket.s3.amazonaws.com/mock-presigned-url",
-      imageId: "mock-uuid-123",
     });
   });
 

@@ -55,3 +55,11 @@ export const testOptions: BuildOptions = {
   outdir: "dist",
   minify: false,
 };
+
+// Local development build configuration
+export const localOptions: BuildOptions = {
+  ...commonOptions,
+  entryPoints: ["src/entry/local-entry.ts"],
+  outfile: "dist/local-entry.js",
+  minify: true,
+};

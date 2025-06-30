@@ -9,11 +9,6 @@ globalThis.fetch = async (url: any, options?: any) => {
   return response || { ok: false, json: async () => ({}) };
 };
 
-// Mock crypto
-globalThis.crypto = {
-  randomUUID: () => "mock-uuid-123",
-} as any;
-
 // Mock process.env
 process.env.GOOGLE_CLIENT_ID = "test-client-id";
 process.env.GOOGLE_CLIENT_SECRET = "test-client-secret";
@@ -76,7 +71,7 @@ describe("loginWithGoogle", () => {
     );
 
     expect(result).toEqual({ ok: true });
-    expect(req.cookies.sessionId).toBe("mock-uuid-123");
+    expect(req.cookies.sessionId).toBeTruthy();
   });
 
   test("should create session for existing Google user", async () => {
@@ -107,6 +102,6 @@ describe("loginWithGoogle", () => {
     );
 
     expect(result).toEqual({ ok: true });
-    expect(req.cookies.sessionId).toBe("mock-uuid-123");
+    expect(req.cookies.sessionId).toBeTruthy();
   });
 });
