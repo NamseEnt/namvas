@@ -246,13 +246,13 @@ const cloudFrontDistribution = new aws.cloudfront.Distribution(
 // Route53 records (if domain is configured and in same account)
 if (domainName) {
   // Get the hosted zone
-  const hostedZone = aws.route53.getZone({
+  const hostedZone = pulumi.output(aws.route53.getZone({
     name: domainName,
-  });
+  }));
 
   // Create A record for root domain
   new aws.route53.Record("domain-a-record", {
-    zoneId: hostedZone.then((zone) => zone.zoneId),
+    zoneId: hostedZone.apply((zone) => zone.zoneId),
     name: domainName,
     type: "A",
     aliases: [

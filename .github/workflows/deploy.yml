@@ -40,8 +40,7 @@ jobs:
           role-to-assume: arn:aws:iam::526374022431:role/namvas-ocid
           aws-region: ap-northeast-2
 
-      - name: Install Pulumi CLI
-        uses: pulumi/actions@v5
+      # Pulumi CLI is automatically installed by pulumi/actions
 
       # Install dependencies
       - name: Install backend dependencies
@@ -79,31 +78,42 @@ jobs:
 
       # Deploy infra first
       - name: Deploy with Pulumi
+        uses: pulumi/actions@v5
+        with:
+          command: up
+          stack-name: dev
+          work-dir: infra
+          cloud-url: ${{ env.PULUMI_BACKEND_URL }}
         env:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-        run: |
-          cd infra
-          pulumi stack select dev --create
-          pulumi up --yes
+          PULUMI_DEBUG_PROMISE_LEAKS: "true"
+
+      # Get Pulumi outputs
+      - name: Get Pulumi outputs
+        id: pulumi-outputs
+        uses: pulumi/actions@v5
+        with:
+          command: stack output --json
+          stack-name: dev
+          work-dir: infra
+          cloud-url: ${{ env.PULUMI_BACKEND_URL }}
+        env:
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
 
       - name: Build frontend with Lambda URL
         run: |
           cd fe
-          # Get Lambda Function URL from Pulumi outputs
-          LAMBDA_URL=$(cd ../infra && pulumi stack output lambdaFunctionUrlEndpoint)
-          export VITE_API_URL=$LAMBDA_URL
+          export VITE_API_URL=$(echo '${{ steps.pulumi-outputs.outputs }}' | jq -r '.lambdaFunctionUrlEndpoint')
           npm run build
 
       # Upload frontend to S3
       - name: Upload frontend to S3
         run: |
-          cd infra
-          BUCKET_NAME=$(pulumi stack output frontendBucketName)
-          aws s3 sync ../fe/dist/ s3://$BUCKET_NAME --delete
+          BUCKET_NAME=$(echo '${{ steps.pulumi-outputs.outputs }}' | jq -r '.frontendBucketName')
+          aws s3 sync fe/dist/ s3://$BUCKET_NAME --delete
 
       # Invalidate CloudFront cache
       - name: Invalidate CloudFront cache
         run: |
-          cd infra
-          DISTRIBUTION_ID=$(pulumi stack output cloudFrontDistributionId)
+          DISTRIBUTION_ID=$(echo '${{ steps.pulumi-outputs.outputs }}' | jq -r '.cloudFrontDistributionId')
           aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
