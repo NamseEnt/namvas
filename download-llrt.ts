@@ -2,7 +2,6 @@
 
 import "path";
 
-const LLRT_VERSION = "latest";
 const LLRT_REPO = "awslabs/llrt";
 
 function getOsArch(): string {
