@@ -9,66 +9,7 @@ env:
   AWS_REGION: ap-northeast-2
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: |
-            fe/package-lock.json
-            shared/package-lock.json
-
-      # Install dependencies
-      - name: Install backend dependencies
-        run: |
-          cd be
-          bun install
-
-      - name: Install frontend dependencies
-        run: |
-          cd fe
-          npm ci
-
-      - name: Install shared dependencies
-        run: |
-          cd shared
-          npm ci
-
-      # Run tests
-      - name: Run backend tests
-        run: |
-          cd be
-          npm test
-
-      - name: Run frontend tests
-        run: |
-          cd fe
-          npm test
-
-      # Build
-      - name: Build backend
-        run: |
-          cd be
-          bun run build:lambda
-
-      - name: Build frontend
-        run: |
-          cd fe
-          npm run build
-
   deploy:
-    needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
@@ -90,6 +31,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: |
             fe/package-lock.json
+            be/package-lock.json
             infrastructure/package-lock.json
 
       - name: Configure AWS credentials
@@ -116,6 +58,17 @@ jobs:
         run: |
           cd infrastructure
           npm ci
+
+      # Test
+      - name: Test backend
+        run: |
+          cd be
+          npm test
+
+      - name: Test frontend
+        run: |
+          cd fe
+          npm test
 
       # Build
       - name: Build backend for LLRT
