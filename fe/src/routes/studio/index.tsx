@@ -1,13 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import StudioPage from "@/components/pages/studio";
 
-const studioSearchSchema = {
-  artwork: {
-    optional: true,
-  } as const,
-} as const;
-
 export const Route = createFileRoute("/studio/")({
-  validateSearch: studioSearchSchema,
+  validateSearch: (search: Record<string, unknown>) => ({
+    artwork: search.artwork as string | undefined,
+  }),
   component: StudioPage,
 });

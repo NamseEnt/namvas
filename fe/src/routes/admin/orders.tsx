@@ -14,7 +14,12 @@ export const Route = createFileRoute("/admin/orders")({
   }),
 });
 
-type OrderStatus = "payment_completed" | "in_production" | "shipping" | "delivered" | "production_hold";
+type OrderStatus =
+  | "payment_completed"
+  | "in_production"
+  | "shipping"
+  | "delivered"
+  | "production_hold";
 
 type Order = {
   id: string;
@@ -41,39 +46,42 @@ type OrdersData = {
 export default function AdminOrders() {
   const navigate = useNavigate();
   const { status, search, page } = Route.useSearch();
-  const [data, setData] = useState<OrdersData | null>(null);
+  const [data, setData] = useState<OrdersData>();
   const [isLoading, setIsLoading] = useState(true);
   const [searchInput, setSearchInput] = useState(search || "");
 
-  useEffect(function loadOrdersData() {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const params = new URLSearchParams();
-        if (status) {
-          params.append("status", status);
-        }
-        if (search) {
-          params.append("search", search);
-        }
-        params.append("page", page.toString());
-        params.append("limit", "20");
+  useEffect(
+    function loadOrdersData() {
+      const fetchData = async () => {
+        setIsLoading(true);
+        try {
+          const params = new URLSearchParams();
+          if (status) {
+            params.append("status", status);
+          }
+          if (search) {
+            params.append("search", search);
+          }
+          params.append("page", page.toString());
+          params.append("limit", "20");
 
-        const response = await fetch(`/api/adminGetOrders?${params}`);
-        const result = await response.json();
-        
-        if (result.ok) {
-          setData(result);
-        }
-      } catch (error) {
-        console.error("Failed to load orders:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+          const response = await fetch(`/api/adminGetOrders?${params}`);
+          const result = await response.json();
 
-    fetchData();
-  }, [status, search, page]);
+          if (result.ok) {
+            setData(result);
+          }
+        } catch (error) {
+          console.error("Failed to load orders:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchData();
+    },
+    [status, search, page]
+  );
 
   const handleStatusFilter = (newStatus: string | undefined) => {
     navigate({
@@ -85,7 +93,7 @@ export default function AdminOrders() {
   const handleSearch = () => {
     navigate({
       to: "/admin/orders",
-      search: { status, search: searchInput || undefined, page: 1 },
+      search: { status, search: searchInput, page: 1 },
     });
   };
 
@@ -257,7 +265,10 @@ function OrdersTable({ orders }: { orders: Order[] }) {
                       <Badge variant={badge.variant}>{badge.text}</Badge>
                     </td>
                     <td className="py-3 px-2">
-                      <Link to="/admin/orders/$orderId" params={{ orderId: order.id }}>
+                      <Link
+                        to="/admin/orders/$orderId"
+                        params={{ orderId: order.id }}
+                      >
                         <Button size="sm">상세</Button>
                       </Link>
                     </td>
@@ -306,7 +317,7 @@ function Pagination({
       >
         이전
       </Button>
-      
+
       {getPageNumbers().map((pageNum) => (
         <Button
           key={pageNum}
@@ -316,7 +327,7 @@ function Pagination({
           {pageNum}
         </Button>
       ))}
-      
+
       <Button
         variant="outline"
         onClick={() => onPageChange(currentPage + 1)}

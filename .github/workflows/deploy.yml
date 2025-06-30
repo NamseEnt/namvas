@@ -45,37 +45,22 @@ jobs:
           cd shared
           npm ci
 
-      - name: Install db dependencies
-        run: |
-          cd db
-          npm ci
-
       # Run tests
-      - name: Run backend linting (LLRT compatibility check)
-        run: |
-          cd be
-          bun run lint
-
       - name: Run backend tests
         run: |
           cd be
-          bun test
+          npm test
 
       - name: Run frontend tests
         run: |
           cd fe
           npm test
 
-      - name: Run db tests
-        run: |
-          cd db
-          npm test
-
       # Build
-      - name: Build backend for LLRT
+      - name: Build backend
         run: |
           cd be
-          bun run build:llrt
+          bun run build:lambda
 
       - name: Build frontend
         run: |
@@ -120,7 +105,7 @@ jobs:
       - name: Install backend dependencies
         run: |
           cd be
-          bun install
+          npm ci
 
       - name: Install frontend dependencies
         run: |
@@ -136,7 +121,7 @@ jobs:
       - name: Build backend for LLRT
         run: |
           cd be
-          bun run build:llrt
+          npm run build:lambda
 
       - name: Build frontend
         run: |

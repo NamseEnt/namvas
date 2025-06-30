@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/admin/orders/$orderId")({
   component: AdminOrderDetail,
+  validateSearch: (search: any) => search,
 });
 
 type OrderStatus = "payment_completed" | "in_production" | "shipping" | "delivered" | "production_hold";
@@ -53,7 +54,7 @@ type OrderDetail = {
 export default function AdminOrderDetail() {
   const { orderId } = Route.useParams();
   const navigate = useNavigate();
-  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [order, setOrder] = useState<OrderDetail>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [updateData, setUpdateData] = useState({
@@ -76,11 +77,11 @@ export default function AdminOrderDetail() {
             adminMemo: result.order.adminMemo || "",
           });
         } else {
-          navigate({ to: "/admin/orders" });
+          navigate({ to: "/admin/orders", search: { status: undefined, search: undefined, page: 1 } });
         }
       } catch (error) {
         console.error("Failed to load order:", error);
-        navigate({ to: "/admin/orders" });
+        navigate({ to: "/admin/orders", search: { status: undefined, search: undefined, page: 1 } });
       } finally {
         setIsLoading(false);
       }
@@ -110,7 +111,7 @@ export default function AdminOrderDetail() {
       const result = await response.json();
       
       if (result.ok) {
-        setOrder((prev) => prev ? { ...prev, ...updateData } : null);
+        setOrder((prev) => prev ? { ...prev, ...updateData } : undefined);
         alert("주문 정보가 업데이트되었습니다.");
       } else {
         alert("업데이트에 실패했습니다.");
@@ -156,7 +157,7 @@ export default function AdminOrderDetail() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">주문 상세 - {order.orderNumber}</h1>
-        <Button variant="outline" onClick={() => navigate({ to: "/admin/orders" })}>
+        <Button variant="outline" onClick={() => navigate({ to: "/admin/orders", search: { status: undefined, search: undefined, page: 1 } })}>
           목록으로
         </Button>
       </div>
@@ -235,7 +236,7 @@ function OrderInfoCard({ order }: { order: OrderDetail }) {
 }
 
 function OrderManagementCard({
-  order,
+  order: _order,
   updateData,
   setUpdateData,
   onUpdate,

@@ -3,17 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
 
-const completeSearchSchema = {
-  orderId: {
-    optional: true,
-  } as const,
-  amount: {
-    optional: true,
-  } as const,
-};
-
 export const Route = createFileRoute("/order-complete")({
-  validateSearch: completeSearchSchema,
+  validateSearch: (search: Record<string, unknown>) => ({
+    orderId: search.orderId as string | undefined,
+    amount: search.amount as string | undefined,
+  }),
   component: OrderCompletePage,
 });
 

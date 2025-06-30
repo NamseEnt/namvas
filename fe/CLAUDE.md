@@ -268,6 +268,81 @@ function SubComponent1() {
 
 - **Commit messages**: Title only, no body
 
+## Null vs Undefined Guidelines
+
+### Core Rule: Prefer `undefined` over `null`
+
+**ALWAYS use `undefined` instead of `null` in this codebase**, except in specific cases listed below.
+
+### useState Pattern
+
+```tsx
+// ✅ Correct - Use useState<T>() without initial value (defaults to undefined)
+const [user, setUser] = useState<User>();
+const [data, setData] = useState<ApiResponse>();
+
+// ❌ Wrong - Never use null with useState
+const [user, setUser] = useState<User | null>(null);
+const [data, setData] = useState<ApiResponse | null>(null);
+```
+
+### Type Definitions
+
+```tsx
+// ✅ Correct - Use undefined for optional values
+type UserProfile = {
+  name: string;
+  avatar: string | undefined;
+  lastLogin: Date | undefined;
+};
+
+// ❌ Wrong - Don't use null
+type UserProfile = {
+  name: string;
+  avatar: string | null;
+  lastLogin: Date | null;
+};
+```
+
+### Comparisons and Checks
+
+```tsx
+// ✅ Correct - Check for undefined
+if (data === undefined) { ... }
+if (user !== undefined) { ... }
+if (!data) { ... } // Also acceptable for falsy checks
+
+// ❌ Wrong - Don't use null comparisons
+if (data === null) { ... }
+if (user !== null) { ... }
+```
+
+### Setting Values
+
+```tsx
+// ✅ Correct - Set to undefined
+setUser(undefined);
+setState(prev => ({ ...prev, avatar: undefined }));
+
+// ❌ Wrong - Don't set to null
+setUser(null);
+setState(prev => ({ ...prev, avatar: null }));
+```
+
+### Exceptions: When to Use `null`
+
+1. **React refs**: `useRef<T>(null)` - React convention
+2. **Component Internal Context**: `createContext<T>(null as any)` - As per our Context Pattern
+3. **Third-party library requirements**: When external APIs specifically require `null`
+4. **DOM APIs**: When working with DOM methods that return `null`
+
+### Rationale
+
+- **Consistency**: Single falsy value reduces cognitive overhead
+- **TypeScript**: `undefined` is the default for uninitialized values
+- **JSON**: `undefined` properties are omitted, reducing payload size
+- **Optional chaining**: Works naturally with `undefined`
+
 ## TanStack Router Rules
 
 ### Navigation

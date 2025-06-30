@@ -1,18 +1,18 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import CanvasView from '@/components/CanvasView';
-import { X, ArrowLeft } from 'lucide-react';
-import { type ArtworkDefinition } from '@/types/artwork';
-import { 
-  getArtworkFromStorage, 
-  getTextureFromStorage 
-} from '@/utils/storageManager';
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import CanvasView from "@/components/CanvasView";
+import { X, ArrowLeft } from "lucide-react";
+import { type ArtworkDefinition } from "@/types/artwork";
+import {
+  getArtworkFromStorage,
+  getTextureFromStorage,
+} from "@/utils/storageManager";
 
 declare global {
   interface Window {
@@ -31,41 +31,41 @@ declare global {
   }
 }
 
-const orderSearchSchema = {
-  fromStudio: {
-    optional: true,
-  } as const,
-};
-
-export const Route = createFileRoute('/order')({
-  validateSearch: orderSearchSchema,
+export const Route = createFileRoute("/order")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    fromStudio: search.fromStudio as string | undefined,
+  }),
   component: OrderPage,
 });
 
 export default function OrderPage() {
   const navigate = useNavigate();
   const { fromStudio } = Route.useSearch();
-  
+
   // Get data from storage if coming from studio
-  const [artworkDefinition, setArtworkDefinition] = useState<ArtworkDefinition | null>(null);
-  const [textureUrl, setTextureUrl] = useState<string | null>(null);
-  
-  useEffect(function loadDataFromStorage() {
-    if (fromStudio) {
-      getArtworkFromStorage().then(setArtworkDefinition);
-      getTextureFromStorage().then(setTextureUrl);
-    }
-  }, [fromStudio]);
-  
+  const [artworkDefinition, setArtworkDefinition] =
+    useState<ArtworkDefinition>();
+  const [textureUrl, setTextureUrl] = useState<string>();
+
+  useEffect(
+    function loadDataFromStorage() {
+      if (fromStudio) {
+        getArtworkFromStorage().then(setArtworkDefinition);
+        getTextureFromStorage().then(setTextureUrl);
+      }
+    },
+    [fromStudio]
+  );
+
   const [orderState, setOrderState] = useState<OrderState>({
     quantity: 1,
     hasPlasticStand: false,
-    recipientName: '',
-    recipientPhone: '',
-    postalCode: '',
-    address: '',
-    addressDetail: '',
-    deliveryMemo: '',
+    recipientName: "",
+    recipientPhone: "",
+    postalCode: "",
+    address: "",
+    addressDetail: "",
+    deliveryMemo: "",
   });
 
   const updateOrderState = (updates: Partial<OrderState>) => {
@@ -73,8 +73,9 @@ export default function OrderPage() {
   };
 
   useEffect(function loadDaumPostcodeScript() {
-    const script = document.createElement('script');
-    script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    const script = document.createElement("script");
+    script.src =
+      "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
     script.async = true;
     document.body.appendChild(script);
 
@@ -87,17 +88,19 @@ export default function OrderPage() {
   const plasticStandPrice = 250;
   const shippingFee = 3000;
   const subtotal = basePrice * orderState.quantity;
-  const optionPrice = orderState.hasPlasticStand ? plasticStandPrice * orderState.quantity : 0;
+  const optionPrice = orderState.hasPlasticStand
+    ? plasticStandPrice * orderState.quantity
+    : 0;
   const totalPrice = subtotal + optionPrice + shippingFee;
 
   const handlePayment = () => {
     const orderId = "ORDER-" + Date.now().toString();
-    navigate({ 
-      to: "/order-complete", 
-      search: { 
+    navigate({
+      to: "/order-complete",
+      search: {
         orderId,
-        amount: totalPrice.toString()
-      } 
+        amount: totalPrice.toString(),
+      },
     });
   };
 
@@ -105,34 +108,35 @@ export default function OrderPage() {
     if (artworkDefinition) {
       // Navigate back to studio (data already in localStorage)
       navigate({
-        to: '/studio',
+        to: "/studio",
         search: {
-          artwork: true, // Just a trigger to load from localStorage
+          artwork: "true", // Just a trigger to load from localStorage
         },
       });
     } else {
       // No artwork definition available, just go to studio
-      navigate({ to: '/studio' });
+      navigate({ to: "/studio", search: { artwork: undefined } });
     }
   };
 
   const searchAddress = () => {
     if (!window.daum) {
-      alert('주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      alert("주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
       return;
     }
 
     new window.daum.Postcode({
-      oncomplete: function(data) {
-        const addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
-        
+      oncomplete: function (data) {
+        const addr =
+          data.userSelectedType === "R" ? data.roadAddress : data.jibunAddress;
+
         updateOrderState({
           postalCode: data.zonecode,
           address: addr,
         });
 
-        document.getElementById('address-detail')?.focus();
-      }
+        document.getElementById("address-detail")?.focus();
+      },
     }).open();
   };
 
@@ -164,16 +168,30 @@ export default function OrderPage() {
                 {/* 왼쪽: 캔버스 미리보기 (2/3) */}
                 <div className="lg:col-span-2 flex justify-center">
                   <div className="flex gap-4">
-                    <CanvasView angle="front" textureUrl={textureUrl} className="h-56 w-42" />
-                    <CanvasView angle="rightBottomUp" textureUrl={textureUrl} className="h-56 w-42" />
-                    <CanvasView angle="leftTopDown" textureUrl={textureUrl} className="h-56 w-42" />
+                    <CanvasView
+                      angle="front"
+                      textureUrl={textureUrl}
+                      className="h-56 w-42"
+                    />
+                    <CanvasView
+                      angle="rightBottomUp"
+                      textureUrl={textureUrl}
+                      className="h-56 w-42"
+                    />
+                    <CanvasView
+                      angle="leftTopDown"
+                      textureUrl={textureUrl}
+                      className="h-56 w-42"
+                    />
                   </div>
                 </div>
 
                 {/* 오른쪽: 제품 정보 및 옵션 (1/3) */}
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-semibold">10x15cm 커스텀 캔버스</h3>
+                    <h3 className="text-lg font-semibold">
+                      10x15cm 커스텀 캔버스
+                    </h3>
                     <p className="text-gray-600">최종 디자인</p>
                   </div>
 
@@ -183,10 +201,15 @@ export default function OrderPage() {
                         id="plastic-stand"
                         checked={orderState.hasPlasticStand}
                         onCheckedChange={(checked) =>
-                          updateOrderState({ hasPlasticStand: checked as boolean })
+                          updateOrderState({
+                            hasPlasticStand: checked as boolean,
+                          })
                         }
                       />
-                      <Label htmlFor="plastic-stand" className="text-sm font-medium">
+                      <Label
+                        htmlFor="plastic-stand"
+                        className="text-sm font-medium"
+                      >
                         다이소 플라스틱 받침대 추가 (+{plasticStandPrice}원)
                       </Label>
                     </div>
@@ -200,7 +223,11 @@ export default function OrderPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
-                            onClick={() => updateOrderState({ quantity: Math.max(1, orderState.quantity - 1) })}
+                            onClick={() =>
+                              updateOrderState({
+                                quantity: Math.max(1, orderState.quantity - 1),
+                              })
+                            }
                             disabled={orderState.quantity <= 1}
                           >
                             -
@@ -210,7 +237,9 @@ export default function OrderPage() {
                             value={orderState.quantity}
                             onChange={(e) => {
                               const value = parseInt(e.target.value) || 1;
-                              updateOrderState({ quantity: Math.max(1, Math.min(99, value)) });
+                              updateOrderState({
+                                quantity: Math.max(1, Math.min(99, value)),
+                              });
                             }}
                           />
                           <Button
@@ -218,14 +247,20 @@ export default function OrderPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
-                            onClick={() => updateOrderState({ quantity: Math.min(99, orderState.quantity + 1) })}
+                            onClick={() =>
+                              updateOrderState({
+                                quantity: Math.min(99, orderState.quantity + 1),
+                              })
+                            }
                             disabled={orderState.quantity >= 99}
                           >
                             +
                           </Button>
                         </div>
                       </div>
-                      <p className="text-xl font-bold text-gray-800">{(subtotal + optionPrice).toLocaleString()}원</p>
+                      <p className="text-xl font-bold text-gray-800">
+                        {(subtotal + optionPrice).toLocaleString()}원
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -249,7 +284,9 @@ export default function OrderPage() {
                     id="recipient-name"
                     className="max-w-xs"
                     value={orderState.recipientName}
-                    onChange={(e) => updateOrderState({ recipientName: e.target.value })}
+                    onChange={(e) =>
+                      updateOrderState({ recipientName: e.target.value })
+                    }
                     placeholder="이름을 입력하세요"
                   />
                 </div>
@@ -260,7 +297,9 @@ export default function OrderPage() {
                     id="recipient-phone"
                     className="max-w-xs"
                     value={orderState.recipientPhone}
-                    onChange={(e) => updateOrderState({ recipientPhone: e.target.value })}
+                    onChange={(e) =>
+                      updateOrderState({ recipientPhone: e.target.value })
+                    }
                     placeholder="010-0000-0000"
                   />
                 </div>
@@ -268,13 +307,21 @@ export default function OrderPage() {
                 <div className="grid gap-3">
                   <Label htmlFor="address">주소</Label>
                   <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={searchAddress}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={searchAddress}
+                    >
                       주소 검색
                     </Button>
                     <Input
                       id="address"
                       className="flex-1 cursor-pointer"
-                      value={orderState.postalCode ? `[${orderState.postalCode}] ${orderState.address}` : ''}
+                      value={
+                        orderState.postalCode
+                          ? `[${orderState.postalCode}] ${orderState.address}`
+                          : ""
+                      }
                       placeholder="주소를 검색해주세요"
                       onClick={searchAddress}
                       readOnly
@@ -287,8 +334,14 @@ export default function OrderPage() {
                   <Input
                     id="address-detail"
                     value={orderState.addressDetail}
-                    onChange={(e) => updateOrderState({ addressDetail: e.target.value })}
-                    placeholder={orderState.address ? "상세 주소를 입력하세요" : "먼저 주소를 검색해주세요"}
+                    onChange={(e) =>
+                      updateOrderState({ addressDetail: e.target.value })
+                    }
+                    placeholder={
+                      orderState.address
+                        ? "상세 주소를 입력하세요"
+                        : "먼저 주소를 검색해주세요"
+                    }
                     disabled={!orderState.address}
                   />
                 </div>
@@ -298,7 +351,9 @@ export default function OrderPage() {
                   <Textarea
                     id="delivery-memo"
                     value={orderState.deliveryMemo}
-                    onChange={(e) => updateOrderState({ deliveryMemo: e.target.value })}
+                    onChange={(e) =>
+                      updateOrderState({ deliveryMemo: e.target.value })
+                    }
                     placeholder="배송 시 요청사항을 입력하세요"
                     rows={3}
                   />
@@ -332,7 +387,9 @@ export default function OrderPage() {
                   <div className="border-t pt-2 mt-2">
                     <div className="flex justify-between text-lg font-bold">
                       <span>총 결제 금액</span>
-                      <span className="text-blue-600">{totalPrice.toLocaleString()}원</span>
+                      <span className="text-blue-600">
+                        {totalPrice.toLocaleString()}원
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -343,7 +400,7 @@ export default function OrderPage() {
               className="w-full h-14 text-lg"
               size="lg"
               onClick={handlePayment}
-              style={{ backgroundColor: '#1EC800', color: 'white' }}
+              style={{ backgroundColor: "#1EC800", color: "white" }}
             >
               네이버페이로 결제
             </Button>

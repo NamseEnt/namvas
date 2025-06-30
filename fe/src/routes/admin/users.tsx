@@ -34,41 +34,44 @@ type UsersData = {
 export default function AdminUsers() {
   const navigate = useNavigate();
   const { search, page } = Route.useSearch();
-  const [data, setData] = useState<UsersData | null>(null);
+  const [data, setData] = useState<UsersData>();
   const [isLoading, setIsLoading] = useState(true);
   const [searchInput, setSearchInput] = useState(search || "");
 
-  useEffect(function loadUsersData() {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const params = new URLSearchParams();
-        if (search) {
-          params.append("search", search);
-        }
-        params.append("page", page.toString());
-        params.append("limit", "20");
+  useEffect(
+    function loadUsersData() {
+      const fetchData = async () => {
+        setIsLoading(true);
+        try {
+          const params = new URLSearchParams();
+          if (search) {
+            params.append("search", search);
+          }
+          params.append("page", page.toString());
+          params.append("limit", "20");
 
-        const response = await fetch(`/api/adminGetUsers?${params}`);
-        const result = await response.json();
-        
-        if (result.ok) {
-          setData(result);
-        }
-      } catch (error) {
-        console.error("Failed to load users:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+          const response = await fetch(`/api/adminGetUsers?${params}`);
+          const result = await response.json();
 
-    fetchData();
-  }, [search, page]);
+          if (result.ok) {
+            setData(result);
+          }
+        } catch (error) {
+          console.error("Failed to load users:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchData();
+    },
+    [search, page]
+  );
 
   const handleSearch = () => {
     navigate({
       to: "/admin/users",
-      search: { search: searchInput || undefined, page: 1 },
+      search: { search: searchInput, page: 1 },
     });
   };
 
@@ -132,7 +135,12 @@ function UsersTable({ users }: { users: User[] }) {
       google: { text: "Google", variant: "default" as const },
       twitter: { text: "Twitter", variant: "secondary" as const },
     };
-    return badges[provider as keyof typeof badges] || { text: provider, variant: "outline" as const };
+    return (
+      badges[provider as keyof typeof badges] || {
+        text: provider,
+        variant: "outline" as const,
+      }
+    );
   };
 
   if (users.length === 0) {
@@ -170,7 +178,9 @@ function UsersTable({ users }: { users: User[] }) {
                     <td className="py-3 px-2">
                       <div>
                         <p className="font-medium">{user.name}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {user.email}
+                        </p>
                         <Badge variant={providerBadge.variant} className="mt-1">
                           {providerBadge.text}
                         </Badge>
@@ -186,10 +196,15 @@ function UsersTable({ users }: { users: User[] }) {
                       </div>
                     </td>
                     <td className="py-3 px-2">
-                      {user.lastOrderDate ? formatDate(user.lastOrderDate) : "없음"}
+                      {user.lastOrderDate
+                        ? formatDate(user.lastOrderDate)
+                        : "없음"}
                     </td>
                     <td className="py-3 px-2">
-                      <Link to="/admin/users/$userId" params={{ userId: user.id }}>
+                      <Link
+                        to="/admin/users/$userId"
+                        params={{ userId: user.id }}
+                      >
                         <Button size="sm">상세</Button>
                       </Link>
                     </td>
@@ -238,7 +253,7 @@ function Pagination({
       >
         이전
       </Button>
-      
+
       {getPageNumbers().map((pageNum) => (
         <Button
           key={pageNum}
@@ -248,7 +263,7 @@ function Pagination({
           {pageNum}
         </Button>
       ))}
-      
+
       <Button
         variant="outline"
         onClick={() => onPageChange(currentPage + 1)}

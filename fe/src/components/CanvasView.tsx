@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 
 type ViewAngle = 'front' | 'rightBottomUp' | 'leftTopDown';
@@ -11,8 +11,8 @@ export default function CanvasView({ angle, textureUrl, texture, className }: {
   texture?: THREE.Texture;
   className?: string;
 }) {
-  const [canvasTextureImg, setCanvasTextureImg] = useState<HTMLImageElement | null>(null);
-  const [uploadedImage, setUploadedImage] = useState<HTMLImageElement | null>(null);
+  const [canvasTextureImg, setCanvasTextureImg] = useState<HTMLImageElement>();
+  const [uploadedImage, setUploadedImage] = useState<HTMLImageElement>();
 
   useEffect(function loadCanvasTexture() {
     const img = new Image();
@@ -22,14 +22,14 @@ export default function CanvasView({ angle, textureUrl, texture, className }: {
 
   useEffect(function loadUploadedImage() {
     if (!textureUrl || texture) {
-      setUploadedImage(null);
+      setUploadedImage(undefined);
       return;
     }
 
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => setUploadedImage(img);
-    img.onerror = () => setUploadedImage(null);
+    img.onerror = () => setUploadedImage(undefined);
     img.src = textureUrl;
   }, [textureUrl, texture]);
 
@@ -99,7 +99,7 @@ function CanvasFrame({
   providedTexture 
 }: { 
   rotation: { x: number; y: number };
-  uploadedImage: HTMLImageElement | null;
+  uploadedImage: HTMLImageElement | undefined;
   canvasTextureImg: HTMLImageElement;
   providedTexture?: THREE.Texture;
 }) {

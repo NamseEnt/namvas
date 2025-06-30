@@ -20,8 +20,8 @@ import {
 } from "@/utils/storageManager";
 
 export type StudioState = {
-  uploadedImage: HTMLImageElement | null;
-  imageDataUrl: string | null;
+  uploadedImage: HTMLImageElement | undefined;
+  imageDataUrl: string | undefined;
   mmPerPixel: number; // millimeters per pixel ratio
   imageCenterXy: { x: number; y: number }; // in millimeters
   sideProcessing: SideProcessing;
@@ -72,17 +72,17 @@ export default function StudioPage() {
   const [hasRestoredFromStorage, setHasRestoredFromStorage] = useState(false);
   
   // Get artwork from storage (search params used only as a trigger)
-  const [artworkDefinition, setArtworkDefinition] = useState<ArtworkDefinition | null>(null);
+  const [artworkDefinition, setArtworkDefinition] = useState<ArtworkDefinition>();
   
   useEffect(function loadArtworkFromStorage() {
-    if (search.artwork && !hasRestoredFromStorage) {
+    if (search?.artwork && !hasRestoredFromStorage) {
       getArtworkFromStorage().then(setArtworkDefinition);
     }
-  }, [search.artwork, hasRestoredFromStorage]);
+  }, [search?.artwork, hasRestoredFromStorage]);
 
   const [state, setState] = useState<StudioState>({
-    uploadedImage: null,
-    imageDataUrl: null,
+    uploadedImage: undefined,
+    imageDataUrl: undefined,
     mmPerPixel: 1, // will be auto-calculated on image upload
     imageCenterXy: { x: 0, y: 0 }, // in millimeters
     sideProcessing: {
@@ -95,7 +95,7 @@ export default function StudioPage() {
     rotation: { x: 0, y: 0 },
   });
 
-  const [canvasTextureImg, setCanvasTextureImg] = useState<HTMLImageElement | null>(null);
+  const [canvasTextureImg, setCanvasTextureImg] = useState<HTMLImageElement>();
 
   const updateState = useCallback((updates: Partial<StudioState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -210,7 +210,7 @@ export default function StudioPage() {
       navigate({
         to: '/order',
         search: {
-          fromStudio: true,
+          fromStudio: 'true',
         },
       });
     } catch (error) {
@@ -239,7 +239,7 @@ export default function StudioPage() {
         setHasRestoredFromStorage(true);
         
         // Remove artwork param from URL to prevent re-renders
-        navigate({ to: '/studio', search: {}, replace: true });
+        navigate({ to: '/studio', search: { artwork: undefined }, replace: true });
       };
       img.src = artworkDefinition.originalImageDataUrl;
     }

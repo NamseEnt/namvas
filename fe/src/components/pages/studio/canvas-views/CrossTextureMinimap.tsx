@@ -8,7 +8,7 @@ export function CrossTextureMinimap() {
   const { state } = useStudioContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasTextureImg, setCanvasTextureImg] =
-    useState<HTMLImageElement | null>(null);
+    useState<HTMLImageElement>();
 
   useEffect(function loadCanvasTexture() {
     const img = new Image();

@@ -242,7 +242,7 @@ function CanvasFrame() {
   const meshRef = useRef<THREE.Mesh>(null);
 
   const [canvasTextureImg, setCanvasTextureImg] =
-    useState<HTMLImageElement | null>(null);
+    useState<HTMLImageElement>();
 
   useEffect(function loadCanvasTexture() {
     const img = new Image();

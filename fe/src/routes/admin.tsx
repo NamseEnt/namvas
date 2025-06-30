@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin")({
 
 export default function AdminLayout() {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>();
 
   useEffect(function checkAdminAuth() {
     const checkAuth = async () => {
@@ -40,7 +40,7 @@ export default function AdminLayout() {
     }
   };
 
-  if (isAuthenticated === null) {
+  if (isAuthenticated === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

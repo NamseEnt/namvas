@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/admin/users/$userId")({
   component: AdminUserDetail,
+  validateSearch: (search: any) => search,
 });
 
 type UserDetail = {
@@ -29,7 +30,7 @@ type UserDetail = {
 export default function AdminUserDetail() {
   const { userId } = Route.useParams();
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserDetail | null>(null);
+  const [user, setUser] = useState<UserDetail>();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(function loadUserDetail() {
@@ -41,11 +42,11 @@ export default function AdminUserDetail() {
         if (result.ok) {
           setUser(result.user);
         } else {
-          navigate({ to: "/admin/users" });
+          navigate({ to: "/admin/users", search: { search: undefined, page: 1 } });
         }
       } catch (error) {
         console.error("Failed to load user:", error);
-        navigate({ to: "/admin/users" });
+        navigate({ to: "/admin/users", search: { search: undefined, page: 1 } });
       } finally {
         setIsLoading(false);
       }
@@ -76,7 +77,7 @@ export default function AdminUserDetail() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">사용자 상세 - {user.name}</h1>
-        <Button variant="outline" onClick={() => navigate({ to: "/admin/users" })}>
+        <Button variant="outline" onClick={() => navigate({ to: "/admin/users", search: { search: undefined, page: 1 } })}>
           목록으로
         </Button>
       </div>

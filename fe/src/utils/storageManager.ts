@@ -19,7 +19,7 @@ class OPFSStorage {
     await writable.close();
   }
 
-  async getArtwork(): Promise<ArtworkDefinition | null> {
+  async getArtwork(): Promise<ArtworkDefinition | undefined> {
     try {
       const root = await this.getRoot();
       const fileHandle = await root.getFileHandle('artwork.json');
@@ -28,7 +28,7 @@ class OPFSStorage {
       return JSON.parse(text) as ArtworkDefinition;
     } catch (error) {
       // File doesn't exist
-      return null;
+      return undefined;
     }
   }
 
@@ -40,7 +40,7 @@ class OPFSStorage {
     await writable.close();
   }
 
-  async getTexture(): Promise<string | null> {
+  async getTexture(): Promise<string | undefined> {
     try {
       const root = await this.getRoot();
       const fileHandle = await root.getFileHandle('texture.txt');
@@ -48,7 +48,7 @@ class OPFSStorage {
       return await file.text();
     } catch (error) {
       // File doesn't exist
-      return null;
+      return undefined;
     }
   }
 

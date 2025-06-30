@@ -29,7 +29,7 @@ function AuthCallback() {
             // Clear the code verifier
             sessionStorage.removeItem("twitter_code_verifier");
             // Navigate to studio
-            navigate({ to: "/studio" });
+            navigate({ to: "/studio", search: { artwork: undefined } });
           } else {
             console.error("Twitter login failed:", result.reason);
             navigate({ to: "/" });
@@ -55,7 +55,7 @@ function AuthCallback() {
           const result = await response.json();
 
           if (result.ok) {
-            navigate({ to: "/studio" });
+            navigate({ to: "/studio", search: { artwork: undefined } });
           } else {
             console.error("Google login failed:", result.reason);
             navigate({ to: "/" });

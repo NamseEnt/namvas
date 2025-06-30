@@ -28,7 +28,7 @@ type SiteSettings = {
 };
 
 export default function AdminSettings() {
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [settings, setSettings] = useState<SiteSettings>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -127,7 +127,7 @@ function AnnouncementsCard({
   isSaving,
 }: {
   announcements: SiteSettings["announcements"];
-  onSave: (announcements: Announcement[]) => void;
+  onSave: (announcements: SiteSettings["announcements"]) => void;
   isSaving: boolean;
 }) {
   const [editingAnnouncements, setEditingAnnouncements] = useState<Announcement[]>(
@@ -153,7 +153,9 @@ function AnnouncementsCard({
   };
 
   const handleSave = () => {
-    const validAnnouncements = editingAnnouncements.filter(a => a.message.trim());
+    const validAnnouncements = editingAnnouncements
+      .filter(a => a.message.trim())
+      .map(a => ({ ...a, id: a.id || Date.now().toString(), createdAt: new Date().toISOString() }));
     onSave(validAnnouncements);
   };
 

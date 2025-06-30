@@ -25,7 +25,7 @@ type DashboardData = {
 };
 
 export default function AdminDashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<DashboardData>();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(function loadDashboardData() {
@@ -147,7 +147,7 @@ function PendingTasks({ tasks }: { tasks: DashboardData["pendingTasks"] }) {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>처리할 업무 ({tasks.length}건)</span>
-          <Link to="/admin/orders">
+          <Link to="/admin/orders" search={{ status: undefined, search: undefined, page: 1 }}>
             <Button variant="outline" size="sm">
               전체 보기
             </Button>
