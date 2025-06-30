@@ -1,4 +1,4 @@
-import { Artwork, IdentityProvider, Order, OrderStatus } from "./types";
+import type { Order, OrderStatus } from "./types";
 
 export type ApiSpec = {
   getMe: {

@@ -1,87 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { settingsApi } from "@/lib/api";
 
 export const Route = createFileRoute("/admin/settings")({
   component: AdminSettings,
 });
 
-type Announcement = {
-  id?: string;
-  message: string;
-  type: "urgent" | "normal";
-  isActive: boolean;
-};
-
-type SiteSettings = {
-  announcements: Array<Announcement & { id: string; createdAt: string }>;
-  pricing: {
-    basePrice: number;
-    plasticStandPrice: number;
-    shippingFee: number;
-  };
-};
+type SiteSettings = ReturnType<typeof settingsApi.getSiteSettings> extends Promise<infer T> ? T : never;
 
 export default function AdminSettings() {
-  const [settings, setSettings] = useState<SiteSettings>();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const queryClient = useQueryClient();
+  
+  const { data: settings, isLoading, error } = useQuery({
+    queryKey: ['siteSettings'],
+    queryFn: settingsApi.getSiteSettings,
+  });
 
-  useEffect(function loadSettings() {
-    const fetchSettings = async () => {
-      try {
-        const response = await fetch("/api/adminGetSiteSettings");
-        const result = await response.json();
-        
-        if (result.ok) {
-          setSettings(result.settings);
-        }
-      } catch (error) {
-        console.error("Failed to load settings:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSettings();
-  }, []);
-
-  const handleSaveSettings = async (updates: Partial<SiteSettings>) => {
-    setIsSaving(true);
-    try {
-      const response = await fetch("/api/adminUpdateSiteSettings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updates),
-      });
-
-      const result = await response.json();
-      
-      if (result.ok) {
-        // Reload settings to get updated data
-        const updatedResponse = await fetch("/api/adminGetSiteSettings");
-        const updatedResult = await updatedResponse.json();
-        if (updatedResult.ok) {
-          setSettings(updatedResult.settings);
-        }
-        alert("설정이 저장되었습니다.");
-      } else {
-        alert("설정 저장에 실패했습니다.");
-      }
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      alert("설정 저장 중 오류가 발생했습니다.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const updateMutation = useMutation({
+    mutationFn: settingsApi.updateSiteSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+      alert("설정이 저장되었습니다.");
+    },
+    onError: () => {
+      alert("설정 저장에 실패했습니다.");
+    },
+  });
 
   if (isLoading) {
     return (
@@ -92,7 +42,7 @@ export default function AdminSettings() {
     );
   }
 
-  if (!settings) {
+  if (error || !settings) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">사이트 관리</h1>
@@ -107,14 +57,14 @@ export default function AdminSettings() {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AnnouncementsCard
-          announcements={settings.announcements}
-          onSave={(announcements) => handleSaveSettings({ announcements })}
-          isSaving={isSaving}
+          announcements={settings.announcements || {}}
+          onSave={(announcements) => updateMutation.mutate({ announcements })}
+          isSaving={updateMutation.isPending}
         />
         <PricingCard
           pricing={settings.pricing}
-          onSave={(pricing) => handleSaveSettings({ pricing })}
-          isSaving={isSaving}
+          onSave={(pricing) => updateMutation.mutate({ pricing })}
+          isSaving={updateMutation.isPending}
         />
       </div>
     </div>
@@ -126,48 +76,38 @@ function AnnouncementsCard({
   onSave,
   isSaving,
 }: {
-  announcements: SiteSettings["announcements"];
-  onSave: (announcements: SiteSettings["announcements"]) => void;
+  announcements: SiteSettings["announcements"] | {};
+  onSave: (announcements: any) => void;
   isSaving: boolean;
 }) {
-  const [editingAnnouncements, setEditingAnnouncements] = useState<Announcement[]>(
-    announcements.map(({ id, createdAt, ...rest }) => rest)
+  const [editingAnnouncements, setEditingAnnouncements] = useState<any[]>(
+    announcements.mainBanner || announcements.orderComplete ? 
+      [{ message: announcements.mainBanner || '', type: 'mainBanner' },
+       { message: announcements.orderComplete || '', type: 'orderComplete' }] : []
   );
 
-  const addAnnouncement = () => {
-    setEditingAnnouncements([
-      ...editingAnnouncements,
-      { message: "", type: "normal", isActive: true },
-    ]);
-  };
-
-  const updateAnnouncement = (index: number, updates: Partial<Announcement>) => {
+  const updateAnnouncement = (index: number, message: string) => {
     const updated = [...editingAnnouncements];
-    updated[index] = { ...updated[index], ...updates };
-    setEditingAnnouncements(updated);
-  };
-
-  const removeAnnouncement = (index: number) => {
-    const updated = editingAnnouncements.filter((_, i) => i !== index);
+    updated[index] = { ...updated[index], message };
     setEditingAnnouncements(updated);
   };
 
   const handleSave = () => {
-    const validAnnouncements = editingAnnouncements
-      .filter(a => a.message.trim())
-      .map(a => ({ ...a, id: a.id || Date.now().toString(), createdAt: new Date().toISOString() }));
-    onSave(validAnnouncements);
+    const announcements: any = {};
+    editingAnnouncements.forEach(a => {
+      if (a.type === 'mainBanner' && a.message) {
+        announcements.mainBanner = a.message;
+      } else if (a.type === 'orderComplete' && a.message) {
+        announcements.orderComplete = a.message;
+      }
+    });
+    onSave(announcements);
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>공지사항 관리</span>
-          <Button onClick={addAnnouncement} size="sm">
-            공지 추가
-          </Button>
-        </CardTitle>
+        <CardTitle>공지사항 관리</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {editingAnnouncements.length === 0 ? (
@@ -176,45 +116,18 @@ function AnnouncementsCard({
           </div>
         ) : (
           editingAnnouncements.map((announcement, index) => (
-            <div key={index} className="border rounded-lg p-4 space-y-3">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center space-x-2">
-                  <Label>유형:</Label>
-                  <select
-                    value={announcement.type}
-                    onChange={(e) => updateAnnouncement(index, { type: e.target.value as "urgent" | "normal" })}
-                    className="border rounded px-2 py-1"
-                  >
-                    <option value="normal">일반</option>
-                    <option value="urgent">긴급</option>
-                  </select>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => removeAnnouncement(index)}
-                >
-                  삭제
-                </Button>
-              </div>
-              
-              <div>
-                <Label>공지 내용</Label>
-                <Textarea
-                  value={announcement.message}
-                  onChange={(e) => updateAnnouncement(index, { message: e.target.value })}
-                  placeholder="공지사항 내용을 입력하세요"
-                  rows={3}
-                />
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={announcement.isActive}
-                  onCheckedChange={(checked) => updateAnnouncement(index, { isActive: !!checked })}
-                />
-                <Label>활성화</Label>
-              </div>
+            <div key={index} className="space-y-2">
+              <Label>
+                {announcement.type === 'mainBanner' ? '메인 배너 공지' : '주문 완료 페이지 공지'}
+              </Label>
+              <Textarea
+                value={announcement.message}
+                onChange={(e) => updateAnnouncement(index, e.target.value)}
+                placeholder={announcement.type === 'mainBanner' ? 
+                  "메인 페이지에 표시될 공지사항" : 
+                  "주문 완료 후 표시될 메시지"}
+                rows={3}
+              />
             </div>
           ))
         )}
@@ -236,9 +149,12 @@ function PricingCard({
   onSave: (pricing: SiteSettings["pricing"]) => void;
   isSaving: boolean;
 }) {
-  const [editingPricing, setEditingPricing] = useState(pricing);
+  const [editingPricing, setEditingPricing] = useState({
+    basePrice: pricing.basePrice || 0,
+    additionalOptions: pricing.additionalOptions || []
+  });
 
-  const updatePricing = (field: keyof SiteSettings["pricing"], value: number) => {
+  const updatePricing = (field: string, value: any) => {
     setEditingPricing(prev => ({ ...prev, [field]: value }));
   };
 
@@ -262,35 +178,9 @@ function PricingCard({
           />
         </div>
         
-        <div>
-          <Label>플라스틱 스탠드 가격 (원)</Label>
-          <Input
-            type="number"
-            value={editingPricing.plasticStandPrice}
-            onChange={(e) => updatePricing("plasticStandPrice", Number(e.target.value))}
-            placeholder="플라스틱 스탠드 추가 가격"
-          />
-        </div>
-        
-        <div>
-          <Label>기본 배송비 (원)</Label>
-          <Input
-            type="number"
-            value={editingPricing.shippingFee}
-            onChange={(e) => updatePricing("shippingFee", Number(e.target.value))}
-            placeholder="기본 배송비"
-          />
-        </div>
-        
         <div className="pt-4 border-t">
           <div className="text-sm text-muted-foreground space-y-1">
             <p>• 기본가: {editingPricing.basePrice.toLocaleString()}원</p>
-            <p>• 스탠드 추가: +{editingPricing.plasticStandPrice.toLocaleString()}원</p>
-            <p>• 배송비: {editingPricing.shippingFee.toLocaleString()}원</p>
-            <p className="font-medium">
-              총 예상가격: {(editingPricing.basePrice + editingPricing.plasticStandPrice + editingPricing.shippingFee).toLocaleString()}원
-              (스탠드 포함시)
-            </p>
           </div>
         </div>
         

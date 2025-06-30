@@ -1,87 +1,45 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { adminApi } from "@/lib/api";
+import type { Order, OrderStatus } from "../../../../shared/types";
+
+function isValidOrderStatus(status: string | undefined): status is OrderStatus | undefined {
+  if (status === undefined) return true;
+  return ['payment_completed', 'in_production', 'shipping', 'delivered', 'production_hold'].includes(status);
+}
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrders,
-  validateSearch: (search: Record<string, unknown>) => ({
-    status: search.status as string | undefined,
-    search: search.search as string | undefined,
-    page: search.page ? Number(search.page) : 1,
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const statusParam = search.status as string | undefined;
+    return {
+      status: isValidOrderStatus(statusParam) ? statusParam : undefined,
+      search: search.search as string | undefined,
+      page: search.page ? Number(search.page) : 1,
+    };
+  },
 });
 
-type OrderStatus =
-  | "payment_completed"
-  | "in_production"
-  | "shipping"
-  | "delivered"
-  | "production_hold";
-
-type Order = {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  customerEmail: string;
-  orderDate: string;
-  finalAmount: number;
-  status: OrderStatus;
-  quantity: number;
-  hasPlasticStand: boolean;
-  thumbnailUrl: string;
-  trackingNumber?: string;
-  adminMemo?: string;
-};
-
-type OrdersData = {
-  orders: Order[];
-  total: number;
-  page: number;
-  totalPages: number;
-};
 
 export default function AdminOrders() {
   const navigate = useNavigate();
   const { status, search, page } = Route.useSearch();
-  const [data, setData] = useState<OrdersData>();
-  const [isLoading, setIsLoading] = useState(true);
   const [searchInput, setSearchInput] = useState(search || "");
 
-  useEffect(
-    function loadOrdersData() {
-      const fetchData = async () => {
-        setIsLoading(true);
-        try {
-          const params = new URLSearchParams();
-          if (status) {
-            params.append("status", status);
-          }
-          if (search) {
-            params.append("search", search);
-          }
-          params.append("page", page.toString());
-          params.append("limit", "20");
-
-          const response = await fetch(`/api/adminGetOrders?${params}`);
-          const result = await response.json();
-
-          if (result.ok) {
-            setData(result);
-          }
-        } catch (error) {
-          console.error("Failed to load orders:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      fetchData();
-    },
-    [status, search, page]
-  );
+  const { data, isLoading } = useQuery({
+    queryKey: ['orders', { status, search, page }],
+    queryFn: () => adminApi.getOrders({ 
+      status, 
+      search, 
+      page, 
+      limit: 20 
+    }),
+  });
 
   const handleStatusFilter = (newStatus: string | undefined) => {
     navigate({
@@ -234,32 +192,22 @@ function OrdersTable({ orders }: { orders: Order[] }) {
                 return (
                   <tr key={order.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-2">
-                      <div className="flex items-center space-x-3">
-                        <img
-                          src={order.thumbnailUrl}
-                          alt="주문 이미지"
-                          className="w-12 h-12 object-cover rounded"
-                        />
-                        <div>
-                          <p className="font-medium">{order.orderNumber}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {order.quantity}개
-                            {order.hasPlasticStand && " (스탠드 포함)"}
-                          </p>
-                        </div>
-                      </div>
+                      <p className="font-medium">주문 #{order.id}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {order.quantity}개 {order.plasticStand && "(스탠드 포함)"}
+                      </p>
                     </td>
                     <td className="py-3 px-2">
                       <div>
-                        <p className="font-medium">{order.customerName}</p>
+                        <p className="font-medium">{order.recipient.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {order.customerEmail}
+                          {order.recipient.phone}
                         </p>
                       </div>
                     </td>
                     <td className="py-3 px-2">{formatDate(order.orderDate)}</td>
                     <td className="py-3 px-2">
-                      {order.finalAmount.toLocaleString()}원
+                      가격 정보 없음
                     </td>
                     <td className="py-3 px-2">
                       <Badge variant={badge.variant}>{badge.text}</Badge>

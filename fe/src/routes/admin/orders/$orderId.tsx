@@ -1,139 +1,65 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { adminApi } from "@/lib/api";
+import type { Order, OrderStatus } from "../../../../../shared/types";
 
 export const Route = createFileRoute("/admin/orders/$orderId")({
   component: AdminOrderDetail,
   validateSearch: (search: any) => search,
 });
 
-type OrderStatus = "payment_completed" | "in_production" | "shipping" | "delivered" | "production_hold";
-
-type OrderDetail = {
-  id: string;
-  orderNumber: string;
-  orderDate: string;
-  finalAmount: number;
-  status: OrderStatus;
-  quantity: number;
-  hasPlasticStand: boolean;
-  customer: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  recipient: {
-    name: string;
-    phone: string;
-    postalCode: string;
-    address: string;
-    addressDetail: string;
-  };
-  deliveryMemo?: string;
-  artworkDefinition: {
-    originalImageDataUrl: string;
-    mmPerPixel: number;
-    imageCenterXy: { x: number; y: number };
-    sideProcessing: {
-      type: "clip" | "color" | "flip" | "none";
-      color?: string;
-    };
-    canvasBackgroundColor: string;
-  };
-  textureUrl: string;
-  printImageUrl: string;
-  trackingNumber?: string;
-  adminMemo?: string;
-};
 
 export default function AdminOrderDetail() {
   const { orderId } = Route.useParams();
   const navigate = useNavigate();
-  const [order, setOrder] = useState<OrderDetail>();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [updateData, setUpdateData] = useState({
-    status: "" as OrderStatus,
+    status: "payment_completed" as OrderStatus,
     trackingNumber: "",
     adminMemo: "",
   });
 
-  useEffect(function loadOrderDetail() {
-    const fetchOrder = async () => {
-      try {
-        const response = await fetch(`/api/adminGetOrderDetail?orderId=${orderId}`);
-        const result = await response.json();
-        
-        if (result.ok) {
-          setOrder(result.order);
-          setUpdateData({
-            status: result.order.status,
-            trackingNumber: result.order.trackingNumber || "",
-            adminMemo: result.order.adminMemo || "",
-          });
-        } else {
-          navigate({ to: "/admin/orders", search: { status: undefined, search: undefined, page: 1 } });
-        }
-      } catch (error) {
-        console.error("Failed to load order:", error);
-        navigate({ to: "/admin/orders", search: { status: undefined, search: undefined, page: 1 } });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const { data: orderResponse, isLoading, error } = useQuery({
+    queryKey: ['orderDetail', orderId],
+    queryFn: () => adminApi.getOrder(orderId),
+  });
 
-    fetchOrder();
-  }, [orderId, navigate]);
+  const order = orderResponse?.order;
 
-  const handleUpdateOrder = async () => {
-    if (!order) {
-      return;
-    }
+  // Set update data when order is loaded
+  if (order && updateData.status === "payment_completed" && order.status !== "payment_completed") {
+    setUpdateData({
+      status: order.status,
+      trackingNumber: "",
+      adminMemo: "",
+    });
+  }
 
-    setIsSaving(true);
-    try {
-      const response = await fetch("/api/adminUpdateOrderStatus", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          orderId: order.id,
-          ...updateData,
-        }),
-      });
+  const updateMutation = useMutation({
+    mutationFn: () => adminApi.updateOrderStatus(
+      orderId,
+      updateData.status,
+      updateData.adminMemo
+    ),
+    onSuccess: () => {
+      alert("주문 정보가 업데이트되었습니다.");
+    },
+    onError: () => {
+      alert("업데이트에 실패했습니다.");
+    },
+  });
 
-      const result = await response.json();
-      
-      if (result.ok) {
-        setOrder((prev) => prev ? { ...prev, ...updateData } : undefined);
-        alert("주문 정보가 업데이트되었습니다.");
-      } else {
-        alert("업데이트에 실패했습니다.");
-      }
-    } catch (error) {
-      console.error("Failed to update order:", error);
-      alert("업데이트 중 오류가 발생했습니다.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  if (error) {
+    navigate({ to: "/admin/orders", search: { status: undefined, search: undefined, page: 1 } });
+    return null;
+  }
 
-  const downloadPrintImage = () => {
-    if (order?.printImageUrl) {
-      const link = document.createElement("a");
-      link.href = order.printImageUrl;
-      link.download = `${order.orderNumber}_print.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -156,7 +82,7 @@ export default function AdminOrderDetail() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">주문 상세 - {order.orderNumber}</h1>
+        <h1 className="text-2xl font-bold">주문 상세 - #{order.id}</h1>
         <Button variant="outline" onClick={() => navigate({ to: "/admin/orders", search: { status: undefined, search: undefined, page: 1 } })}>
           목록으로
         </Button>
@@ -168,9 +94,8 @@ export default function AdminOrderDetail() {
           order={order}
           updateData={updateData}
           setUpdateData={setUpdateData}
-          onUpdate={handleUpdateOrder}
-          isSaving={isSaving}
-          onDownloadPrint={downloadPrintImage}
+          onUpdate={() => updateMutation.mutate()}
+          isSaving={updateMutation.isPending}
         />
       </div>
 
@@ -182,7 +107,7 @@ export default function AdminOrderDetail() {
   );
 }
 
-function OrderInfoCard({ order }: { order: OrderDetail }) {
+function OrderInfoCard({ order }: { order: Order }) {
   const getStatusBadge = (status: OrderStatus) => {
     const badges = {
       payment_completed: { text: "결제완료", variant: "default" as const },
@@ -205,7 +130,7 @@ function OrderInfoCard({ order }: { order: OrderDetail }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>주문번호</Label>
-            <p className="font-medium">{order.orderNumber}</p>
+            <p className="font-medium">#{order.id}</p>
           </div>
           <div>
             <Label>주문일시</Label>
@@ -219,15 +144,7 @@ function OrderInfoCard({ order }: { order: OrderDetail }) {
           </div>
           <div>
             <Label>주문 금액</Label>
-            <p className="font-medium">{order.finalAmount.toLocaleString()}원</p>
-          </div>
-          <div>
-            <Label>수량</Label>
-            <p>{order.quantity}개</p>
-          </div>
-          <div>
-            <Label>플라스틱 스탠드</Label>
-            <p>{order.hasPlasticStand ? "포함" : "미포함"}</p>
+            <p className="font-medium">가격 정보 없음</p>
           </div>
         </div>
       </CardContent>
@@ -241,14 +158,12 @@ function OrderManagementCard({
   setUpdateData,
   onUpdate,
   isSaving,
-  onDownloadPrint,
 }: {
-  order: OrderDetail;
+  order: Order;
   updateData: { status: OrderStatus; trackingNumber: string; adminMemo: string };
   setUpdateData: (data: { status: OrderStatus; trackingNumber: string; adminMemo: string }) => void;
   onUpdate: () => void;
   isSaving: boolean;
-  onDownloadPrint: () => void;
 }) {
   const statusOptions = [
     { value: "payment_completed", label: "결제완료" },
@@ -299,11 +214,8 @@ function OrderManagementCard({
         </div>
 
         <div className="flex space-x-2">
-          <Button onClick={onUpdate} disabled={isSaving} className="flex-1">
+          <Button onClick={onUpdate} disabled={isSaving} className="w-full">
             {isSaving ? "저장 중..." : "업데이트"}
-          </Button>
-          <Button variant="outline" onClick={onDownloadPrint}>
-            인쇄용 이미지 다운로드
           </Button>
         </div>
       </CardContent>
@@ -311,7 +223,7 @@ function OrderManagementCard({
   );
 }
 
-function CustomerInfoCard({ order }: { order: OrderDetail }) {
+function CustomerInfoCard({ order }: { order: Order }) {
   return (
     <Card>
       <CardHeader>
@@ -320,9 +232,7 @@ function CustomerInfoCard({ order }: { order: OrderDetail }) {
       <CardContent className="space-y-4">
         <div>
           <Label>주문자</Label>
-          <p className="font-medium">{order.customer.name}</p>
-          <p className="text-sm text-muted-foreground">{order.customer.email}</p>
-          <p className="text-sm text-muted-foreground">{order.customer.phone}</p>
+          <p className="font-medium">사용자 정보 없음</p>
         </div>
 
         <div>
@@ -334,6 +244,34 @@ function CustomerInfoCard({ order }: { order: OrderDetail }) {
           </p>
           <p className="text-sm">{order.recipient.addressDetail}</p>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ArtworkInfoCard({ order }: { order: Order }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>주문 상품 정보</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label>주문 상품</Label>
+          <p className="font-medium">캔버스</p>
+          <p className="text-sm text-muted-foreground">
+            수량: {order.quantity}개
+            {order.plasticStand && " • 플라스틱 스탠드 포함"}
+          </p>
+        </div>
+
+        <div>
+          <Label>작품 정보</Label>
+          <p>S3 Key: {order.artwork.originalImageS3Key}</p>
+          <p>해상도: {order.artwork.mmPerPixel} mm/pixel</p>
+          <p>중앙 좌표: ({order.artwork.imageCenterXy.x}, {order.artwork.imageCenterXy.y})</p>
+          <p>가장자리 처리: {order.artwork.sideProcessing.type}</p>
+        </div>
 
         {order.deliveryMemo && (
           <div>
@@ -341,53 +279,6 @@ function CustomerInfoCard({ order }: { order: OrderDetail }) {
             <p className="text-sm">{order.deliveryMemo}</p>
           </div>
         )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ArtworkInfoCard({ order }: { order: OrderDetail }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>작품 정보</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label>작품 이미지</Label>
-          <img
-            src={order.artworkDefinition.originalImageDataUrl}
-            alt="작품"
-            className="w-full max-w-sm border rounded"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <Label>해상도</Label>
-            <p>{order.artworkDefinition.mmPerPixel} mm/pixel</p>
-          </div>
-          <div>
-            <Label>배경색</Label>
-            <div className="flex items-center space-x-2">
-              <div
-                className="w-4 h-4 border rounded"
-                style={{ backgroundColor: order.artworkDefinition.canvasBackgroundColor }}
-              />
-              <span>{order.artworkDefinition.canvasBackgroundColor}</span>
-            </div>
-          </div>
-          <div>
-            <Label>가장자리 처리</Label>
-            <p>{order.artworkDefinition.sideProcessing.type}</p>
-          </div>
-          <div>
-            <Label>중앙 좌표</Label>
-            <p>
-              ({Math.round(order.artworkDefinition.imageCenterXy.x)}, {Math.round(order.artworkDefinition.imageCenterXy.y)})
-            </p>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

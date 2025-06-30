@@ -1,51 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { adminApi } from "@/lib/api";
 
 export const Route = createFileRoute("/admin/dashboard")({
   component: AdminDashboard,
 });
 
-type DashboardData = {
-  pendingTasks: Array<{
-    id: string;
-    type: "payment_completed" | "production_hold";
-    orderNumber: string;
-    customerName: string;
-    amount: number;
-    createdAt: string;
-  }>;
-  todayStats: {
-    orders: number;
-    revenue: number;
-    newUsers: number;
-  };
-};
-
 export default function AdminDashboard() {
-  const [data, setData] = useState<DashboardData>();
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(function loadDashboardData() {
-    const fetchData = async () => {
-      try {
-        const response = await fetch("/api/adminGetDashboard");
-        const result = await response.json();
-        
-        if (result.ok) {
-          setData(result);
-        }
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: adminApi.getDashboard,
+  });
 
   if (isLoading) {
     return (
@@ -56,7 +24,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!data) {
+  if (error || !data) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">대시보드</h1>
@@ -75,7 +43,7 @@ export default function AdminDashboard() {
   );
 }
 
-function StatsCards({ stats }: { stats: DashboardData["todayStats"] }) {
+function StatsCards({ stats }: { stats: { orders: number; revenue: number; newUsers: number } }) {
   const cards = [
     {
       title: "오늘 주문",
@@ -124,13 +92,13 @@ function StatsCards({ stats }: { stats: DashboardData["todayStats"] }) {
   );
 }
 
-function PendingTasks({ tasks }: { tasks: DashboardData["pendingTasks"] }) {
-  const getTaskBadge = (type: string) => {
+function PendingTasks({ tasks }: { tasks: Array<{ id: string; type: "payment_completed" | "production_hold"; order: any }> }) {
+  const getTaskBadge = (type: "payment_completed" | "production_hold") => {
     const badges = {
       payment_completed: { text: "결제완료", variant: "default" as const },
       production_hold: { text: "제작보류", variant: "destructive" as const },
     };
-    return badges[type as keyof typeof badges] || { text: type, variant: "secondary" as const };
+    return badges[type];
   };
 
   const formatDate = (dateString: string) => {
@@ -171,17 +139,14 @@ function PendingTasks({ tasks }: { tasks: DashboardData["pendingTasks"] }) {
                   <div className="flex items-center space-x-4">
                     <Badge variant={badge.variant}>{badge.text}</Badge>
                     <div>
-                      <p className="font-medium">{task.orderNumber}</p>
+                      <p className="font-medium">주문 #{task.order.id}</p>
                       <p className="text-sm text-muted-foreground">
-                        {task.customerName} • {task.amount.toLocaleString()}원
+                        {formatDate(task.order.orderDate)}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <span className="text-sm text-muted-foreground">
-                      {formatDate(task.createdAt)}
-                    </span>
-                    <Link to="/admin/orders/$orderId" params={{ orderId: task.id }}>
+                    <Link to="/admin/orders/$orderId" params={{ orderId: task.order.id }}>
                       <Button size="sm">처리</Button>
                     </Link>
                   </div>

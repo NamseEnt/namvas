@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { authApi } from "@/lib/api";
 
 export const Route = createFileRoute("/auth/callback")({
   component: AuthCallback,
@@ -8,63 +10,44 @@ export const Route = createFileRoute("/auth/callback")({
 function AuthCallback() {
   const navigate = useNavigate();
 
+  const twitterLoginMutation = useMutation({
+    mutationFn: ({ code, codeVerifier }: { code: string; codeVerifier: string }) => 
+      authApi.loginWithTwitter(code, codeVerifier),
+    onSuccess: () => {
+      sessionStorage.removeItem("twitter_code_verifier");
+      const urlParams = new URLSearchParams(window.location.search);
+      const state = urlParams.get("state");
+      if (state === "admin") {
+        navigate({ to: "/admin/dashboard" });
+      } else {
+        navigate({ to: "/studio", search: { artwork: undefined } });
+      }
+    },
+    onError: (error) => {
+      console.error("Twitter login failed:", error);
+      navigate({ to: "/" });
+    },
+  });
+
+  const googleLoginMutation = useMutation({
+    mutationFn: (code: string) => authApi.loginWithGoogle(code),
+    onSuccess: () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const state = urlParams.get("state");
+      if (state === "admin") {
+        navigate({ to: "/admin/dashboard" });
+      } else {
+        navigate({ to: "/studio", search: { artwork: undefined } });
+      }
+    },
+    onError: (error) => {
+      console.error("Google login failed:", error);
+      navigate({ to: "/" });
+    },
+  });
+
   useEffect(
     function handleOAuthCallback() {
-      const handleTwitterCallback = async (code: string, codeVerifier: string) => {
-        try {
-          const response = await fetch("/api/loginWithTwitter", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              authorizationCode: code,
-              codeVerifier: codeVerifier,
-            }),
-          });
-
-          const result = await response.json();
-
-          if (result.ok) {
-            // Clear the code verifier
-            sessionStorage.removeItem("twitter_code_verifier");
-            // Navigate to studio
-            navigate({ to: "/studio", search: { artwork: undefined } });
-          } else {
-            console.error("Twitter login failed:", result.reason);
-            navigate({ to: "/" });
-          }
-        } catch (error) {
-          console.error("Twitter login error:", error);
-          navigate({ to: "/" });
-        }
-      };
-
-      const handleGoogleCallback = async (code: string) => {
-        try {
-          const response = await fetch("/api/loginWithGoogle", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              authorizationCode: code,
-            }),
-          });
-
-          const result = await response.json();
-
-          if (result.ok) {
-            navigate({ to: "/studio", search: { artwork: undefined } });
-          } else {
-            console.error("Google login failed:", result.reason);
-            navigate({ to: "/" });
-          }
-        } catch (error) {
-          console.error("Google login error:", error);
-          navigate({ to: "/" });
-        }
-      };
 
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get("code");
@@ -85,13 +68,13 @@ function AuthCallback() {
       // Check if this is a Twitter OAuth callback
       const codeVerifier = sessionStorage.getItem("twitter_code_verifier");
       if (codeVerifier) {
-        handleTwitterCallback(code, codeVerifier);
+        twitterLoginMutation.mutate({ code, codeVerifier });
       } else {
         // Handle Google OAuth callback
-        handleGoogleCallback(code);
+        googleLoginMutation.mutate(code);
       }
     },
-    [navigate]
+    [navigate, twitterLoginMutation, googleLoginMutation]
   );
 
   return (

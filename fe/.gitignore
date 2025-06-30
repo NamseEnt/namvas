@@ -4,5 +4,4 @@ dist
 dist-ssr
 *.local
 count.txt
-.env
 .tanstack/

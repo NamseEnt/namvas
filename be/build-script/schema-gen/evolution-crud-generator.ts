@@ -4,6 +4,7 @@ export function generateEvolutionCRUD(evolution: SchemaEvolution): string {
   let output = `import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 import type * as Schema from "../schema";
+import { config } from "../config";
 
 const client = DynamoDBDocument.from(new DynamoDBClient());
 
@@ -48,7 +49,7 @@ function generateGetFunction(docName: string, typeName: string, pkFields: any[])
   
   return `  async get${typeName}({${keyObject}}: {${keyParams}}): Promise<Schema.${docName} | undefined> {
     const result = await client.get({
-      TableName: 'main',
+      TableName: config.DYNAMODB_TABLE_NAME,
       Key: {
         $p: \`${docName}/${keyString}\`,
         $s: '_'
@@ -74,7 +75,7 @@ function generatePutFunction(docName: string, typeName: string, pkFields: any[])
     };
     
     await client.put({
-      TableName: 'main',
+      TableName: config.DYNAMODB_TABLE_NAME,
       Item: item
     });
   }`;
@@ -87,7 +88,7 @@ function generateDeleteFunction(docName: string, typeName: string, pkFields: any
   
   return `  async delete${typeName}({${keyObject}}: {${keyParams}}): Promise<void> {
     await client.delete({
-      TableName: 'main',
+      TableName: config.DYNAMODB_TABLE_NAME,
       Key: {
         $p: \`${docName}/${keyString}\`,
         $s: '_'

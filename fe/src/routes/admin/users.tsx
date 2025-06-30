@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { adminApi } from "@/lib/api";
 
 export const Route = createFileRoute("/admin/users")({
   component: AdminUsers,
@@ -13,60 +14,16 @@ export const Route = createFileRoute("/admin/users")({
   }),
 });
 
-type User = {
-  id: string;
-  name: string;
-  email: string;
-  provider: "google" | "twitter";
-  joinDate: string;
-  orderCount: number;
-  totalSpent: number;
-  lastOrderDate?: string;
-};
-
-type UsersData = {
-  users: User[];
-  total: number;
-  page: number;
-  totalPages: number;
-};
 
 export default function AdminUsers() {
   const navigate = useNavigate();
   const { search, page } = Route.useSearch();
-  const [data, setData] = useState<UsersData>();
-  const [isLoading, setIsLoading] = useState(true);
   const [searchInput, setSearchInput] = useState(search || "");
 
-  useEffect(
-    function loadUsersData() {
-      const fetchData = async () => {
-        setIsLoading(true);
-        try {
-          const params = new URLSearchParams();
-          if (search) {
-            params.append("search", search);
-          }
-          params.append("page", page.toString());
-          params.append("limit", "20");
-
-          const response = await fetch(`/api/adminGetUsers?${params}`);
-          const result = await response.json();
-
-          if (result.ok) {
-            setData(result);
-          }
-        } catch (error) {
-          console.error("Failed to load users:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      fetchData();
-    },
-    [search, page]
-  );
+  const { data, isLoading } = useQuery({
+    queryKey: ['users', { search, page }],
+    queryFn: () => adminApi.getUsers({ search, page, limit: 20 }),
+  });
 
   const handleSearch = () => {
     navigate({
@@ -125,23 +82,11 @@ export default function AdminUsers() {
   );
 }
 
-function UsersTable({ users }: { users: User[] }) {
+function UsersTable({ users }: { users: Array<{ id: string; joinedAt: string; orders: any[] }> }) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("ko-KR");
   };
 
-  const getProviderBadge = (provider: string) => {
-    const badges = {
-      google: { text: "Google", variant: "default" as const },
-      twitter: { text: "Twitter", variant: "secondary" as const },
-    };
-    return (
-      badges[provider as keyof typeof badges] || {
-        text: provider,
-        variant: "outline" as const,
-      }
-    );
-  };
 
   if (users.length === 0) {
     return (
@@ -163,54 +108,32 @@ function UsersTable({ users }: { users: User[] }) {
           <table className="w-full">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-3 px-2">사용자</th>
+                <th className="text-left py-3 px-2">사용자 ID</th>
                 <th className="text-left py-3 px-2">가입일</th>
-                <th className="text-left py-3 px-2">주문 통계</th>
-                <th className="text-left py-3 px-2">최근 주문</th>
+                <th className="text-left py-3 px-2">주문 수</th>
                 <th className="text-left py-3 px-2">관리</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => {
-                const providerBadge = getProviderBadge(user.provider);
-                return (
-                  <tr key={user.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-2">
-                      <div>
-                        <p className="font-medium">{user.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {user.email}
-                        </p>
-                        <Badge variant={providerBadge.variant} className="mt-1">
-                          {providerBadge.text}
-                        </Badge>
-                      </div>
-                    </td>
-                    <td className="py-3 px-2">{formatDate(user.joinDate)}</td>
-                    <td className="py-3 px-2">
-                      <div>
-                        <p className="font-medium">{user.orderCount}건</p>
-                        <p className="text-sm text-muted-foreground">
-                          {user.totalSpent.toLocaleString()}원
-                        </p>
-                      </div>
-                    </td>
-                    <td className="py-3 px-2">
-                      {user.lastOrderDate
-                        ? formatDate(user.lastOrderDate)
-                        : "없음"}
-                    </td>
-                    <td className="py-3 px-2">
-                      <Link
-                        to="/admin/users/$userId"
-                        params={{ userId: user.id }}
-                      >
-                        <Button size="sm">상세</Button>
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
+              {users.map((user) => (
+                <tr key={user.id} className="border-b hover:bg-gray-50">
+                  <td className="py-3 px-2">
+                    <p className="font-medium">{user.id}</p>
+                  </td>
+                  <td className="py-3 px-2">{formatDate(user.joinedAt)}</td>
+                  <td className="py-3 px-2">
+                    <p className="font-medium">{user.orders.length}건</p>
+                  </td>
+                  <td className="py-3 px-2">
+                    <Link
+                      to="/admin/users/$userId"
+                      params={{ userId: user.id }}
+                    >
+                      <Button size="sm">상세</Button>
+                    </Link>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

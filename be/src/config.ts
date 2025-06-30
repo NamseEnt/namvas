@@ -13,4 +13,5 @@ export const config = {
   TWITTER_CLIENT_ID: "VS02S0huS1lUbk1YVmJnQUt1akg6MTpjaQ",
   TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
   TWITTER_REDIRECT_URI: redirectUri,
+  DYNAMODB_TABLE_NAME: process.env.DYNAMODB_TABLE_NAME || "main",
 };

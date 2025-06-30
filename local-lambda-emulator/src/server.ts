@@ -3,7 +3,7 @@ import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { buildLocal } from "../../be/build-script/build-api";
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 const LLRT_PATH = process.env.LLRT_PATH || "../llrt";
 const BE_PATH = process.env.BE_PATH || "../be";
 

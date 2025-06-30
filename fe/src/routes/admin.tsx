@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { authApi } from "@/lib/api";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -8,39 +9,26 @@ export const Route = createFileRoute("/admin")({
 
 export default function AdminLayout() {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>();
+  
+  const { data: user, isLoading, error } = useQuery({
+    queryKey: ['adminAuth'],
+    queryFn: authApi.getMe,
+    retry: false,
+  });
 
-  useEffect(function checkAdminAuth() {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch("/api/adminGetMe");
-        const result = await response.json();
-        
-        if (result.ok && result.isAdmin) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-          navigate({ to: "/admin/login" });
-        }
-      } catch (error) {
-        setIsAuthenticated(false);
-        navigate({ to: "/admin/login" });
-      }
-    };
-
-    checkAuth();
-  }, [navigate]);
-
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/logout", { method: "POST" });
+  const logoutMutation = useMutation({
+    mutationFn: authApi.logout,
+    onSuccess: () => {
       navigate({ to: "/admin/login" });
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
+    },
+  });
 
-  if (isAuthenticated === undefined) {
+  if (error || (!isLoading && !user)) {
+    navigate({ to: "/admin/login" });
+    return null;
+  }
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -51,16 +39,16 @@ export default function AdminLayout() {
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
         <div className="px-6 py-4 flex justify-between items-center">
           <h1 className="text-xl font-semibold">관리자 페이지</h1>
-          <Button variant="outline" onClick={handleLogout}>
+          <Button 
+            variant="outline" 
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
+          >
             로그아웃
           </Button>
         </div>
