@@ -78,7 +78,8 @@ jobs:
 
       # Deploy infra first
       - name: Deploy with Pulumi
-        uses: pulumi/actions@v5
+        id: pulumi
+        uses: pulumi/actions@v6
         with:
           command: up
           stack-name: dev
@@ -88,32 +89,20 @@ jobs:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
           PULUMI_DEBUG_PROMISE_LEAKS: "true"
 
-      # Get Pulumi outputs
-      - name: Get Pulumi outputs
-        id: pulumi-outputs
-        uses: pulumi/actions@v5
-        with:
-          command: stack output --json
-          stack-name: dev
-          work-dir: infra
-          cloud-url: ${{ env.PULUMI_BACKEND_URL }}
-        env:
-          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-
       - name: Build frontend with Lambda URL
         run: |
           cd fe
-          export VITE_API_URL=$(echo '${{ steps.pulumi-outputs.outputs }}' | jq -r '.lambdaFunctionUrlEndpoint')
+          export VITE_API_URL=${{ steps.pulumi.outputs.lambdaFunctionUrlEndpoint }}
           npm run build
 
       # Upload frontend to S3
       - name: Upload frontend to S3
         run: |
-          BUCKET_NAME=$(echo '${{ steps.pulumi-outputs.outputs }}' | jq -r '.frontendBucketName')
+          BUCKET_NAME=${{ steps.pulumi.outputs.frontendBucketName }}
           aws s3 sync fe/dist/ s3://$BUCKET_NAME --delete
 
       # Invalidate CloudFront cache
       - name: Invalidate CloudFront cache
         run: |
-          DISTRIBUTION_ID=$(echo '${{ steps.pulumi-outputs.outputs }}' | jq -r '.cloudFrontDistributionId')
+          DISTRIBUTION_ID=${{ steps.pulumi.outputs.cloudFrontDistributionId }}
           aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
