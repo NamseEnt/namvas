@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { createContext, useContext, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { authApi } from "@/lib/api";
 
 // PKCE helper functions for Twitter OAuth
 function generateCodeVerifier(): string {
@@ -44,6 +46,9 @@ const HomePageContext = createContext<{
   handleCreateCanvas: () => void;
   handleGoogleLogin: () => void;
   handleXLogin: () => void;
+  handleLogout: () => void;
+  user: any;
+  isLoadingAuth: boolean;
 } | null>(null);
 
 const useHomePageContext = () => {
@@ -58,13 +63,42 @@ function HomePage() {
   const [state, setState] = useState<HomePageState>({
     isLoginModalOpen: false,
   });
+  
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const updateState = (updates: Partial<HomePageState>) => {
     setState((prev) => ({ ...prev, ...updates }));
   };
 
+  // Check authentication status
+  const { data: user, isLoading: isLoadingAuth } = useQuery({
+    queryKey: ['auth'],
+    queryFn: authApi.getMe,
+    retry: false,
+    staleTime: Infinity,
+  });
+
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: authApi.logout,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth'] });
+    },
+  });
+
   const handleCreateCanvas = () => {
-    updateState({ isLoginModalOpen: true });
+    if (user) {
+      // If logged in, navigate to studio
+      navigate({ to: '/studio', search: { artwork: undefined } });
+    } else {
+      // If not logged in, show login modal
+      updateState({ isLoginModalOpen: true });
+    }
+  };
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
   const handleGoogleLogin = () => {
@@ -124,6 +158,9 @@ function HomePage() {
         handleCreateCanvas,
         handleGoogleLogin,
         handleXLogin,
+        handleLogout,
+        user,
+        isLoadingAuth,
       }}
     >
       <div className="min-h-screen flex flex-col bg-background">
@@ -137,7 +174,7 @@ function HomePage() {
 }
 
 function PageHeader() {
-  const { handleGoogleLogin, handleXLogin } = useHomePageContext();
+  const { handleGoogleLogin, handleXLogin, handleLogout, user, isLoadingAuth } = useHomePageContext();
 
   return (
     <header className="border-b bg-card">
@@ -149,22 +186,37 @@ function PageHeader() {
             </h1>
           </div>
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGoogleLogin}
-              className="text-blue-600 border-blue-200 hover:bg-blue-50"
-            >
-              Google로 시작하기
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleXLogin}
-              className="text-sky-600 border-sky-200 hover:bg-sky-50"
-            >
-              X로 시작하기
-            </Button>
+            {isLoadingAuth ? (
+              <div className="h-9 w-32 bg-muted rounded animate-pulse" />
+            ) : user ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                로그아웃
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGoogleLogin}
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                >
+                  Google로 시작하기
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleXLogin}
+                  className="text-sky-600 border-sky-200 hover:bg-sky-50"
+                >
+                  X로 시작하기
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
