@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Check if any TypeScript files in infra directory are being committed
+if git diff --cached --name-only | grep -q "^infra/.*\.ts$"; then
+  echo "Checking TypeScript compilation in infra directory..."
+  npm run check:infra
+  if [ $? -ne 0 ]; then
+    echo "❌ TypeScript compilation errors found in infra directory. Please fix before committing."
+    exit 1
+  fi
+  echo "✅ TypeScript check passed for infra directory"
+fi

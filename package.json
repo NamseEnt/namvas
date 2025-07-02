@@ -2,9 +2,12 @@
   "scripts": {
     "start:docker": "docker-compose up",
     "start:lambda": "cd local-lambda-emulator && bun run dev",
-    "dev": "concurrently -k -p \"[{name}]\" -n \"Docker,Lambda,Schema\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"npm:start:docker\" \"npm:start:lambda\""
+    "dev": "concurrently -k -p \"[{name}]\" -n \"Docker,Lambda,Schema\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"npm:start:docker\" \"npm:start:lambda\"",
+    "check:infra": "cd infra && npx tsc --noEmit",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^9.2.0"
+    "concurrently": "^9.2.0",
+    "husky": "^9.1.7"
   }
 }
