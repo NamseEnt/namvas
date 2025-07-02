@@ -7,6 +7,13 @@ export const loginWithGoogle: Apis["loginWithGoogle"] = async (
   req
 ) => {
   try {
+    console.log("loginWithGoogle called with code:", authorizationCode);
+    console.log("Environment check:", {
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+      GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
+      has_GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+    });
+    
     // Exchange authorization code for access token
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
@@ -23,6 +30,17 @@ export const loginWithGoogle: Apis["loginWithGoogle"] = async (
     });
 
     if (!tokenResponse.ok) {
+      const errorData = await tokenResponse.text();
+      console.error("Google token exchange failed:", {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: errorData,
+        env: {
+          client_id: process.env.GOOGLE_CLIENT_ID,
+          has_secret: !!process.env.GOOGLE_CLIENT_SECRET,
+          redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+        }
+      });
       return { ok: false, reason: "INVALID_CODE" };
     }
 

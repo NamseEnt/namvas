@@ -11,4 +11,6 @@ services:
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
       - PERSIST=0
+    volumes:
+      - ./localstack-init:/etc/localstack/init/ready.d
 

@@ -5,8 +5,20 @@ export function generateEvolutionCRUD(evolution: SchemaEvolution): string {
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 import type * as Schema from "../schema";
 import { config } from "../config";
+import { isLocalDev } from "../isLocalDev";
 
-const client = DynamoDBDocument.from(new DynamoDBClient());
+const clientConfig = isLocalDev() ? {
+  endpoint: "http://localhost:4566",
+  region: "us-east-1",
+  credentials: {
+    accessKeyId: "test",
+    secretAccessKey: "test"
+  }
+} : {
+  region: process.env.AWS_REGION || "us-east-1"
+};
+
+const client = DynamoDBDocument.from(new DynamoDBClient(clientConfig));
 
 `;
 

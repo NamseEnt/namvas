@@ -1,11 +1,11 @@
 import { serve, spawn } from "bun";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { buildLocal } from "../../be/build-script/build-api";
 
 const PORT = process.env.PORT || 3003;
-const LLRT_PATH = process.env.LLRT_PATH || "../llrt";
-const BE_PATH = process.env.BE_PATH || "../be";
+const LLRT_PATH = process.env.LLRT_PATH || join(__dirname, "../../llrt");
+const BE_PATH = process.env.BE_PATH || join(__dirname, "../../be");
 
 interface PendingRequest {
   req: Request;
@@ -44,8 +44,23 @@ async function executeLLRT() {
     throw new Error(`Entry file not found: ${entryFile}`);
   }
 
+  // Load .env file from BE directory
+  const envPath = join(BE_PATH, ".env");
+  let envVars = {};
+  if (existsSync(envPath)) {
+    const envContent = readFileSync(envPath, "utf-8");
+    envVars = Object.fromEntries(
+      envContent
+        .split("\n")
+        .filter(line => line && !line.startsWith("#"))
+        .map(line => line.split("=").map(s => s.trim()))
+        .filter(([key, value]) => key && value)
+    );
+  }
+
   const env = {
     ...process.env,
+    ...envVars,
     PORT: PORT.toString(),
     LOCAL_DEV: "1",
   };

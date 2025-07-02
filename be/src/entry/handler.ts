@@ -84,10 +84,17 @@ function calculateLambdaOutCookies(
   outCookies: Record<string, string>
 ): string[] {
   const lambdaOutCookies: string[] = [];
+  const isLocalDev = process.env.LOCAL_DEV === "1";
+  
   for (const [key, value] of Object.entries(outCookies)) {
     if (inCookies[key] !== value) {
-      // Set cookie with proper attributes for cross-origin
-      lambdaOutCookies.push(`${key}=${value}; SameSite=None; Secure; Path=/; Max-Age=86400`);
+      // For local development, use Lax SameSite
+      // For production, use None with Secure
+      if (isLocalDev) {
+        lambdaOutCookies.push(`${key}=${value}; SameSite=Lax; Path=/; Max-Age=86400`);
+      } else {
+        lambdaOutCookies.push(`${key}=${value}; SameSite=None; Secure; Path=/; Max-Age=86400`);
+      }
     }
   }
   for (const key of Object.keys(inCookies)) {

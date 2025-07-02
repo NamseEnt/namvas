@@ -2,8 +2,10 @@
   "scripts": {
     "start:docker": "docker-compose up",
     "start:lambda": "cd local-lambda-emulator && bun run dev",
-    "dev": "concurrently -k -p \"[{name}]\" -n \"Docker,Lambda,Schema\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"npm:start:docker\" \"npm:start:lambda\"",
+    "start:frontend": "cd fe && npm run dev",
+    "dev": "concurrently -k -p \"[{name}]\" -n \"Docker,Lambda,Frontend\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"npm:start:docker\" \"npm:start:lambda\" \"npm:start:frontend\"",
     "check:infra": "cd infra && npx tsc --noEmit",
+    "log-prod": "cd lambda-log-viewer && bun run dev",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -48,6 +48,10 @@ function AuthCallback() {
 
   useEffect(
     function handleOAuthCallback() {
+      // Prevent multiple executions
+      if (googleLoginMutation.isPending || twitterLoginMutation.isPending) {
+        return;
+      }
 
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get("code");
@@ -74,7 +78,7 @@ function AuthCallback() {
         googleLoginMutation.mutate(code);
       }
     },
-    [navigate]
+    [] // Empty dependency array to run only once on mount
   );
 
   return (

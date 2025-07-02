@@ -11,8 +11,10 @@ export const schemaPlugin: Plugin = {
       console.log('🔧 Generating database schema...');
       
       try {
-        const schemaPath = join(process.cwd(), 'src/schema.ts');
-        const outputPath = join(process.cwd(), 'src/__generated/db.ts');
+        // Use absWorkingDir if available, otherwise fall back to process.cwd()
+        const workingDir = build.initialOptions.absWorkingDir || process.cwd();
+        const schemaPath = join(workingDir, 'src/schema.ts');
+        const outputPath = join(workingDir, 'src/__generated/db.ts');
         
         // Check if schema file exists
         if (!existsSync(schemaPath)) {
