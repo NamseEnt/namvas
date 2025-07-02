@@ -92,8 +92,11 @@ export default function StudioPage() {
   });
 
   const [canvasViewsState, setCanvasViewsState] = useState<CanvasViewsState>({
-    rotation: { x: 0, y: 0 },
+    rotation: { x: 0, y: 0 }, // Start from front view for animation
   });
+  
+  // Track if initial animation has been played
+  const [hasPlayedInitialAnimation, setHasPlayedInitialAnimation] = useState(false);
 
   const [canvasTextureImg, setCanvasTextureImg] = useState<HTMLImageElement>();
 
@@ -222,6 +225,43 @@ export default function StudioPage() {
     loadCanvasTexture();
   }, [loadCanvasTexture]);
 
+  // Initial animation when image is uploaded
+  useEffect(function animateInitialCameraPosition() {
+    if (state.uploadedImage && !hasPlayedInitialAnimation) {
+      // Animate to default position after a short delay
+      const timer = setTimeout(() => {
+        setHasPlayedInitialAnimation(true); // Set flag AFTER timer starts
+        
+        const startTime = Date.now();
+        const duration = 800; // 800ms animation
+        const targetRotation = { x: 2, y: -25 };
+        
+        const animate = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          
+          // Ease-out cubic function for smooth deceleration
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+          
+          updateCanvasViewsState({
+            rotation: {
+              x: targetRotation.x * easeOut,
+              y: targetRotation.y * easeOut,
+            },
+          });
+          
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
+        };
+        
+        requestAnimationFrame(animate);
+      }, 300); // Start animation after 300ms delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [state.uploadedImage, hasPlayedInitialAnimation, updateCanvasViewsState]);
+
   useEffect(function restoreArtworkFromSearch() {
     if (artworkDefinition && !hasRestoredFromStorage) {
       // Restore artwork state from localStorage
@@ -237,6 +277,8 @@ export default function StudioPage() {
         });
         // Mark as restored to prevent re-running
         setHasRestoredFromStorage(true);
+        // Reset animation flag to allow initial animation to play
+        setHasPlayedInitialAnimation(false);
         
         // Remove artwork param from URL to prevent re-renders
         navigate({ to: '/studio', search: { artwork: undefined }, replace: true });
