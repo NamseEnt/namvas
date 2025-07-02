@@ -63,10 +63,10 @@ const dynamoTable = new aws.dynamodb.Table("app-table", {
   name: "namvas-app",
   billingMode: "PAY_PER_REQUEST",
   hashKey: "$p",
-  rangeKey: "$k",
+  rangeKey: "$s",
   attributes: [
     { name: "$p", type: "S" },
-    { name: "$k", type: "S" },
+    { name: "$s", type: "S" },
   ],
 });
 
