@@ -48,19 +48,32 @@ import { backgroundOptions } from "../constants/backgroundOptions";
 
 export default function CanvasViews() {
   const { state: studioState } = useStudioContext();
+  const [hasCanvasError, setHasCanvasError] = useState(false);
 
   return (
     <div className="w-full h-full">
       {!studioState.uploadedImage ? (
         <UploadPromptBox />
+      ) : hasCanvasError ? (
+        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+          <div className="text-center">
+            <p className="text-gray-600 mb-2">3D 프리뷰를 로드할 수 없습니다.</p>
+            <button 
+              onClick={() => setHasCanvasError(false)}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              다시 시도
+            </button>
+          </div>
+        </div>
       ) : (
-        <PerspectiveCollage />
+        <PerspectiveCollage onError={() => setHasCanvasError(true)} />
       )}
     </div>
   );
 }
 
-function PerspectiveCollage() {
+function PerspectiveCollage({ onError }: { onError?: () => void }) {
   const { state, updateState } = useCanvasViewsContext();
   const { handleImageUpload, state: studioState } = useStudioContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -198,6 +211,15 @@ function PerspectiveCollage() {
         }}
         style={{ width: "100%", height: "100%" }}
         gl={{ alpha: true, antialias: true }}
+        onError={(error) => {
+          console.error('Three.js Canvas Error:', error);
+          onError?.();
+        }}
+        fallback={
+          <div className="w-full h-full flex items-center justify-center bg-gray-200">
+            <p className="text-gray-600">3D 캔버스를 로딩중...</p>
+          </div>
+        }
       >
         <CameraController cameraDistance={cameraDistance} />
         <ambientLight intensity={1.0} />
