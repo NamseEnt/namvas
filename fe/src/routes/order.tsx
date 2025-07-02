@@ -105,6 +105,17 @@ export default function OrderPage() {
     };
   }, []);
 
+  useEffect(function focusAddressDetailOnAddressChange() {
+    if (orderState.address && orderState.postalCode) {
+      const addressDetailInput = document.getElementById("address-detail") as HTMLInputElement;
+      if (addressDetailInput) {
+        requestAnimationFrame(() => {
+          addressDetailInput.focus();
+        });
+      }
+    }
+  }, [orderState.address, orderState.postalCode]);
+
   const basePrice = 10000;
   const plasticStandPrice = 250;
   const shippingFee = 3000;
@@ -155,8 +166,6 @@ export default function OrderPage() {
           postalCode: data.zonecode,
           address: addr,
         });
-
-        document.getElementById("address-detail")?.focus();
       },
     }).open();
   };
