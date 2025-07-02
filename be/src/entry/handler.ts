@@ -10,7 +10,11 @@ export async function handler(
 ): Promise<APIGatewayProxyStructuredResultV2> {
   console.log("Received event:", JSON.stringify(event, null, 2));
 
-  const apiName = event.rawPath.split("/")[1];
+  // Extract API name from path like "/api/loginWithGoogle" -> "loginWithGoogle"
+  const pathParts = event.rawPath.split("/");
+  const apiName = pathParts.includes("api") 
+    ? pathParts[pathParts.indexOf("api") + 1] 
+    : pathParts[1];
   const apiParams = event.body;
 
   const inCookies = (event.cookies || [])?.reduce((acc, cookie) => {

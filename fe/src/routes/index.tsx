@@ -47,7 +47,6 @@ const HomePageContext = createContext<{
   handleGoogleLogin: () => void;
   handleXLogin: () => void;
   handleLogout: () => void;
-  user: any;
   isLoadingAuth: boolean;
 } | null>(null);
 
@@ -159,7 +158,6 @@ function HomePage() {
         handleGoogleLogin,
         handleXLogin,
         handleLogout,
-        user,
         isLoadingAuth,
       }}
     >
@@ -174,7 +172,15 @@ function HomePage() {
 }
 
 function PageHeader() {
-  const { handleGoogleLogin, handleXLogin, handleLogout, user, isLoadingAuth } = useHomePageContext();
+  const { handleGoogleLogin, handleXLogin, handleLogout, isLoadingAuth } = useHomePageContext();
+  
+  // Get user data directly from query
+  const { data: user } = useQuery({
+    queryKey: ['auth'],
+    queryFn: authApi.getMe,
+    retry: false,
+    staleTime: Infinity,
+  });
 
   return (
     <header className="border-b bg-card">
