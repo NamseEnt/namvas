@@ -132,7 +132,7 @@ const lambdaFunction = new aws.lambda.Function(
   "backend-lambda",
   {
     code: new pulumi.asset.FileArchive("../be/dist"),
-    handler: "index.handler",
+    handler: "lambda-entry.handler",
     runtime: "provided.al2023",
     role: lambdaRole.arn,
     timeout: 30,
