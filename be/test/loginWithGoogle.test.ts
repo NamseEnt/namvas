@@ -6,7 +6,7 @@ import { ApiRequest } from "../src/types";
 let mockFetchResponses: any[] = [];
 globalThis.fetch = async (url: any, options?: any) => {
   const response = mockFetchResponses.shift();
-  return response || { ok: false, json: async () => ({}) };
+  return response || { ok: false, json: async () => ({}), text: async () => ('') };
 };
 
 // Mock process.env
@@ -20,7 +20,7 @@ describe("loginWithGoogle", () => {
   });
 
   test("should return INVALID_CODE when token exchange fails", async () => {
-    mockFetchResponses = [{ ok: false, json: async () => ({}) }];
+    mockFetchResponses = [{ ok: false, json: async () => ({}), text: async () => ('') }];
 
     const req: ApiRequest = { cookies: {}, headers: {} };
     const result = await apis.loginWithGoogle(

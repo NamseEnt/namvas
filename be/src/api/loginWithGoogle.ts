@@ -20,13 +20,7 @@ export const loginWithGoogle: Apis["loginWithGoogle"] = async (
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        code: authorizationCode,
-        grant_type: "authorization_code",
-        redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
-      }),
+      body: `client_id=${encodeURIComponent(process.env.GOOGLE_CLIENT_ID || '')}&client_secret=${encodeURIComponent(process.env.GOOGLE_CLIENT_SECRET || '')}&code=${encodeURIComponent(authorizationCode)}&grant_type=authorization_code&redirect_uri=${encodeURIComponent(process.env.GOOGLE_REDIRECT_URI || '')}`,
     });
 
     if (!tokenResponse.ok) {
