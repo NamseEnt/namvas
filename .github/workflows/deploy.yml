@@ -8,6 +8,10 @@ env:
   PULUMI_BACKEND_URL: s3://pulumi-state-bucket-namvas
   AWS_REGION: ap-northeast-2
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
