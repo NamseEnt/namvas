@@ -44,7 +44,7 @@ export const commonOptions: BuildOptions = {
 export const lambdaOptions: BuildOptions = {
   ...commonOptions,
   entryPoints: ["src/entry/lambda-entry.ts"],
-  outfile: "dist/lambda-entry.js",
+  outfile: "dist/index.js",
   minify: true,
 };
 
