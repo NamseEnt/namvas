@@ -86,12 +86,13 @@ function calculateLambdaOutCookies(
   const lambdaOutCookies: string[] = [];
   for (const [key, value] of Object.entries(outCookies)) {
     if (inCookies[key] !== value) {
-      lambdaOutCookies.push(`${key}=${value}`);
+      // Set cookie with proper attributes for cross-origin
+      lambdaOutCookies.push(`${key}=${value}; SameSite=None; Secure; Path=/; Max-Age=86400`);
     }
   }
   for (const key of Object.keys(inCookies)) {
     if (!outCookies[key]) {
-      lambdaOutCookies.push(`${key}=; Max-Age=0`);
+      lambdaOutCookies.push(`${key}=; Max-Age=0; Path=/`);
     }
   }
   return lambdaOutCookies;
