@@ -74,7 +74,7 @@ function AuthCallback() {
         googleLoginMutation.mutate(code);
       }
     },
-    [navigate, twitterLoginMutation, googleLoginMutation]
+    [navigate]
   );
 
   return (
