@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import * as THREE from "three";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,13 +46,33 @@ export default function OrderPage() {
   // Get data from storage if coming from studio
   const [artworkDefinition, setArtworkDefinition] =
     useState<ArtworkDefinition>();
-  const [textureUrl, setTextureUrl] = useState<string>();
+  const [studioTexture, setStudioTexture] = useState<THREE.Texture>();
 
   useEffect(
     function loadDataFromStorage() {
       if (fromStudio) {
         getArtworkFromStorage().then(setArtworkDefinition);
-        getTextureFromStorage().then(setTextureUrl);
+        
+        // Load studio-generated texture as THREE.Texture
+        getTextureFromStorage().then((textureDataUrl) => {
+          if (textureDataUrl) {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              // Create a canvas and draw the image to it
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d')!;
+              canvas.width = img.width;
+              canvas.height = img.height;
+              ctx.drawImage(img, 0, 0);
+              
+              const texture = new THREE.CanvasTexture(canvas);
+              texture.needsUpdate = true;
+              setStudioTexture(texture);
+            };
+            img.src = textureDataUrl;
+          }
+        });
       }
     },
     [fromStudio]
@@ -170,17 +191,17 @@ export default function OrderPage() {
                   <div className="flex gap-4">
                     <CanvasView
                       angle="front"
-                      textureUrl={textureUrl}
+                      texture={studioTexture}
                       className="h-56 w-42"
                     />
                     <CanvasView
                       angle="rightBottomUp"
-                      textureUrl={textureUrl}
+                      texture={studioTexture}
                       className="h-56 w-42"
                     />
                     <CanvasView
                       angle="leftTopDown"
-                      textureUrl={textureUrl}
+                      texture={studioTexture}
                       className="h-56 w-42"
                     />
                   </div>
