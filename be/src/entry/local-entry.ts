@@ -19,6 +19,14 @@ async function main() {
     const requestData = await requestResponse.json();
 
     const url = new URL(requestData.url);
+    
+    // Parse cookies from request headers
+    const cookies: string[] = [];
+    const cookieHeader = requestData.headers.cookie || requestData.headers.Cookie;
+    if (cookieHeader) {
+      cookies.push(...cookieHeader.split(';').map(c => c.trim()));
+    }
+    
     const event: LambdaFunctionURLEvent = {
       version: "2.0",
       routeKey: "$default",
@@ -26,6 +34,7 @@ async function main() {
       rawQueryString: url.search.slice(1),
       headers: requestData.headers,
       queryStringParameters: Object.fromEntries(url.searchParams.entries()),
+      cookies,
       requestContext: {
         accountId: "123456789012",
         apiId: "local-emulator",
@@ -54,6 +63,7 @@ async function main() {
       status: result.statusCode || 200,
       headers: result.headers || {},
       body: result.body || "",
+      cookies: result.cookies || [],
     };
 
     await fetch(`${emulatorUrl}/__emulator/response`, {

@@ -133,9 +133,16 @@ serve({
       }
 
       const responseData = await req.json();
+      
+      // Handle cookies from Lambda response
+      const responseHeaders = { ...responseData.headers };
+      if (responseData.cookies && responseData.cookies.length > 0) {
+        responseHeaders['Set-Cookie'] = responseData.cookies;
+      }
+      
       const response = new Response(responseData.body, {
         status: responseData.status,
-        headers: responseData.headers,
+        headers: responseHeaders,
       });
 
       currentRequest.resolve(response);
