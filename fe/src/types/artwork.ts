@@ -9,6 +9,14 @@ export type ArtworkDefinition = {
   canvasBackgroundColor: string; // Background pattern/color
 };
 
+// Metadata without image data for efficient storage
+export type ArtworkMetadata = {
+  mmPerPixel: number;
+  imageCenterXy: { x: number; y: number };
+  sideProcessing: SideProcessing;
+  canvasBackgroundColor: string;
+};
+
 const ARTWORK_STORAGE_KEY = 'namvas_artwork';
 const TEXTURE_STORAGE_KEY = 'namvas_texture';
 

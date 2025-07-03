@@ -16,7 +16,12 @@ import { type ArtworkDefinition } from "@/types/artwork";
 import { 
   saveArtworkToStorage, 
   saveTextureToStorage,
-  getArtworkFromStorage 
+  getArtworkFromStorage,
+  clearStorage,
+  saveImageToStorage,
+  getImageFromStorage,
+  saveMetadataToStorage,
+  getMetadataFromStorage
 } from "@/utils/storageManager";
 
 export type StudioState = {
@@ -39,6 +44,7 @@ const StudioContext = createContext<{
   handleMmPerPixelChange: (mmPerPixel: number) => void;
   handlePositionChange: (position: { x: number; y: number }) => void;
   handleOrder: () => void;
+  handleClearWork: () => void;
 } | null>(null);
 
 export const useStudioContext = () => {
@@ -68,17 +74,29 @@ export default function StudioPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: '/studio/' });
   
-  // Track if we've already restored from localStorage
+  
+  // Track if we've already restored from storage
   const [hasRestoredFromStorage, setHasRestoredFromStorage] = useState(false);
   
   // Get artwork from storage (search params used only as a trigger)
   const [artworkDefinition, setArtworkDefinition] = useState<ArtworkDefinition>();
   
   useEffect(function loadArtworkFromStorage() {
-    if (search?.artwork && !hasRestoredFromStorage) {
-      getArtworkFromStorage().then(setArtworkDefinition);
+    if (!hasRestoredFromStorage) {
+      // Load image and metadata separately
+      Promise.all([
+        getImageFromStorage(),
+        getMetadataFromStorage()
+      ]).then(([imageDataUrl, metadata]) => {
+        if (imageDataUrl && metadata) {
+          setArtworkDefinition({
+            originalImageDataUrl: imageDataUrl,
+            ...metadata
+          });
+        }
+      });
     }
-  }, [search?.artwork, hasRestoredFromStorage]);
+  }, [hasRestoredFromStorage]);
 
   const [state, setState] = useState<StudioState>({
     uploadedImage: undefined,
@@ -124,7 +142,7 @@ export default function StudioPage() {
         const dataUrl = e.target?.result as string;
         const img = new Image();
         img.src = dataUrl;
-        img.onload = () => {
+        img.onload = async () => {
           // Auto-fit image so largest dimension fits 4x6 inch canvas
           const canvasWidth = 101.6; // mm (4 inches)
           const canvasHeight = 152.4; // mm (6 inches)
@@ -137,6 +155,17 @@ export default function StudioPage() {
             uploadedImage: img,
             imageDataUrl: dataUrl,
             mmPerPixel: autoFitMmPerPixel,
+          });
+          
+          // Save image separately
+          await saveImageToStorage(dataUrl);
+          
+          // Save initial metadata
+          await saveMetadataToStorage({
+            mmPerPixel: autoFitMmPerPixel,
+            imageCenterXy: { x: 0, y: 0 },
+            sideProcessing: { type: "clip" },
+            canvasBackgroundColor: "#FFFFFF",
           });
         };
       };
@@ -160,6 +189,30 @@ export default function StudioPage() {
     },
     [updateState]
   );
+
+  const handleClearWork = useCallback(async () => {
+    if (!confirm("정말 초기화하시겠습니까? 현재 작업 내용이 모두 삭제됩니다.")) {
+      return;
+    }
+    
+    // Clear OPFS storage
+    await clearStorage();
+    
+    // Reset restoration flag to true to prevent re-loading
+    setHasRestoredFromStorage(true);
+    
+    // Reset all state to initial values
+    setState({
+      uploadedImage: undefined,
+      imageDataUrl: undefined,
+      mmPerPixel: 1,
+      imageCenterXy: { x: 0, y: 0 },
+      sideProcessing: {
+        type: "clip",
+      },
+      canvasBackgroundColor: "#FFFFFF",
+    });
+  }, []);
 
   const handleOrder = useCallback(async () => {
     if (!state.uploadedImage || !state.imageDataUrl) {
@@ -207,9 +260,11 @@ export default function StudioPage() {
       const textureDataUrl = canvas.toDataURL('image/png', 0.9);
 
       // Save texture to storage
+      console.log('[DEBUG] Saving texture to OPFS...');
       await saveTextureToStorage(textureDataUrl);
 
       // Navigate to order page (just as a trigger, no data in URL)
+      console.log('[DEBUG] Navigating to order page...');
       navigate({
         to: '/order',
         search: {
@@ -264,10 +319,10 @@ export default function StudioPage() {
 
   useEffect(function restoreArtworkFromSearch() {
     if (artworkDefinition && !hasRestoredFromStorage) {
-      // Restore artwork state from localStorage
+      // Restore artwork state from storage
       const img = new Image();
       img.onload = () => {
-        setState({
+        updateState({
           uploadedImage: img,
           imageDataUrl: artworkDefinition.originalImageDataUrl,
           mmPerPixel: artworkDefinition.mmPerPixel,
@@ -285,7 +340,33 @@ export default function StudioPage() {
       };
       img.src = artworkDefinition.originalImageDataUrl;
     }
-  }, [artworkDefinition, hasRestoredFromStorage, navigate]);
+  }, [artworkDefinition, hasRestoredFromStorage, navigate, updateState]);
+
+  // Auto-save metadata to OPFS whenever state changes (excluding image)
+  useEffect(function autoSaveMetadataToOPFS() {
+    if (state.uploadedImage && state.imageDataUrl && hasRestoredFromStorage) {
+      const metadata = {
+        mmPerPixel: state.mmPerPixel,
+        imageCenterXy: state.imageCenterXy,
+        sideProcessing: state.sideProcessing,
+        canvasBackgroundColor: state.canvasBackgroundColor,
+      };
+      
+      const timeoutId = setTimeout(() => {
+        saveMetadataToStorage(metadata);
+      }, 500); // Debounce 500ms
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [
+    state.mmPerPixel,
+    state.imageCenterXy,
+    state.sideProcessing,
+    state.canvasBackgroundColor,
+    state.uploadedImage,
+    state.imageDataUrl,
+    hasRestoredFromStorage
+  ]);
 
   return (
     <StudioContext.Provider
@@ -296,6 +377,7 @@ export default function StudioPage() {
         handleMmPerPixelChange,
         handlePositionChange,
         handleOrder,
+        handleClearWork,
       }}
     >
       <CanvasViewsContext.Provider
@@ -325,6 +407,17 @@ export default function StudioPage() {
                   >
                     주문하기
                   </Button>
+                }
+                resetButton={
+                  state.uploadedImage && (
+                    <Button
+                      onClick={handleClearWork}
+                      variant="outline"
+                      size="lg"
+                    >
+                      초기화
+                    </Button>
+                  )
                 }
               />
             </ToolModeProvider>

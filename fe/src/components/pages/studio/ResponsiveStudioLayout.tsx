@@ -5,6 +5,7 @@ type ResponsiveStudioLayoutProps = {
   toolsArea: ReactNode;
   modeSelector: ReactNode;
   checkoutButton?: ReactNode;
+  resetButton?: ReactNode;
 };
 
 export function ResponsiveStudioLayout({
@@ -12,6 +13,7 @@ export function ResponsiveStudioLayout({
   toolsArea,
   modeSelector,
   checkoutButton,
+  resetButton,
 }: ResponsiveStudioLayoutProps) {
   return (
     <>
@@ -20,6 +22,12 @@ export function ResponsiveStudioLayout({
         {/* 1. Canvas Block */}
         <div className="flex-1 relative min-h-0">
           {canvasArea}
+          {/* Mobile reset button - floating top-left */}
+          {resetButton && (
+            <div className="absolute top-4 left-4 z-20">
+              {resetButton}
+            </div>
+          )}
           {/* Mobile checkout button - floating top-right */}
           {checkoutButton && (
             <div className="absolute top-4 right-4 z-20">
@@ -48,10 +56,11 @@ export function ResponsiveStudioLayout({
 
         {/* Right: Tools + Mode Selection + Checkout */}
         <div className="w-1/2 flex flex-col bg-white border-l border-gray-200">
-          {/* Desktop checkout button - top block */}
-          {checkoutButton && (
-            <div className="flex-shrink-0 p-4 bg-white border-b border-gray-200 flex justify-end">
-              {checkoutButton}
+          {/* Desktop buttons - top block */}
+          {(checkoutButton || resetButton) && (
+            <div className="flex-shrink-0 p-4 bg-white border-b border-gray-200 flex justify-between">
+              <div>{resetButton}</div>
+              <div>{checkoutButton}</div>
             </div>
           )}
           

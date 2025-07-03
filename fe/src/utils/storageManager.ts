@@ -1,4 +1,4 @@
-import { type ArtworkDefinition } from "@/types/artwork";
+import { type ArtworkDefinition, type ArtworkMetadata } from "@/types/artwork";
 
 // OPFS Storage Manager - Chrome 86+, Firefox 111+ only
 class OPFSStorage {
@@ -52,20 +52,59 @@ class OPFSStorage {
     }
   }
 
+  async saveImage(imageDataUrl: string): Promise<void> {
+    const root = await this.getRoot();
+    const fileHandle = await root.getFileHandle('image.txt', { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(imageDataUrl);
+    await writable.close();
+  }
+
+  async getImage(): Promise<string | undefined> {
+    try {
+      const root = await this.getRoot();
+      const fileHandle = await root.getFileHandle('image.txt');
+      const file = await fileHandle.getFile();
+      return await file.text();
+    } catch (error) {
+      // File doesn't exist
+      return undefined;
+    }
+  }
+
+  async saveMetadata(metadata: ArtworkMetadata): Promise<void> {
+    const root = await this.getRoot();
+    const fileHandle = await root.getFileHandle('metadata.json', { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(metadata));
+    await writable.close();
+  }
+
+  async getMetadata(): Promise<ArtworkMetadata | undefined> {
+    try {
+      const root = await this.getRoot();
+      const fileHandle = await root.getFileHandle('metadata.json');
+      const file = await fileHandle.getFile();
+      const text = await file.text();
+      return JSON.parse(text) as ArtworkMetadata;
+    } catch (error) {
+      // File doesn't exist
+      return undefined;
+    }
+  }
+
   async clear(): Promise<void> {
     const root = await this.getRoot();
     
     // Remove files if they exist
-    try {
-      await root.removeEntry('artwork.json');
-    } catch (e) {
-      // File doesn't exist, ignore
-    }
+    const filesToRemove = ['artwork.json', 'texture.txt', 'image.txt', 'metadata.json'];
     
-    try {
-      await root.removeEntry('texture.txt');
-    } catch (e) {
-      // File doesn't exist, ignore
+    for (const filename of filesToRemove) {
+      try {
+        await root.removeEntry(filename);
+      } catch (e) {
+        // File doesn't exist, ignore
+      }
     }
   }
 }
@@ -79,3 +118,9 @@ export const getArtworkFromStorage = () => storageManager.getArtwork();
 export const saveTextureToStorage = (textureDataUrl: string) => storageManager.saveTexture(textureDataUrl);
 export const getTextureFromStorage = () => storageManager.getTexture();
 export const clearStorage = () => storageManager.clear();
+
+// New efficient storage methods
+export const saveImageToStorage = (imageDataUrl: string) => storageManager.saveImage(imageDataUrl);
+export const getImageFromStorage = () => storageManager.getImage();
+export const saveMetadataToStorage = (metadata: ArtworkMetadata) => storageManager.saveMetadata(metadata);
+export const getMetadataFromStorage = () => storageManager.getMetadata();
