@@ -1,9 +1,11 @@
 const localRedirectUri = "http://localhost:3002/auth/callback";
 const productionRedirectUri = "https://namvas.com/auth/callback";
+
+
 const redirectUri =
-  process.env.NODE_ENV === "production"
-    ? productionRedirectUri
-    : localRedirectUri;
+  process.env.LOCAL_DEV === "1"
+    ? localRedirectUri
+    : productionRedirectUri;
 
 export const config = {
   GOOGLE_CLIENT_ID:

@@ -8,19 +8,20 @@ import { apis } from "../apis";
 export async function handler(
   event: LambdaFunctionURLEvent
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  console.log("Received event:", JSON.stringify(event, null, 2));
+  // Simplified logging - only log method and path
+  console.log(`[Lambda] ${event.requestContext.http.method} ${event.rawPath}`);
 
   try {
     // Extract API name from path like "/api/loginWithGoogle" -> "loginWithGoogle"
     // Handle double slashes by filtering empty parts
     const pathParts = event.rawPath.split("/").filter(part => part !== "");
-    console.log("Path parts:", pathParts);
+    // console.log("Path parts:", pathParts);
     
     const apiName = pathParts.includes("api") 
       ? pathParts[pathParts.indexOf("api") + 1] 
       : pathParts[0];
     
-    console.log("Extracted API name:", apiName);
+    // console.log("Extracted API name:", apiName);
     const apiParams = event.body;
 
     const inCookies = (event.cookies || [])?.reduce((acc, cookie) => {
@@ -51,12 +52,11 @@ export async function handler(
       };
     }
     
-    console.log("Parsing API params:", apiParams);
     const parsedParams = JSON.parse(apiParams);
-    console.log("Calling API:", apiName, "with params:", parsedParams);
+    console.log(`[Lambda] Calling ${apiName}`);
     
     const apiResult = await api(parsedParams, apiRequest);
-    console.log("API result:", apiResult);
+    // console.log("API result:", apiResult);
 
     return {
       statusCode: 200,

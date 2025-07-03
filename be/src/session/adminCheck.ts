@@ -2,10 +2,9 @@ import { getSession } from "./index";
 import { ApiRequest } from "../types";
 
 // Hardcoded admin provider IDs  
-// TODO: Replace with actual admin provider IDs
 const ADMIN_PROVIDER_IDS = new Set([
-  "google:admin_google_id_here", // Replace with actual Google ID
-  "twitter:admin_twitter_id_here", // Replace with actual Twitter ID
+  "google:108731783381066958153", // namse's Google ID
+  "twitter:1323617848879583233", // namse's Twitter ID
 ]);
 
 export const isAdmin = async (req: ApiRequest): Promise<boolean> => {

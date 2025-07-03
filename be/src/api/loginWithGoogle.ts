@@ -56,7 +56,11 @@ export const loginWithGoogle: Apis["loginWithGoogle"] = async (
     }
 
     const userData = await userResponse.json();
+    console.log('Google user data:', userData);
     const { id: googleId, email, name } = userData;
+    
+    // Log provider ID for admin setup
+    console.log('🔐 Google Provider ID for admin setup:', `google:${googleId}`);
 
     // Check if user exists
     const identity = await ddb.getIdentity({

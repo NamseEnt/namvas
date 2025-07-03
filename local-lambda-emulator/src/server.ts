@@ -72,11 +72,37 @@ async function executeLLRT() {
     stderr: "pipe",
   });
 
-  const errors = await new Response(proc.stderr).text();
+  // Capture and display stdout (console.log outputs)
+  const stdoutReader = proc.stdout.getReader();
+  const stderrReader = proc.stderr.getReader();
+  
+  // Read stdout in background
+  (async () => {
+    try {
+      while (true) {
+        const { done, value } = await stdoutReader.read();
+        if (done) break;
+        const text = new TextDecoder().decode(value);
+        process.stdout.write(text);
+      }
+    } catch (e) {
+      // Reader was closed
+    }
+  })();
 
-  if (errors) {
-    console.error("LLRT errors:", errors);
-  }
+  // Read stderr in background
+  (async () => {
+    try {
+      while (true) {
+        const { done, value } = await stderrReader.read();
+        if (done) break;
+        const text = new TextDecoder().decode(value);
+        process.stderr.write(text);
+      }
+    } catch (e) {
+      // Reader was closed
+    }
+  })();
 
   await proc.exited;
 }

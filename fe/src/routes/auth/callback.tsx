@@ -20,7 +20,7 @@ function AuthCallback() {
       if (state === "admin") {
         navigate({ to: "/admin/dashboard" });
       } else {
-        navigate({ to: "/studio", search: { artwork: undefined } });
+        navigate({ to: "/" });
       }
     },
     onError: (error) => {
@@ -37,7 +37,7 @@ function AuthCallback() {
       if (state === "admin") {
         navigate({ to: "/admin/dashboard" });
       } else {
-        navigate({ to: "/studio", search: { artwork: undefined } });
+        navigate({ to: "/" });
       }
     },
     onError: (error) => {
