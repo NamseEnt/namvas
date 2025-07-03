@@ -10,3 +10,15 @@ if git diff --cached --name-only | grep -q "^infra/.*\.ts$"; then
   fi
   echo "✅ TypeScript check passed for infra directory"
 fi
+
+# Check if any TypeScript/React files in fe directory are being committed
+if git diff --cached --name-only | grep -q "^fe/.*\.\(ts\|tsx\|js\|jsx\)$"; then
+  echo "Checking TypeScript compilation in frontend directory..."
+  cd fe && npx tsc --noEmit
+  if [ $? -ne 0 ]; then
+    echo "❌ TypeScript compilation errors found in frontend directory. Please fix before committing."
+    exit 1
+  fi
+  echo "✅ TypeScript check passed for frontend directory"
+  cd ..
+fi

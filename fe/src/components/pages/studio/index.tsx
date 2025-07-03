@@ -16,7 +16,6 @@ import { type ArtworkDefinition } from "@/types/artwork";
 import { 
   saveArtworkToStorage, 
   saveTextureToStorage,
-  getArtworkFromStorage,
   clearStorage,
   saveImageToStorage,
   getImageFromStorage,
@@ -72,7 +71,7 @@ export const useCanvasViewsContext = () => {
 
 export default function StudioPage() {
   const navigate = useNavigate();
-  const search = useSearch({ from: '/studio/' });
+  useSearch({ from: '/studio/' });
   
   
   // Track if we've already restored from storage
