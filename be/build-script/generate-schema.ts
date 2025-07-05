@@ -15,6 +15,13 @@ export function generateSchema(inputPath: string, outputPath: string): void {
   for (const [name, doc] of evolution.documents) {
     console.log(`  - ${name} (${doc.fields.length} fields)`);
   }
+  
+  if (evolution.indexes.size > 0) {
+    console.log(`🔍 Found ${evolution.indexes.size} index(es):`);
+    for (const [name, index] of evolution.indexes) {
+      console.log(`  - ${name} (${index.ownerDocument} -> ${index.itemDocument})`);
+    }
+  }
 
   console.log('⚙️  Generating TypeScript code...');
   

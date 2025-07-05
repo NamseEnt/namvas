@@ -15,6 +15,13 @@ export interface DocumentDefinition {
   version: number; // Version when this document was created
 }
 
+export interface IndexDefinition {
+  name: string;
+  ownerDocument: string;
+  itemDocument: string;
+  version: number; // Version when this index was created
+}
+
 // Schema evolution commands
 export type SchemaCommand = 
   | NewDocumentCommand
@@ -72,6 +79,7 @@ export interface MigrationStep {
 
 export interface SchemaEvolution {
   documents: Map<string, DocumentDefinition>;
+  indexes: Map<string, IndexDefinition>;
   commands: SchemaCommand[];
   currentVersion: number;
   migrations: MigrationStep[];
@@ -80,6 +88,7 @@ export interface SchemaEvolution {
 // Final schema state for code generation
 export interface FinalSchema {
   documents: DocumentDefinition[];
+  indexes: IndexDefinition[];
   currentVersion: number;
   migrations: MigrationStep[];
 }

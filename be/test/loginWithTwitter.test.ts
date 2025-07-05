@@ -1,3 +1,9 @@
+// Mock process.env FIRST (before imports)
+process.env.TWITTER_CLIENT_ID = "test-client-id";
+process.env.TWITTER_CLIENT_SECRET = "test-client-secret";
+process.env.TWITTER_REDIRECT_URI = "http://localhost:3000/callback";
+process.env.LOCAL_DEV = "1";
+
 import { apis } from "../src/apis";
 import { ddb } from "../src/__generated/db";
 import { ApiRequest } from "../src/types";
@@ -6,13 +12,8 @@ import { ApiRequest } from "../src/types";
 let mockFetchResponses: any[] = [];
 globalThis.fetch = async (url: any, options?: any) => {
   const response = mockFetchResponses.shift();
-  return response || { ok: false, json: async () => ({}) };
+  return response || { ok: false, json: async () => ({}), text: async () => "" };
 };
-
-// Mock process.env
-process.env.TWITTER_CLIENT_ID = "test-client-id";
-process.env.TWITTER_CLIENT_SECRET = "test-client-secret";
-process.env.TWITTER_REDIRECT_URI = "http://localhost:3000/callback";
 
 // Mock Buffer
 globalThis.Buffer = {
@@ -21,13 +22,21 @@ globalThis.Buffer = {
   }),
 } as any;
 
+// Mock URLSearchParams
+globalThis.URLSearchParams = class URLSearchParams {
+  constructor(params: any) {}
+  toString() {
+    return "mock-url-search-params";
+  }
+} as any;
+
 describe("loginWithTwitter", () => {
   beforeEach(() => {
     mockFetchResponses = [];
   });
 
   test("should return INVALID_CODE when token exchange fails", async () => {
-    mockFetchResponses = [{ ok: false, json: async () => ({}) }];
+    mockFetchResponses = [{ ok: false, json: async () => ({}), text: async () => "Invalid code" }];
 
     const req: ApiRequest = { cookies: {}, headers: {} };
     const result = await apis.loginWithTwitter(
@@ -40,8 +49,8 @@ describe("loginWithTwitter", () => {
 
   test("should return TWITTER_API_ERROR when user info fetch fails", async () => {
     mockFetchResponses = [
-      { ok: true, json: async () => ({ access_token: "mock-access-token" }) },
-      { ok: false, json: async () => ({}) },
+      { ok: true, json: async () => ({ access_token: "mock-access-token" }), text: async () => "" },
+      { ok: false, json: async () => ({}), text: async () => "" },
     ];
 
     const req: ApiRequest = { cookies: {}, headers: {} };
@@ -55,7 +64,7 @@ describe("loginWithTwitter", () => {
 
   test("should create new user and session for new Twitter user", async () => {
     mockFetchResponses = [
-      { ok: true, json: async () => ({ access_token: "mock-access-token" }) },
+      { ok: true, json: async () => ({ access_token: "mock-access-token" }), text: async () => "" },
       {
         ok: true,
         json: async () => ({
@@ -65,6 +74,7 @@ describe("loginWithTwitter", () => {
             username: "testuser",
           },
         }),
+        text: async () => ""
       },
     ];
 
@@ -85,7 +95,7 @@ describe("loginWithTwitter", () => {
 
   test("should create session for existing Twitter user", async () => {
     mockFetchResponses = [
-      { ok: true, json: async () => ({ access_token: "mock-access-token" }) },
+      { ok: true, json: async () => ({ access_token: "mock-access-token" }), text: async () => "" },
       {
         ok: true,
         json: async () => ({
@@ -95,6 +105,7 @@ describe("loginWithTwitter", () => {
             username: "testuser",
           },
         }),
+        text: async () => ""
       },
     ];
 
@@ -118,12 +129,13 @@ describe("loginWithTwitter", () => {
 
   test("should handle Twitter API errors gracefully", async () => {
     mockFetchResponses = [
-      { ok: true, json: async () => ({ access_token: "mock-access-token" }) },
+      { ok: true, json: async () => ({ access_token: "mock-access-token" }), text: async () => "" },
       {
         ok: true,
         json: async () => {
           throw new Error("Twitter API error");
         },
+        text: async () => ""
       },
     ];
 

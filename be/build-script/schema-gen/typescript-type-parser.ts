@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { DocumentDefinition, FieldDefinition, FieldType, SchemaEvolution } from './evolution-types.js';
+import { DocumentDefinition, IndexDefinition, FieldDefinition, FieldType, SchemaEvolution } from './evolution-types.js';
 import { readFileSync } from 'fs';
 
 export function parseTypeScriptSchema(filePath: string): SchemaEvolution {
@@ -12,6 +12,7 @@ export function parseTypeScriptSchema(filePath: string): SchemaEvolution {
   );
 
   const documents = new Map<string, DocumentDefinition>();
+  const indexes = new Map<string, IndexDefinition>();
   const checker = ts.createProgram([filePath], {
     target: ts.ScriptTarget.Latest,
     module: ts.ModuleKind.ESNext,
@@ -22,20 +23,31 @@ export function parseTypeScriptSchema(filePath: string): SchemaEvolution {
   ts.forEachChild(sourceFile, (node) => {
     if (ts.isTypeAliasDeclaration(node) && hasExportModifier(node)) {
       const typeName = node.name.text;
-      const fields = parseTypeFields(node.type, sourceText);
       
-      if (fields.length > 0) {
-        documents.set(typeName, {
-          name: typeName,
-          fields,
-          version: 1, // All documents start at version 1 in type-based system
-        });
+      // Check if this is an Index type
+      if (typeName.endsWith('Index')) {
+        const indexDef = parseIndexType(node.type, typeName, sourceText);
+        if (indexDef) {
+          indexes.set(typeName, indexDef);
+        }
+      } else {
+        // Regular document type
+        const fields = parseTypeFields(node.type, sourceText);
+        
+        if (fields.length > 0) {
+          documents.set(typeName, {
+            name: typeName,
+            fields,
+            version: 1, // All documents start at version 1 in type-based system
+          });
+        }
       }
     }
   });
 
   return {
     documents,
+    indexes,
     commands: [], // No commands in type-based system
     currentVersion: 1, // Simple versioning for type-based system
     migrations: [], // No migrations yet in type-based system
@@ -44,6 +56,42 @@ export function parseTypeScriptSchema(filePath: string): SchemaEvolution {
 
 function hasExportModifier(node: ts.Node): boolean {
   return node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
+}
+
+function parseIndexType(typeNode: ts.TypeNode, indexName: string, sourceText: string): IndexDefinition | null {
+  // Check if it's a type reference to Index<Owner, Item>
+  if (ts.isTypeReferenceNode(typeNode)) {
+    const typeName = typeNode.typeName;
+    if (ts.isIdentifier(typeName) && typeName.text === 'Index') {
+      // This is an Index type reference
+      if (typeNode.typeArguments && typeNode.typeArguments.length === 2) {
+        const ownerType = typeNode.typeArguments[0];
+        const itemType = typeNode.typeArguments[1];
+        
+        // Extract the document names from the type arguments
+        const ownerDocName = extractDocumentName(ownerType, sourceText);
+        const itemDocName = extractDocumentName(itemType, sourceText);
+        
+        if (ownerDocName && itemDocName) {
+          return {
+            name: indexName,
+            ownerDocument: ownerDocName,
+            itemDocument: itemDocName,
+            version: 1,
+          };
+        }
+      }
+    }
+  }
+  
+  return null;
+}
+
+function extractDocumentName(typeNode: ts.TypeNode, sourceText: string): string | null {
+  if (ts.isTypeReferenceNode(typeNode) && ts.isIdentifier(typeNode.typeName)) {
+    return typeNode.typeName.text;
+  }
+  return null;
 }
 
 function parseTypeFields(typeNode: ts.TypeNode, sourceText: string): FieldDefinition[] {
