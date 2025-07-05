@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsAgreementRouteImport } from './routes/terms-agreement'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OrderCompleteRouteImport } from './routes/order-complete'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as MyRouteImport } from './routes/my'
@@ -19,6 +20,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioIndexRouteImport } from './routes/studio/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
@@ -41,6 +43,11 @@ const TermsRoute = TermsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersRoute = OrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderCompleteRoute = OrderCompleteRouteImport.update({
@@ -77,6 +84,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
+  id: '/$orderId',
+  path: '/$orderId',
+  getParentRoute: () => OrdersRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
@@ -125,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
+  '/orders': typeof OrdersRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/terms-agreement': typeof TermsAgreementRoute
@@ -134,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/admin/': typeof AdminIndexRoute
   '/studio': typeof StudioIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
@@ -144,6 +158,7 @@ export interface FileRoutesByTo {
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
+  '/orders': typeof OrdersRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/terms-agreement': typeof TermsAgreementRoute
@@ -153,6 +168,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/admin': typeof AdminIndexRoute
   '/studio': typeof StudioIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
@@ -165,6 +181,7 @@ export interface FileRoutesById {
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
+  '/orders': typeof OrdersRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/terms-agreement': typeof TermsAgreementRoute
@@ -174,6 +191,7 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/admin/': typeof AdminIndexRoute
   '/studio/': typeof StudioIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
@@ -187,6 +205,7 @@ export interface FileRouteTypes {
     | '/my'
     | '/order'
     | '/order-complete'
+    | '/orders'
     | '/privacy'
     | '/terms'
     | '/terms-agreement'
@@ -196,6 +215,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/users'
     | '/auth/callback'
+    | '/orders/$orderId'
     | '/admin/'
     | '/studio'
     | '/admin/orders/$orderId'
@@ -206,6 +226,7 @@ export interface FileRouteTypes {
     | '/my'
     | '/order'
     | '/order-complete'
+    | '/orders'
     | '/privacy'
     | '/terms'
     | '/terms-agreement'
@@ -215,6 +236,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/users'
     | '/auth/callback'
+    | '/orders/$orderId'
     | '/admin'
     | '/studio'
     | '/admin/orders/$orderId'
@@ -226,6 +248,7 @@ export interface FileRouteTypes {
     | '/my'
     | '/order'
     | '/order-complete'
+    | '/orders'
     | '/privacy'
     | '/terms'
     | '/terms-agreement'
@@ -235,6 +258,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/users'
     | '/auth/callback'
+    | '/orders/$orderId'
     | '/admin/'
     | '/studio/'
     | '/admin/orders/$orderId'
@@ -247,6 +271,7 @@ export interface RootRouteChildren {
   MyRoute: typeof MyRoute
   OrderRoute: typeof OrderRoute
   OrderCompleteRoute: typeof OrderCompleteRoute
+  OrdersRoute: typeof OrdersRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   TermsAgreementRoute: typeof TermsAgreementRoute
@@ -275,6 +300,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders': {
+      id: '/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof OrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order-complete': {
@@ -325,6 +357,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/orders/$orderId': {
+      id: '/orders/$orderId'
+      path: '/$orderId'
+      fullPath: '/orders/$orderId'
+      preLoaderRoute: typeof OrdersOrderIdRouteImport
+      parentRoute: typeof OrdersRoute
     }
     '/auth/callback': {
       id: '/auth/callback'
@@ -429,12 +468,24 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface OrdersRouteChildren {
+  OrdersOrderIdRoute: typeof OrdersOrderIdRoute
+}
+
+const OrdersRouteChildren: OrdersRouteChildren = {
+  OrdersOrderIdRoute: OrdersOrderIdRoute,
+}
+
+const OrdersRouteWithChildren =
+  OrdersRoute._addFileChildren(OrdersRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   MyRoute: MyRoute,
   OrderRoute: OrderRoute,
   OrderCompleteRoute: OrderCompleteRoute,
+  OrdersRoute: OrdersRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   TermsAgreementRoute: TermsAgreementRoute,
