@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsAgreementRouteImport } from './routes/terms-agreement'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OrderCompleteRouteImport } from './routes/order-complete'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as MyRouteImport } from './routes/my'
@@ -29,6 +31,16 @@ import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin/orders/$o
 const TermsAgreementRoute = TermsAgreementRouteImport.update({
   id: '/terms-agreement',
   path: '/terms-agreement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderCompleteRoute = OrderCompleteRouteImport.update({
@@ -113,6 +125,8 @@ export interface FileRoutesByFullPath {
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
@@ -130,6 +144,8 @@ export interface FileRoutesByTo {
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
@@ -149,6 +165,8 @@ export interface FileRoutesById {
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
@@ -169,6 +187,8 @@ export interface FileRouteTypes {
     | '/my'
     | '/order'
     | '/order-complete'
+    | '/privacy'
+    | '/terms'
     | '/terms-agreement'
     | '/admin/dashboard'
     | '/admin/login'
@@ -186,6 +206,8 @@ export interface FileRouteTypes {
     | '/my'
     | '/order'
     | '/order-complete'
+    | '/privacy'
+    | '/terms'
     | '/terms-agreement'
     | '/admin/dashboard'
     | '/admin/login'
@@ -204,6 +226,8 @@ export interface FileRouteTypes {
     | '/my'
     | '/order'
     | '/order-complete'
+    | '/privacy'
+    | '/terms'
     | '/terms-agreement'
     | '/admin/dashboard'
     | '/admin/login'
@@ -223,6 +247,8 @@ export interface RootRouteChildren {
   MyRoute: typeof MyRoute
   OrderRoute: typeof OrderRoute
   OrderCompleteRoute: typeof OrderCompleteRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   TermsAgreementRoute: typeof TermsAgreementRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   StudioIndexRoute: typeof StudioIndexRoute
@@ -235,6 +261,20 @@ declare module '@tanstack/react-router' {
       path: '/terms-agreement'
       fullPath: '/terms-agreement'
       preLoaderRoute: typeof TermsAgreementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order-complete': {
@@ -395,6 +435,8 @@ const rootRouteChildren: RootRouteChildren = {
   MyRoute: MyRoute,
   OrderRoute: OrderRoute,
   OrderCompleteRoute: OrderCompleteRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   TermsAgreementRoute: TermsAgreementRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   StudioIndexRoute: StudioIndexRoute,

@@ -43,12 +43,14 @@ function TermsAgreementContent() {
             detailText="자세히 보기"
             checked={agreements.terms}
             onChange={() => updateAgreement("terms")}
+            linkTo="/terms"
           />
           <TermsCheckbox
             label="(필수) 개인정보처리방침에 동의합니다."
             detailText="자세히 보기"
             checked={agreements.privacy}
             onChange={() => updateAgreement("privacy")}
+            linkTo="/privacy"
           />
         </div>
 
@@ -65,11 +67,13 @@ function TermsCheckbox({
   detailText,
   checked,
   onChange,
+  linkTo,
 }: {
   label: string;
   detailText: string;
   checked: boolean;
   onChange: () => void;
+  linkTo: string;
 }) {
   return (
     <div className="flex items-start space-x-3">
@@ -81,7 +85,10 @@ function TermsCheckbox({
       />
       <div className="flex-1">
         <label className="text-sm text-gray-900">{label}</label>
-        <button className="ml-2 text-sm text-blue-600 hover:text-blue-800 underline">
+        <button 
+          onClick={() => window.open(linkTo, '_blank')}
+          className="ml-2 text-sm text-blue-600 hover:text-blue-800 underline"
+        >
           {detailText}
         </button>
       </div>

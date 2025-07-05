@@ -1,0 +1,167 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/terms")({
+  component: TermsPage,
+});
+
+export default function TermsPage() {
+  return <TermsContent />;
+}
+
+function TermsContent() {
+  return (
+    <div className="min-h-screen bg-white py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm border p-8">
+          <div className="prose prose-slate max-w-none">
+            <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+              남바스(namvas) 서비스 이용약관
+            </h1>
+            
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제1조 (목적)</h2>
+              <p className="text-gray-700 leading-relaxed">
+                {`본 약관은 [남세엔터테인먼트유한회사] (이하 "회사")가 운영하는 웹사이트 "[namvas.com]" (이하 "몰")에서 제공하는 이미지 인쇄 기반의 주문제작 서비스(이하 "서비스")를 이용함에 있어 회사와 이용자의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.`}
+              </p>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제2조 (용어의 정의)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>{`① "몰"이란 회사가 재화 또는 용역(이하 "재화 등")을 이용자에게 제공하기 위하여 컴퓨터 등 정보통신설비를 이용하여 재화 등을 거래할 수 있도록 설정한 가상의 영업장을 말합니다.`}</p>
+                <p>{`② "이용자"란 "몰"에 접속하여 본 약관에 따라 회사가 제공하는 서비스를 받는 회원 및 비회원을 말합니다.`}</p>
+                <p>{`③ "회원"이라 함은 "몰"에 개인정보를 제공하여 회원등록을 한 자로서, "몰"의 정보를 지속적으로 제공받으며, 회사가 제공하는 서비스를 계속적으로 이용할 수 있는 자를 말합니다.`}</p>
+                <p>④ <strong>{`"게시물" 또는 "업로드 이미지"`}</strong>{`란 이용자가 서비스를 이용하기 위해 "몰"에 업로드하는 이미지 파일 등 모든 콘텐츠를 의미합니다.`}</p>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제3조 ~ 제8조 (기존과 동일)</h2>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제9조 (대금 지급방법)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>{`① "몰"에서 구매한 재화 등에 대한 대금지급방법은 다음 각 호의 방법 중 가용한 방법으로 할 수 있습니다.`}</p>
+                <div className="ml-4 space-y-1">
+                  <p>1. 신용카드 결제</p>
+                  <p>2. 실시간 계좌이체</p>
+                  <p>3. 무통장 입금</p>
+                  <p>4. 네이버페이 등 간편결제 서비스</p>
+                  <p>5. 기타 회사가 지정하는 전자적 지급 방법에 의한 대금 지급 등</p>
+                </div>
+                <p>② 회사의 정책에 따라 일부 결제수단의 사용이 제한되거나 추가될 수 있습니다.</p>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제10조 (수신확인통지·구매신청 변경 및 취소)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>① 회사는 이용자의 구매신청이 있는 경우 이용자에게 수신확인통지를 합니다.</p>
+                <p>② 수신확인통지를 받은 이용자는 의사표시의 불일치 등이 있는 경우에는 수신확인통지를 받은 후 즉시 구매신청 변경 및 취소를 요청할 수 있습니다. 단, 회사가 <strong>이미 제작에 착수한 후에는 변경 및 취소가 제한</strong>될 수 있습니다.</p>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제11조 (재화 등의 공급)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>① 회사는 이용자와 재화 등의 공급시기에 관하여 별도의 약정이 없는 이상, 이용자의 결제가 확인된 날부터 <strong>제작 기간을 포함하여</strong> 10영업일 이내에 재화 등을 배송할 수 있도록 필요한 조치를 취합니다.</p>
+                <p>② 회사는 이용자가 구매한 재화에 대해 배송수단, 배송비용, 배송기간 등을 명시합니다.</p>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제12조 (환급)</h2>
+              <p className="text-gray-700 leading-relaxed">
+                회사는 이용자가 구매신청한 재화 등이 품절 등의 사유로 인도 또는 제공을 할 수 없을 때에는 지체 없이 그 사유를 이용자에게 통지하고 사전에 재화 등의 대금을 받은 경우에는 대금을 받은 날부터 3영업일 이내에 환급하거나 환급에 필요한 조치를 취합니다.
+              </p>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제13조 (청약철회 등의 제한)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>① <strong>{`본 "몰"에서 판매하는 모든 재화 등은 이용자가 업로드한 이미지에 따라 개별적으로 제작되는 '주문 제작 상품'`}</strong>{`에 해당합니다. 따라서 「전자상거래 등에서의 소비자보호에 관한 법률」 제17조 제2항에 따라, 제작이 착수된 이후에는 `}<strong>이용자의 단순 변심에 의한 교환, 취소 및 환불이 불가</strong>합니다.</p>
+                <p>② 제1항의 규정에도 불구하고, 이용자는 다음 각 호의 경우에는 재화 등을 공급받은 날로부터 7일 이내에 교환 및 환불을 요청할 수 있습니다.</p>
+                <div className="ml-4 space-y-1">
+                  <p>1. 배송된 재화가 주문 내용과 상이하거나 회사가 제공한 정보와 현저히 다른 경우</p>
+                  <p>2. 배송된 재화에 인쇄 불량, 파손, 오염 등 심각한 하자가 있는 경우</p>
+                </div>
+                <p>③ 교환/환불에 따른 비용은 재화 등의 하자로 인한 경우 회사가 부담하지만, 이용자의 책임 있는 사유로 재화가 훼손된 경우에는 이용자가 그 비용을 부담할 수 있습니다.</p>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제14조 ~ 제15조 (기존과 동일)</h2>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제16조 (회원의 의무)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>이용자는 다음 행위를 하여서는 안 됩니다.</p>
+                <div className="ml-4 space-y-1">
+                  <p>1. 신청 또는 변경 시 허위 내용의 등록</p>
+                  <p>2. 타인의 정보 도용</p>
+                  <p>3. <strong>제3자의 저작권, 초상권 등 지식재산권을 침해하는 이미지를 업로드하는 행위</strong></p>
+                  <p>4. 공공질서 및 미풍양속에 위반되는 외설적이거나 폭력적인 이미지를 업로드하는 행위</p>
+                  <p>5. 기타 불법적이거나 부당한 행위</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제17조 (게시물의 저작권 및 관리 책임)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>① 이용자가 업로드한 게시물의 저작권을 포함한 모든 지식재산권은 이용자에게 귀속됩니다.</p>
+                <p>② 회사는 이용자가 업로드한 이미지를 오직 주문된 재화 등을 제작, 배송 및 관련 고객 응대의 목적으로만 사용합니다.</p>
+                <p>③ <strong>이용자는 자신이 업로드한 이미지에 대해 적법한 저작권 또는 사용 권한을 가지고 있음을 보증해야 합니다. 업로드한 이미지와 관련하여 발생하는 저작권, 초상권 등 모든 법적 분쟁에 대한 책임은 전적으로 이용자 본인에게 있으며, 이로 인해 회사가 손해를 입는 경우 이용자는 그 손해를 배상할 책임이 있습니다.</strong></p>
+                <p>④ 회사는 이용자가 업로드한 게시물이 법령에 위반되거나 제3자의 권리를 침해한다고 판단될 경우, 사전 통지 없이 해당 게시물을 삭제하거나 주문 접수를 거부할 수 있습니다.</p>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제18조 (인쇄 품질 및 이용자 책임)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>① 인쇄 품질은 이용자가 제공한 업로드 이미지의 해상도, 색감 등에 따라 달라질 수 있습니다. 회사는 낮은 해상도의 파일로 인해 발생하는 인쇄 품질 저하에 대해서는 책임지지 않습니다.</p>
+                <p>② 이용자가 사용하는 모니터, 스마트폰 등의 디스플레이 환경에 따라 실제 인쇄물의 색상과 화면상의 색상에 차이가 있을 수 있으며, 이는 제품 하자에 해당하지 않습니다.</p>
+                <p>③ 이용자는 업로드 전 이미지에 오탈자나 오류가 없는지 최종적으로 확인할 책임이 있습니다. 파일에 포함된 내용의 오류로 인한 재제작 및 환불은 불가합니다.</p>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제19조 (제품 특성에 대한 안내)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>① 회사는 균일한 품질의 제품을 제공하기 위해 최선을 다합니다. 다만, 아래와 같은 사항은 수제작 및 천연 재료의 특성으로 하자에 해당하지 않을 수 있습니다.</p>
+                <div className="ml-4 space-y-1">
+                  <p>1. 천연 목재의 고유한 나뭇결, 색상 차이, 미세한 옹이 또는 패임</p>
+                  <p>2. 수작업으로 바니쉬(마감재)를 칠하는 과정에서 발생할 수 있는 미세한 기포나 먼지</p>
+                  <p>3. 측정 방식에 따른 1~2mm 내외의 사이즈 오차</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제20조 (분쟁해결)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>① 회사는 이용자로부터 제출되는 불만사항 및 의견은 우선적으로 그 사항을 처리합니다. 다만, 신속한 처리가 곤란한 경우에는 이용자에게 그 사유와 처리일정을 즉시 통보합니다.</p>
+                <p>② 회사와 이용자 간에 발생한 전자상거래 분쟁과 관련하여 이용자의 피해구제신청이 있는 경우에는 공정거래위원회 또는 시·도지사가 의뢰하는 분쟁조정기관의 조정에 따를 수 있습니다.</p>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">제21조 (재판권 및 준거법)</h2>
+              <div className="space-y-3 text-gray-700">
+                <p>① 회사와 이용자 간에 발생한 전자상거래 분쟁에 관한 소송은 제소 당시의 이용자의 주소에 의하고, 주소가 없는 경우에는 거소를 관할하는 지방법원의 전속관할로 합니다.</p>
+                <p>② 회사와 이용자 간에 제기된 전자상거래 소송에는 한국법을 적용합니다.</p>
+              </div>
+            </section>
+
+            <section className="mb-8 bg-gray-50 p-4 rounded-lg">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">부칙</h2>
+              <p className="text-gray-700">본 약관은 2025년 1월 1일부터 시행합니다.</p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
