@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { DocumentDefinition, IndexDefinition, FieldDefinition, FieldType, SchemaEvolution } from './evolution-types.js';
+import { DocumentDefinition, IndexDefinition, OwnershipRelation, FieldDefinition, FieldType, SchemaEvolution } from './evolution-types.js';
 import { readFileSync } from 'fs';
 
 export function parseTypeScriptSchema(filePath: string): SchemaEvolution {
@@ -45,9 +45,26 @@ export function parseTypeScriptSchema(filePath: string): SchemaEvolution {
     }
   });
 
+  // Extract ownership relations from indexes
+  const ownerships: OwnershipRelation[] = [];
+  for (const [indexName, indexDef] of indexes) {
+    const ownedDoc = documents.get(indexDef.itemDocument);
+    if (ownedDoc) {
+      const ownerField = findOwnerFieldInDocument(ownedDoc, indexDef.ownerDocument);
+      if (ownerField) {
+        ownerships.push({
+          ownerDocument: indexDef.ownerDocument,
+          ownedDocument: indexDef.itemDocument,
+          ownerField: ownerField,
+        });
+      }
+    }
+  }
+
   return {
     documents,
     indexes,
+    ownerships,
     commands: [], // No commands in type-based system
     currentVersion: 1, // Simple versioning for type-based system
     migrations: [], // No migrations yet in type-based system
@@ -91,6 +108,26 @@ function extractDocumentName(typeNode: ts.TypeNode, sourceText: string): string 
   if (ts.isTypeReferenceNode(typeNode) && ts.isIdentifier(typeNode.typeName)) {
     return typeNode.typeName.text;
   }
+  return null;
+}
+
+function findOwnerFieldInDocument(ownedDoc: DocumentDefinition, ownerDocName: string): string | null {
+  // Convert OwnerDoc to expected field patterns
+  const ownerBaseName = ownerDocName.replace(/Doc$/, '');
+  const possibleFieldNames = [
+    ownerBaseName.toLowerCase() + 'Id',
+    'ownerId',
+    'userId' // Common pattern
+  ];
+  
+  // Find field that matches any of the expected patterns
+  for (const fieldName of possibleFieldNames) {
+    const field = ownedDoc.fields.find(f => f.name === fieldName);
+    if (field) {
+      return fieldName;
+    }
+  }
+  
   return null;
 }
 

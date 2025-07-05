@@ -22,6 +22,12 @@ export interface IndexDefinition {
   version: number; // Version when this index was created
 }
 
+export interface OwnershipRelation {
+  ownerDocument: string;
+  ownedDocument: string;
+  ownerField: string; // Field in owned document that references owner
+}
+
 // Schema evolution commands
 export type SchemaCommand = 
   | NewDocumentCommand
@@ -80,6 +86,7 @@ export interface MigrationStep {
 export interface SchemaEvolution {
   documents: Map<string, DocumentDefinition>;
   indexes: Map<string, IndexDefinition>;
+  ownerships: OwnershipRelation[];
   commands: SchemaCommand[];
   currentVersion: number;
   migrations: MigrationStep[];
@@ -89,6 +96,7 @@ export interface SchemaEvolution {
 export interface FinalSchema {
   documents: DocumentDefinition[];
   indexes: IndexDefinition[];
+  ownerships: OwnershipRelation[];
   currentVersion: number;
   migrations: MigrationStep[];
 }

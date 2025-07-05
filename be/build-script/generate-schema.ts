@@ -22,6 +22,13 @@ export function generateSchema(inputPath: string, outputPath: string): void {
       console.log(`  - ${name} (${index.ownerDocument} -> ${index.itemDocument})`);
     }
   }
+  
+  if (evolution.ownerships.length > 0) {
+    console.log(`🔗 Found ${evolution.ownerships.length} ownership relation(s):`);
+    for (const ownership of evolution.ownerships) {
+      console.log(`  - ${ownership.ownerDocument} owns ${ownership.ownedDocument} via ${ownership.ownerField}`);
+    }
+  }
 
   console.log('⚙️  Generating TypeScript code...');
   
