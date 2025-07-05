@@ -9,7 +9,7 @@ import { adminApi } from "@/lib/api";
 import type { Order, OrderStatus } from "../../../../shared/types";
 
 function isValidOrderStatus(status: string | undefined): status is OrderStatus | undefined {
-  if (status === undefined) return true;
+  if (status === undefined) {return true;}
   return ['payment_completed', 'in_production', 'shipping', 'delivered', 'production_hold'].includes(status);
 }
 

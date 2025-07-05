@@ -87,7 +87,10 @@ export default function OrderPage() {
     address: "",
     addressDetail: "",
     deliveryMemo: "",
+    agreeCustomProduct: false,
   });
+
+  const [isBlinking, setIsBlinking] = useState(false);
 
   const updateOrderState = (updates: Partial<OrderState>) => {
     setOrderState((prev) => ({ ...prev, ...updates }));
@@ -126,6 +129,12 @@ export default function OrderPage() {
   const totalPrice = subtotal + optionPrice + shippingFee;
 
   const handlePayment = () => {
+    if (!orderState.agreeCustomProduct) {
+      setIsBlinking(true);
+      setTimeout(() => setIsBlinking(false), 2000);
+      return;
+    }
+
     const orderId = "ORDER-" + Date.now().toString();
     navigate({
       to: "/order-complete",
@@ -426,6 +435,27 @@ export default function OrderPage() {
               </CardContent>
             </Card>
 
+            <Card className={`border-amber-200 bg-amber-50 transition-all duration-200 ${isBlinking ? 'animate-pulse border-red-500 bg-red-50' : ''}`}>
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="agree-custom-product"
+                    checked={orderState.agreeCustomProduct}
+                    onCheckedChange={(checked) =>
+                      updateOrderState({ agreeCustomProduct: checked as boolean })
+                    }
+                    className="mt-1"
+                  />
+                  <Label
+                    htmlFor="agree-custom-product"
+                    className="text-sm leading-relaxed cursor-pointer flex-1"
+                  >
+                    <span className="text-red-600 font-semibold">[필수]</span> 제공한 이미지로 맞춤 제작되어 다른 소비자에게 재판매가 곤란한 맞춤주문제작 상품임을 확인하였습니다. 청약철회(교환/환불)은 상품 제작 전 혹은 하자가 있는 상품을 수령했을 때만 가능합니다.
+                  </Label>
+                </div>
+              </CardContent>
+            </Card>
+
             <Button
               className="w-full h-14 text-lg"
               size="lg"
@@ -486,4 +516,5 @@ type OrderState = {
   address: string;
   addressDetail: string;
   deliveryMemo: string;
+  agreeCustomProduct: boolean;
 };
