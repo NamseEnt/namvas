@@ -23,8 +23,10 @@ export type Order = {
 };
 
 export type Artwork = {
-  originalImageS3Key: string;
-  mmPerPixel: number;
+  id: string;
+  title: string;
+  originalImageId: string;
+  dpi: number;
   imageCenterXy: { x: number; y: number };
   sideProcessing: SideProcessing;
 };
@@ -37,6 +39,18 @@ export type SideProcessing =
       type: "color";
       color: string;
     };
+
+export type SavedArtwork = {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  artwork: Artwork & {
+    canvasBackgroundColor: string;
+  };
+  thumbnailS3Key: string;
+};
 
 export enum IdentityProvider {
   GOOGLE = "google",

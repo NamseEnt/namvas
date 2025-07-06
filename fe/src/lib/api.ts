@@ -53,6 +53,16 @@ export const userApi = {
     apiRequest('getMyOrders', {}),
   cancelOrder: (orderId: string): Promise<ApiSuccessResponse<'cancelOrder'>> => 
     apiRequest('cancelOrder', { orderId }),
+  saveArtwork: (params: ApiRequest<'saveArtwork'>): Promise<ApiSuccessResponse<'saveArtwork'>> => 
+    apiRequest('saveArtwork', params),
+  getMyArtworks: (): Promise<ApiSuccessResponse<'getMyArtworks'>> => 
+    apiRequest('getMyArtworks', {}),
+  updateArtwork: (params: ApiRequest<'updateArtwork'>): Promise<ApiSuccessResponse<'updateArtwork'>> => 
+    apiRequest('updateArtwork', params),
+  deleteArtwork: (artworkId: string): Promise<ApiSuccessResponse<'deleteArtwork'>> => 
+    apiRequest('deleteArtwork', { artworkId }),
+  duplicateArtwork: (artworkId: string, title: string): Promise<ApiSuccessResponse<'duplicateArtwork'>> => 
+    apiRequest('duplicateArtwork', { artworkId, title }),
 };
 
 // Admin APIs

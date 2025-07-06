@@ -13,7 +13,9 @@ class OPFSStorage {
 
   async saveArtwork(artwork: ArtworkDefinition): Promise<void> {
     const root = await this.getRoot();
-    const fileHandle = await root.getFileHandle('artwork.json', { create: true });
+    const fileHandle = await root.getFileHandle("artwork.json", {
+      create: true,
+    });
     const writable = await fileHandle.createWritable();
     await writable.write(JSON.stringify(artwork));
     await writable.close();
@@ -22,7 +24,7 @@ class OPFSStorage {
   async getArtwork(): Promise<ArtworkDefinition | undefined> {
     try {
       const root = await this.getRoot();
-      const fileHandle = await root.getFileHandle('artwork.json');
+      const fileHandle = await root.getFileHandle("artwork.json");
       const file = await fileHandle.getFile();
       const text = await file.text();
       return JSON.parse(text) as ArtworkDefinition;
@@ -34,7 +36,9 @@ class OPFSStorage {
 
   async saveTexture(textureDataUrl: string): Promise<void> {
     const root = await this.getRoot();
-    const fileHandle = await root.getFileHandle('texture.txt', { create: true });
+    const fileHandle = await root.getFileHandle("texture.txt", {
+      create: true,
+    });
     const writable = await fileHandle.createWritable();
     await writable.write(textureDataUrl);
     await writable.close();
@@ -43,7 +47,7 @@ class OPFSStorage {
   async getTexture(): Promise<string | undefined> {
     try {
       const root = await this.getRoot();
-      const fileHandle = await root.getFileHandle('texture.txt');
+      const fileHandle = await root.getFileHandle("texture.txt");
       const file = await fileHandle.getFile();
       return await file.text();
     } catch (error) {
@@ -54,7 +58,7 @@ class OPFSStorage {
 
   async saveImage(imageDataUrl: string): Promise<void> {
     const root = await this.getRoot();
-    const fileHandle = await root.getFileHandle('image.txt', { create: true });
+    const fileHandle = await root.getFileHandle("image.txt", { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(imageDataUrl);
     await writable.close();
@@ -63,7 +67,7 @@ class OPFSStorage {
   async getImage(): Promise<string | undefined> {
     try {
       const root = await this.getRoot();
-      const fileHandle = await root.getFileHandle('image.txt');
+      const fileHandle = await root.getFileHandle("image.txt");
       const file = await fileHandle.getFile();
       return await file.text();
     } catch (error) {
@@ -74,7 +78,9 @@ class OPFSStorage {
 
   async saveMetadata(metadata: ArtworkMetadata): Promise<void> {
     const root = await this.getRoot();
-    const fileHandle = await root.getFileHandle('metadata.json', { create: true });
+    const fileHandle = await root.getFileHandle("metadata.json", {
+      create: true,
+    });
     const writable = await fileHandle.createWritable();
     await writable.write(JSON.stringify(metadata));
     await writable.close();
@@ -83,7 +89,7 @@ class OPFSStorage {
   async getMetadata(): Promise<ArtworkMetadata | undefined> {
     try {
       const root = await this.getRoot();
-      const fileHandle = await root.getFileHandle('metadata.json');
+      const fileHandle = await root.getFileHandle("metadata.json");
       const file = await fileHandle.getFile();
       const text = await file.text();
       return JSON.parse(text) as ArtworkMetadata;
@@ -95,10 +101,15 @@ class OPFSStorage {
 
   async clear(): Promise<void> {
     const root = await this.getRoot();
-    
+
     // Remove files if they exist
-    const filesToRemove = ['artwork.json', 'texture.txt', 'image.txt', 'metadata.json'];
-    
+    const filesToRemove = [
+      "artwork.json",
+      "texture.txt",
+      "image.txt",
+      "metadata.json",
+    ];
+
     for (const filename of filesToRemove) {
       try {
         await root.removeEntry(filename);
@@ -113,14 +124,17 @@ class OPFSStorage {
 export const storageManager = new OPFSStorage();
 
 // Export for compatibility
-export const saveArtworkToStorage = (artwork: ArtworkDefinition) => storageManager.saveArtwork(artwork);
+export const saveArtworkToStorage = (artwork: ArtworkDefinition) =>
+  storageManager.saveArtwork(artwork);
 export const getArtworkFromStorage = () => storageManager.getArtwork();
-export const saveTextureToStorage = (textureDataUrl: string) => storageManager.saveTexture(textureDataUrl);
+export const saveTextureToStorage = (textureDataUrl: string) =>
+  storageManager.saveTexture(textureDataUrl);
 export const getTextureFromStorage = () => storageManager.getTexture();
 export const clearStorage = () => storageManager.clear();
-
 // New efficient storage methods
-export const saveImageToStorage = (imageDataUrl: string) => storageManager.saveImage(imageDataUrl);
+export const saveImageToStorage = (imageDataUrl: string) =>
+  storageManager.saveImage(imageDataUrl);
 export const getImageFromStorage = () => storageManager.getImage();
-export const saveMetadataToStorage = (metadata: ArtworkMetadata) => storageManager.saveMetadata(metadata);
+export const saveMetadataToStorage = (metadata: ArtworkMetadata) =>
+  storageManager.saveMetadata(metadata);
 export const getMetadataFromStorage = () => storageManager.getMetadata();

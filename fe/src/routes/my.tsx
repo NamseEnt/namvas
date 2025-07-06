@@ -124,6 +124,9 @@ function PageHeader() {
             </h1>
           </div>
           <div className="flex gap-3">
+            <Button variant="outline" size="sm" asChild>
+              <a href="/artworks">내 작품</a>
+            </Button>
             <Button variant="outline" size="sm">
               로그아웃
             </Button>

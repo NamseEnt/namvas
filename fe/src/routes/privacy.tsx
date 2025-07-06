@@ -58,7 +58,6 @@ function PrivacyContent() {
                 <div>
                   <strong>2. 주문 및 결제 시:</strong>
                   <div className="ml-4 mt-2 space-y-1">
-                    <div>- 주문자 정보: 이름, 연락처</div>
                     <div>- 배송 정보: 수령인 이름, 연락처, 주소</div>
                   </div>
                 </div>

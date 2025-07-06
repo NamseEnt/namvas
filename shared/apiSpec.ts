@@ -1,4 +1,4 @@
-import type { Order, OrderStatus } from "./types";
+import type { Artwork, Order, OrderStatus, SavedArtwork } from "./types";
 
 export type ApiSpec = {
   getMe: {
@@ -97,7 +97,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "ORDER_NOT_FOUND" | "TOO_LATE_TO_CANCEL" | "NOT_AUTHORIZED";
+          reason: "ORDER_NOT_FOUND" | "TOO_LATE_TO_CANCEL" | "PERMISION_DENIED";
         };
   };
   adminGetDashboard: {
@@ -191,6 +191,77 @@ export type ApiSpec = {
       | {
           ok: false;
           reason: "NOT_ADMIN";
+        };
+  };
+  newArtwork: {
+    req: {};
+    res:
+      | {
+          ok: true;
+          artworkId: string;
+        }
+      | {
+          ok: false;
+          reason: "NOT_LOGGED_IN";
+        };
+  };
+  updateArtwork: {
+    req: {
+      id: string;
+      title?: string;
+      artwork?: Artwork;
+    };
+    res:
+      | {
+          ok: true;
+        }
+      | {
+          ok: false;
+          reason: "NOT_LOGGED_IN" | "PERMISSION_DENIED" | "ARTWORK_NOT_FOUND";
+        };
+  };
+  queryMyArtworks: {
+    req: {
+      nextToken?: string;
+      pageSize?: number;
+    };
+    res:
+      | {
+          ok: true;
+          artworks: ({ id: string } | Artwork)[];
+          nextToken?: string;
+        }
+      | {
+          ok: false;
+          reason: "NOT_LOGGED_IN";
+        };
+  };
+  deleteArtwork: {
+    req: {
+      artworkId: string;
+    };
+    res:
+      | {
+          ok: true;
+        }
+      | {
+          ok: false;
+          reason: "NOT_LOGGED_IN" | "PERMISION_DENIED";
+        };
+  };
+  duplicateArtwork: {
+    req: {
+      artworkId: string;
+      title: string;
+    };
+    res:
+      | {
+          ok: true;
+          artworkId: string;
+        }
+      | {
+          ok: false;
+          reason: "NOT_LOGGED_IN" | "ARTWORK_NOT_FOUND" | "PERMISION_DENIED";
         };
   };
 };
