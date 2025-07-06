@@ -1,23 +1,27 @@
-import { ApiRequest } from "../types";
+import { ApiSpec } from "shared";
 import { getSession } from "../session";
+import { ApiRequest } from "../types";
 import { ddb } from "../__generated/db";
 
-export async function deleteArtwork(params: { artworkId: string }, req: ApiRequest) {
+export const deleteArtwork = async (
+  { artworkId }: ApiSpec["deleteArtwork"]["req"],
+  req: ApiRequest
+): Promise<ApiSpec["deleteArtwork"]["res"]> => {
   const session = await getSession(req);
   if (!session) {
-    return { ok: false, reason: "NOT_LOGGED_IN" } as const;
+    return { ok: false, reason: "NOT_LOGGED_IN" };
   }
 
-  const existingArtwork = await ddb.getSavedArtwork({ id: params.artworkId });
+  const existingArtwork = await ddb.getArtworkDoc({ id: artworkId });
   if (!existingArtwork) {
-    return { ok: false, reason: "ARTWORK_NOT_FOUND" } as const;
+    return { ok: true };
   }
 
-  if (existingArtwork.userId !== session.userId) {
-    return { ok: false, reason: "NOT_AUTHORIZED" } as const;
+  if (existingArtwork.ownerId !== session.userId) {
+    return { ok: false, reason: "PERMISION_DENIED" };
   }
 
-  await ddb.deleteSavedArtwork({ id: params.artworkId });
+  await ddb.deleteArtworkDoc({ id: artworkId });
 
-  return { ok: true } as const;
-}
+  return { ok: true };
+};

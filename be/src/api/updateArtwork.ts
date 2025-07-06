@@ -1,31 +1,41 @@
-import { ApiRequest } from "../types";
+import { ApiSpec } from "shared";
 import { getSession } from "../session";
+import { ApiRequest } from "../types";
 import { ddb } from "../__generated/db";
 
-export async function updateArtwork(params: { artworkId: string; title?: string; artwork?: any; thumbnailS3Key?: string }, req: ApiRequest) {
+export const updateArtwork = async (
+  { id, title, artwork }: ApiSpec["updateArtwork"]["req"],
+  req: ApiRequest
+): Promise<ApiSpec["updateArtwork"]["res"]> => {
   const session = await getSession(req);
   if (!session) {
-    return { ok: false, reason: "NOT_LOGGED_IN" } as const;
+    return { ok: false, reason: "NOT_LOGGED_IN" };
   }
 
-  const existingArtwork = await ddb.getSavedArtwork({ id: params.artworkId });
+  const existingArtwork = await ddb.getArtworkDoc({ id });
   if (!existingArtwork) {
-    return { ok: false, reason: "ARTWORK_NOT_FOUND" } as const;
+    return { ok: false, reason: "ARTWORK_NOT_FOUND" };
   }
 
-  if (existingArtwork.userId !== session.userId) {
-    return { ok: false, reason: "NOT_AUTHORIZED" } as const;
+  if (existingArtwork.ownerId !== session.userId) {
+    return { ok: false, reason: "PERMISSION_DENIED" };
   }
 
   const updatedArtwork = {
     ...existingArtwork,
-    updatedAt: new Date().toISOString(),
-    ...(params.title !== undefined && { title: params.title }),
-    ...(params.artwork !== undefined && { artwork: params.artwork }),
-    ...(params.thumbnailS3Key !== undefined && { thumbnailS3Key: params.thumbnailS3Key }),
+    ...(title !== undefined && { title }),
+    ...(artwork !== undefined && {
+      originalImageId: artwork.originalImageId,
+      dpi: artwork.dpi,
+      imageCenterXy: artwork.imageCenterXy,
+      sideProcessing: artwork.sideProcessing
+    }),
   };
 
-  await ddb.putSavedArtwork(updatedArtwork);
+  await ddb.putArtworkDoc({
+    ...updatedArtwork,
+    $v: (existingArtwork.$v || 1) + 1
+  });
 
-  return { ok: true } as const;
-}
+  return { ok: true };
+};

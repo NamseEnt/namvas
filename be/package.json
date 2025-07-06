@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build:lambda": "bun build-script/lambda.ts",
-    "test": "bun build-script/test.ts && cd .. && ./llrt test -d be/dist"
+    "test": "bun build-script/test.ts && cd .. && ./llrt test -d be/dist",
+    "schema-gen": "bun -e \"import { generateSchema } from './build-script/generate-schema.ts'; generateSchema('src/schema.ts', 'src/__generated/db.ts');\""
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.839.0",
