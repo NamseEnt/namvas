@@ -1,16 +1,16 @@
 import { ddb } from "../__generated/db";
-import { Session } from "../schema";
+import { SessionDoc } from "../schema";
 import { ApiRequest } from "../types";
 
 export async function getSession(
   req: ApiRequest
-): Promise<Session | undefined> {
+): Promise<SessionDoc | undefined> {
   const sessionId = req.cookies.sessionId;
   if (!sessionId) {
     return;
   }
 
-  return await ddb.getSession({ id: sessionId });
+  return await ddb.getSessionDoc({ id: sessionId });
 }
 
 export async function isLoggedIn(req: ApiRequest): Promise<boolean> {

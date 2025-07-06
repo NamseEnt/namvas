@@ -16,4 +16,10 @@ export const config = {
   TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
   TWITTER_REDIRECT_URI: redirectUri,
   DYNAMODB_TABLE_NAME: process.env.DYNAMODB_TABLE_NAME || "main",
+  region: process.env.AWS_REGION || "us-east-1",
+  queueUrl: process.env.QUEUE_URL || 
+    (process.env.LOCAL_DEV === "1" ? "http://localhost:4566/000000000000/main-queue" : ""),
+  localstack: process.env.LOCAL_DEV === "1" ? {
+    endpoint: process.env.LOCALSTACK_ENDPOINT || "http://localhost:4566",
+  } : undefined,
 };

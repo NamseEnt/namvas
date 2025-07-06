@@ -1,7 +1,7 @@
 import { ApiSpec } from "shared";
 import { ApiRequest } from "../types";
 import { isAdmin } from "../session/adminCheck";
-import { getAllOrders } from "../db/orderQueries";
+import { getAllOrders } from "../utils/orderQueries";
 
 export const adminGetDashboard = async (
   {}: ApiSpec["adminGetDashboard"]["req"],
@@ -12,7 +12,7 @@ export const adminGetDashboard = async (
   }
 
   try {
-    const { orders } = await getAllOrders();
+    const { orders } = await getAllOrders({ limit: 1000 });
     
     const pendingTasks = orders
       .filter(order => order.status === "payment_completed" || order.status === "production_hold")

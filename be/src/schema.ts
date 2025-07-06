@@ -48,6 +48,8 @@ export type OrderDoc = {
   $v: number;
   id: Pk<string>;
   userId: string;
+  paymentRequestId: string;
+  naverPaymentId: string;
   rows: Array<{
     item:
       | {
@@ -69,6 +71,7 @@ export type OrderDoc = {
           type: "plasticStand";
         };
     count: number;
+    price: number;
   }>;
   recipient: {
     name: string;
@@ -78,10 +81,12 @@ export type OrderDoc = {
     addressDetail: string;
     memo: string;
   };
-  status: "payment_completed" | "in_production" | "shipping" | "delivered";
+  status: "payment_pending" | "payment_completed" | "payment_failed" | "in_production" | "shipping" | "delivered";
   logs: Array<{
     type:
+      | "payment_pending"
       | "payment_completed"
+      | "payment_failed"
       | "production_started"
       | "production_completed"
       | "shipment_registered"

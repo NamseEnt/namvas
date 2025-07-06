@@ -1,20 +1,31 @@
 import type {
   APIGatewayProxyStructuredResultV2,
   LambdaFunctionURLEvent,
+  SQSEvent,
 } from "aws-lambda";
 import { ApiRequest } from "../types";
 import { apis } from "../apis";
+import { queueProcessor } from "../handlers/queueProcessor";
 
 export async function handler(
-  event: LambdaFunctionURLEvent
-): Promise<APIGatewayProxyStructuredResultV2> {
+  event: LambdaFunctionURLEvent | SQSEvent
+): Promise<APIGatewayProxyStructuredResultV2 | void> {
+  // SQS 이벤트인지 확인
+  if ('Records' in event && event.Records?.[0]?.eventSource === 'aws:sqs') {
+    console.log('[Lambda] Processing SQS event');
+    await queueProcessor(event as SQSEvent, {} as any, {} as any);
+    return; // SQS 처리는 응답이 필요 없음
+  }
+
+  // API 이벤트 처리
+  const apiEvent = event as LambdaFunctionURLEvent;
   // Simplified logging - only log method and path
-  console.log(`[Lambda] ${event.requestContext.http.method} ${event.rawPath}`);
+  console.log(`[Lambda] ${apiEvent.requestContext.http.method} ${apiEvent.rawPath}`);
 
   try {
     // Extract API name from path like "/api/loginWithGoogle" -> "loginWithGoogle"
     // Handle double slashes by filtering empty parts
-    const pathParts = event.rawPath.split("/").filter(part => part !== "");
+    const pathParts = apiEvent.rawPath.split("/").filter(part => part !== "");
     // console.log("Path parts:", pathParts);
     
     const apiName = pathParts.includes("api") 
@@ -22,9 +33,9 @@ export async function handler(
       : pathParts[0];
     
     // console.log("Extracted API name:", apiName);
-    const apiParams = event.body;
+    const apiParams = apiEvent.body;
 
-    const inCookies = (event.cookies || [])?.reduce((acc, cookie) => {
+    const inCookies = (apiEvent.cookies || [])?.reduce((acc, cookie) => {
       const [key, value] = cookie.split("=");
       acc[key] = value;
       return acc;
@@ -32,7 +43,7 @@ export async function handler(
     const outCookies = { ...inCookies };
 
     const apiRequest: ApiRequest = {
-      headers: event.headers as Record<string, string>,
+      headers: apiEvent.headers as Record<string, string>,
       cookies: outCookies,
     };
 

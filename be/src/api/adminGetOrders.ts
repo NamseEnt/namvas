@@ -1,7 +1,7 @@
 import { ApiSpec } from "shared";
 import { ApiRequest } from "../types";
 import { isAdmin } from "../session/adminCheck";
-import { getOrdersByStatus, getAllOrders } from "../db/orderQueries";
+import { getOrdersByStatus, getAllOrders } from "../utils/orderQueries";
 
 export const adminGetOrders = async (
   { status, search, page = 1, limit = 20 }: ApiSpec["adminGetOrders"]["req"],
