@@ -41,6 +41,39 @@ This is a React 19 application built with:
 - Route tree is auto-generated in `routeTree.gen.ts`
 - Router includes dev tools, scroll restoration, and intent-based preloading
 
+#### Route File Organization
+
+**IMPORTANT**: Route files should only contain `createFileRoute` definitions and minimal routing logic. The actual page components should be separated:
+
+- **Route files** (`src/routes/*.tsx`): Only `createFileRoute`, route configuration, and exports
+- **Page components** (`src/components/pages/*`): Actual page implementation with business logic
+- **Layout components** (`src/components/layouts/*`): Shared layout components
+
+```tsx
+// ✅ Correct - Route file (src/routes/example.tsx)
+import { createFileRoute } from "@tanstack/react-router";
+import { ExamplePage } from "@/components/pages/ExamplePage";
+
+export const Route = createFileRoute("/example")({
+  component: ExamplePage,
+});
+
+// ✅ Correct - Page component (src/components/pages/ExamplePage.tsx)
+export function ExamplePage() {
+  // All page logic here
+  return <div>...</div>;
+}
+
+// ❌ Wrong - Don't put page logic in route files
+export const Route = createFileRoute("/example")({
+  component: () => {
+    // Don't put business logic here
+    const [state, setState] = useState();
+    return <div>...</div>;
+  },
+});
+```
+
 ### Key Files
 
 - `src/main.tsx`: Application entry point with router setup
@@ -270,6 +303,124 @@ function SubComponent1() {
 ### Git Commits
 
 - **Commit messages**: Title only, no body
+
+## Data Fetching and State Management
+
+### Custom Hooks for API Calls
+
+**IMPORTANT**: Never use mutations or queries directly in components. Always create custom hooks to encapsulate API logic:
+
+- **Custom hooks** (`src/hooks/*`): Encapsulate TanStack Query mutations and queries
+- **Components**: Use custom hooks, not direct API calls
+- **Error handling**: Handle errors within custom hooks
+- **Loading states**: Manage loading states in custom hooks
+
+```tsx
+// ✅ Correct - Custom hook (src/hooks/useAuth.ts)
+export function useAuth() {
+  const logoutMutation = useMutation({
+    mutationFn: userApi.logout,
+    onSuccess: () => {
+      // Handle success logic
+    },
+    onError: (error) => {
+      // Handle error logic
+    },
+  });
+
+  return {
+    logout: logoutMutation.mutate,
+    isLoggingOut: logoutMutation.isPending,
+    logoutError: logoutMutation.error,
+  };
+}
+
+// ✅ Correct - Component using custom hook
+export function MyComponent() {
+  const { logout, isLoggingOut } = useAuth();
+  
+  return (
+    <button onClick={() => logout()} disabled={isLoggingOut}>
+      {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
+    </button>
+  );
+}
+
+// ❌ Wrong - Don't use mutations directly in components
+export function MyComponent() {
+  const logoutMutation = useMutation({
+    mutationFn: userApi.logout,
+  });
+  
+  return <button onClick={() => logoutMutation.mutate()}>로그아웃</button>;
+}
+```
+
+### Custom Hook Organization
+
+- **Single responsibility**: Each hook should handle one specific domain
+- **Return object**: Always return an object with descriptive names
+- **Error handling**: Include error states and error handling logic
+- **Loading states**: Include loading/pending states with clear names
+
+## Component Organization
+
+### Common Components
+
+**IMPORTANT**: Extract reusable components into a common folder structure:
+
+- **Common UI components** (`src/components/common/*`): Reusable across multiple pages
+- **Page-specific components** (`src/components/pages/*`): Specific to individual pages
+- **Layout components** (`src/components/layouts/*`): Layout and structure components
+
+```tsx
+// ✅ Correct - Common component (src/components/common/PageHeader.tsx)
+export function PageHeader({ title, actions }: { title: string; actions?: React.ReactNode }) {
+  return (
+    <header className="border-b bg-card">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">{title}</h1>
+          {actions && <div className="flex gap-3">{actions}</div>}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// ✅ Correct - Using common component
+export function MyPage() {
+  return (
+    <div>
+      <PageHeader 
+        title="내 페이지" 
+        actions={<Button>액션</Button>} 
+      />
+      {/* page content */}
+    </div>
+  );
+}
+
+// ❌ Wrong - Don't duplicate header structure across pages
+export function MyPage() {
+  return (
+    <div>
+      <header className="border-b bg-card">
+        <div className="container mx-auto px-4 py-4">
+          {/* duplicated structure */}
+        </div>
+      </header>
+    </div>
+  );
+}
+```
+
+### Component Extraction Rules
+
+1. **3+ usage rule**: If a component pattern is used 3+ times, extract to common
+2. **Similar structure**: If components have similar structure but different content, create a flexible common component
+3. **Layout patterns**: Headers, footers, navigation should be common components
+4. **Form patterns**: Common form structures should be extracted
 
 ## Null vs Undefined Guidelines
 
