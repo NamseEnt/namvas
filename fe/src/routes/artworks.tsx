@@ -155,7 +155,7 @@ function ArtworksSection() {
             총 {state.artworks.length}개 작품
           </span>
           <Button variant="outline" size="sm" asChild>
-            <a href="/create-order">주문서 만들기</a>
+            <a href="/build-order">주문서 만들기</a>
           </Button>
           <Button size="sm" asChild>
             <a href="/studio">
@@ -211,7 +211,7 @@ function ArtworkItem({ artwork }: { artwork: Artwork }) {
             편집
           </Button>
           <Button size="sm" className="flex-1" asChild>
-            <a href="/create-order">주문하기</a>
+            <a href="/build-order">주문하기</a>
           </Button>
         </div>
       </CardContent>

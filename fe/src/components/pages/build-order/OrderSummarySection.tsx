@@ -1,0 +1,144 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ShoppingCart, X, Plus, Minus } from "lucide-react";
+import type { Artwork } from "../../../../../shared/types";
+
+type OrderItem = {
+  artwork: Artwork;
+  quantity: number;
+};
+
+type OrderSummarySectionProps = {
+  orderItems: OrderItem[];
+  totalPrice: number;
+  totalItems: number;
+  onRemoveFromOrder: (artworkId: string) => void;
+  onUpdateQuantity: (artworkId: string, quantity: number) => void;
+};
+
+const CANVAS_PRICE = 13000;
+
+export function OrderSummarySection({ 
+  orderItems, 
+  totalPrice, 
+  totalItems, 
+  onRemoveFromOrder, 
+  onUpdateQuantity 
+}: OrderSummarySectionProps) {
+  return (
+    <Card className="h-fit sticky top-8">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShoppingCart className="w-5 h-5" />
+          나의 주문서
+          {totalItems > 0 && (
+            <Badge variant="default">{totalItems}개</Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {orderItems.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">주문할 작품을 선택해주세요</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              {orderItems.map((item) => (
+                <OrderItemCard 
+                  key={item.artwork.id} 
+                  item={item} 
+                  onRemoveFromOrder={onRemoveFromOrder}
+                  onUpdateQuantity={onUpdateQuantity}
+                />
+              ))}
+            </div>
+            
+            <div className="border-t pt-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>캔버스 ({totalItems}개)</span>
+                  <span>{(CANVAS_PRICE * totalItems).toLocaleString()}원</span>
+                </div>
+                <div className="flex justify-between font-semibold text-lg">
+                  <span>총 결제금액</span>
+                  <span>{totalPrice.toLocaleString()}원</span>
+                </div>
+              </div>
+            </div>
+
+            <Button className="w-full" size="lg" asChild>
+              <a href="/payment">결제하기</a>
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function OrderItemCard({ 
+  item, 
+  onRemoveFromOrder, 
+  onUpdateQuantity 
+}: { 
+  item: OrderItem; 
+  onRemoveFromOrder: (artworkId: string) => void;
+  onUpdateQuantity: (artworkId: string, quantity: number) => void;
+}) {
+  return (
+    <div className="flex gap-3 p-3 border rounded-lg">
+      <div className="w-16 h-12 bg-muted rounded overflow-hidden flex-shrink-0">
+        <img
+          src={`https://your-s3-bucket.s3.amazonaws.com/${item.artwork.thumbnailId}`}
+          alt={item.artwork.title}
+          className="w-full h-full object-cover"
+        />
+      </div>
+      
+      <div className="flex-1">
+        <h4 className="font-medium text-sm truncate">{item.artwork.title}</h4>
+        <p className="text-xs text-muted-foreground">10x15cm 캔버스</p>
+        
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onUpdateQuantity(item.artwork.id, item.quantity - 1)}
+              className="h-8 w-8 p-0"
+            >
+              <Minus className="w-3 h-3" />
+            </Button>
+            <span className="text-sm font-medium min-w-[20px] text-center">
+              {item.quantity}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onUpdateQuantity(item.artwork.id, item.quantity + 1)}
+              className="h-8 w-8 p-0"
+            >
+              <Plus className="w-3 h-3" />
+            </Button>
+          </div>
+          
+          <div className="text-right">
+            <p className="text-sm font-medium">
+              {(CANVAS_PRICE * item.quantity).toLocaleString()}원
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRemoveFromOrder(item.artwork.id)}
+              className="text-red-600 hover:text-red-700 h-6 p-0"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

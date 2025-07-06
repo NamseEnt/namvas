@@ -115,10 +115,13 @@ This is a React 19 application built with:
 
 ```tsx
 // ✅ Correct - Named function describes the effect's purpose
-useEffect(function updateCameraDistance() {
-  const distance = baseCameraDistance + Math.abs(rotation.y) * multiplier;
-  setCameraDistance(distance);
-}, [rotation.y]);
+useEffect(
+  function updateCameraDistance() {
+    const distance = baseCameraDistance + Math.abs(rotation.y) * multiplier;
+    setCameraDistance(distance);
+  },
+  [rotation.y]
+);
 
 useEffect(function initializeThreeJS() {
   RectAreaLightUniformsLib.init();
@@ -126,8 +129,8 @@ useEffect(function initializeThreeJS() {
 
 useEffect(function handleWindowResize() {
   const handleResize = () => setWindowSize(window.innerWidth);
-  window.addEventListener('resize', handleResize);
-  return () => window.removeEventListener('resize', handleResize);
+  window.addEventListener("resize", handleResize);
+  return () => window.removeEventListener("resize", handleResize);
 }, []);
 
 // ❌ Wrong - Arrow function gives no context about what the effect does
@@ -322,11 +325,11 @@ if (user !== null) { ... }
 ```tsx
 // ✅ Correct - Set to undefined
 setUser(undefined);
-setState(prev => ({ ...prev, avatar: undefined }));
+setState((prev) => ({ ...prev, avatar: undefined }));
 
 // ❌ Wrong - Don't set to null
 setUser(null);
-setState(prev => ({ ...prev, avatar: null }));
+setState((prev) => ({ ...prev, avatar: null }));
 ```
 
 ### Exceptions: When to Use `null`

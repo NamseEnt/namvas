@@ -16,6 +16,8 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OrderCompleteRouteImport } from './routes/order-complete'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as MyRouteImport } from './routes/my'
+import { Route as BuildOrderRouteImport } from './routes/build-order'
+import { Route as ArtworksRouteImport } from './routes/artworks'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioIndexRouteImport } from './routes/studio/index'
@@ -63,6 +65,16 @@ const OrderRoute = OrderRouteImport.update({
 const MyRoute = MyRouteImport.update({
   id: '/my',
   path: '/my',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuildOrderRoute = BuildOrderRouteImport.update({
+  id: '/build-order',
+  path: '/build-order',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtworksRoute = ArtworksRouteImport.update({
+  id: '/artworks',
+  path: '/artworks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -134,6 +146,8 @@ const AdminOrdersOrderIdRoute = AdminOrdersOrderIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/artworks': typeof ArtworksRoute
+  '/build-order': typeof BuildOrderRoute
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
@@ -155,6 +169,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/artworks': typeof ArtworksRoute
+  '/build-order': typeof BuildOrderRoute
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
@@ -178,6 +194,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/artworks': typeof ArtworksRoute
+  '/build-order': typeof BuildOrderRoute
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
@@ -202,6 +220,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/artworks'
+    | '/build-order'
     | '/my'
     | '/order'
     | '/order-complete'
@@ -223,6 +243,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/artworks'
+    | '/build-order'
     | '/my'
     | '/order'
     | '/order-complete'
@@ -245,6 +267,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/artworks'
+    | '/build-order'
     | '/my'
     | '/order'
     | '/order-complete'
@@ -268,6 +292,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  ArtworksRoute: typeof ArtworksRoute
+  BuildOrderRoute: typeof BuildOrderRoute
   MyRoute: typeof MyRoute
   OrderRoute: typeof OrderRoute
   OrderCompleteRoute: typeof OrderCompleteRoute
@@ -328,6 +354,20 @@ declare module '@tanstack/react-router' {
       path: '/my'
       fullPath: '/my'
       preLoaderRoute: typeof MyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/build-order': {
+      id: '/build-order'
+      path: '/build-order'
+      fullPath: '/build-order'
+      preLoaderRoute: typeof BuildOrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artworks': {
+      id: '/artworks'
+      path: '/artworks'
+      fullPath: '/artworks'
+      preLoaderRoute: typeof ArtworksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -482,6 +522,8 @@ const OrdersRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  ArtworksRoute: ArtworksRoute,
+  BuildOrderRoute: BuildOrderRoute,
   MyRoute: MyRoute,
   OrderRoute: OrderRoute,
   OrderCompleteRoute: OrderCompleteRoute,
