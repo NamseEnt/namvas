@@ -1,19 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { createContext, useContext, useState, useEffect } from "react";
-import { X, Edit, Trash2, Copy, Plus } from "lucide-react";
+import { X, Trash2, Copy, Plus } from "lucide-react";
 import { userApi } from "@/lib/api";
-import type { SavedArtwork } from "../../../shared/types";
+import type { Artwork } from "../../../shared/types";
 
 export const Route = createFileRoute("/artworks")({
   component: ArtworksPage,
 });
 
 type ArtworksPageState = {
-  artworks: SavedArtwork[];
+  artworks: Artwork[];
   isLoading: boolean;
 };
 
@@ -40,7 +39,7 @@ export default function ArtworksPage() {
   const loadArtworks = async () => {
     try {
       updateState({ isLoading: true });
-      const response = await userApi.getMyArtworks();
+      const response = await userApi.queryArtworksOfUser({});
       updateState({ artworks: response.artworks, isLoading: false });
     } catch (error) {
       console.error("Failed to load artworks:", error);
@@ -61,7 +60,7 @@ export default function ArtworksPage() {
 
   const handleDuplicateArtwork = async (artworkId: string, title: string) => {
     try {
-      const response = await userApi.duplicateArtwork(artworkId, title);
+      await userApi.duplicateArtwork(artworkId, title);
       await loadArtworks(); // Reload to get the new artwork
     } catch (error) {
       console.error("Failed to duplicate artwork:", error);
@@ -176,14 +175,21 @@ function ArtworksSection() {
   );
 }
 
-function ArtworkItem({ artwork }: { artwork: SavedArtwork }) {
-  const { handleDeleteArtwork, handleDuplicateArtwork } = useArtworksPageContext();
+function ArtworkItem({ artwork }: { artwork: Artwork }) {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
   return (
     <Card className="overflow-hidden">
       <div className="aspect-[4/3] bg-muted overflow-hidden">
         <img
-          src={`https://your-s3-bucket.s3.amazonaws.com/${artwork.thumbnailS3Key}`}
+          src={`https://your-s3-bucket.s3.amazonaws.com/${artwork.thumbnailId}`}
           alt={artwork.title}
           className="w-full h-full object-cover"
         />
@@ -193,7 +199,7 @@ function ArtworkItem({ artwork }: { artwork: SavedArtwork }) {
           <div className="flex-1">
             <CardTitle className="text-lg truncate">{artwork.title}</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              {formatDate(artwork.updatedAt)}
+              {formatDate(artwork.createdAt)}
             </p>
           </div>
           <ArtworkActions artwork={artwork} />
@@ -213,7 +219,7 @@ function ArtworkItem({ artwork }: { artwork: SavedArtwork }) {
   );
 }
 
-function ArtworkActions({ artwork }: { artwork: SavedArtwork }) {
+function ArtworkActions({ artwork }: { artwork: Artwork }) {
   const { handleDeleteArtwork, handleDuplicateArtwork } = useArtworksPageContext();
 
   return (
@@ -286,11 +292,3 @@ function PageFooter() {
   );
 }
 
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-}

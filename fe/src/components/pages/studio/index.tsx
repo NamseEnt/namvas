@@ -349,16 +349,15 @@ export default function StudioPage() {
       });
 
       // Save artwork to database
-      await userApi.saveArtwork({
+      await userApi.newArtwork({
         title,
         artwork: {
-          originalImageS3Key: uploadResponse.imageId,
-          mmPerPixel: state.mmPerPixel,
+          originalImageId: uploadResponse.imageId,
           imageCenterXy: state.imageCenterXy,
           sideProcessing: state.sideProcessing,
           canvasBackgroundColor: state.canvasBackgroundColor,
         },
-        thumbnailS3Key: thumbnailUploadResponse.imageId,
+        thumbnailId: thumbnailUploadResponse.imageId,
       });
 
     } catch (error) {

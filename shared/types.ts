@@ -29,6 +29,9 @@ export type Artwork = {
   dpi: number;
   imageCenterXy: { x: number; y: number };
   sideProcessing: SideProcessing;
+  thumbnailId: string;
+  createdAt: string;
+  canvasBackgroundColor: string;
 };
 
 export type SideProcessing =

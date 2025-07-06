@@ -1,4 +1,4 @@
-import type { Artwork, Order, OrderStatus, SavedArtwork } from "./types";
+import type { Artwork, Order, OrderStatus } from "./types";
 
 export type ApiSpec = {
   getMe: {
@@ -100,6 +100,94 @@ export type ApiSpec = {
           reason: "ORDER_NOT_FOUND" | "TOO_LATE_TO_CANCEL" | "PERMISION_DENIED";
         };
   };
+  newArtwork: {
+    req: {
+      title: string;
+      artwork: {
+        originalImageId: string;
+        imageCenterXy: { x: number; y: number };
+        sideProcessing: {
+          type: "stretch" | "repeat" | "solid_color" | "clip" | "flip" | "none" | "color";
+          color?: string;
+        };
+        canvasBackgroundColor: string;
+      };
+      thumbnailId: string;
+    };
+    res:
+      | {
+          ok: true;
+          artworkId: string;
+        }
+      | {
+          ok: false;
+          reason: "INTERNAL_ERROR";
+        };
+  };
+  queryArtworksOfUser: {
+    req: {};
+    res:
+      | {
+          ok: true;
+          artworks: Artwork[];
+        }
+      | {
+          ok: false;
+          reason: "INTERNAL_ERROR";
+        };
+  };
+  updateArtwork: {
+    req: {
+      artworkId: string;
+      title?: string;
+      artwork?: {
+        originalImageId: string;
+        imageCenterXy: { x: number; y: number };
+        sideProcessing: {
+          type: "stretch" | "repeat" | "solid_color" | "clip" | "flip" | "none" | "color";
+          color?: string;
+        };
+        canvasBackgroundColor: string;
+      };
+      thumbnailId?: string;
+    };
+    res:
+      | {
+          ok: true;
+        }
+      | {
+          ok: false;
+          reason: "ARTWORK_NOT_FOUND" | "PERMISSION_DENIED" | "INTERNAL_ERROR";
+        };
+  };
+  deleteArtwork: {
+    req: {
+      artworkId: string;
+    };
+    res:
+      | {
+          ok: true;
+        }
+      | {
+          ok: false;
+          reason: "ARTWORK_NOT_FOUND" | "PERMISSION_DENIED" | "INTERNAL_ERROR";
+        };
+  };
+  duplicateArtwork: {
+    req: {
+      artworkId: string;
+      title: string;
+    };
+    res:
+      | {
+          ok: true;
+          artworkId: string;
+        }
+      | {
+          ok: false;
+          reason: "ARTWORK_NOT_FOUND" | "PERMISSION_DENIED" | "INTERNAL_ERROR";
+        };
+  };
   adminGetDashboard: {
     req: {};
     res:
@@ -193,33 +281,6 @@ export type ApiSpec = {
           reason: "NOT_ADMIN";
         };
   };
-  newArtwork: {
-    req: {};
-    res:
-      | {
-          ok: true;
-          artworkId: string;
-        }
-      | {
-          ok: false;
-          reason: "NOT_LOGGED_IN";
-        };
-  };
-  updateArtwork: {
-    req: {
-      id: string;
-      title?: string;
-      artwork?: Artwork;
-    };
-    res:
-      | {
-          ok: true;
-        }
-      | {
-          ok: false;
-          reason: "NOT_LOGGED_IN" | "PERMISSION_DENIED" | "ARTWORK_NOT_FOUND";
-        };
-  };
   queryMyArtworks: {
     req: {
       nextToken?: string;
@@ -234,34 +295,6 @@ export type ApiSpec = {
       | {
           ok: false;
           reason: "NOT_LOGGED_IN";
-        };
-  };
-  deleteArtwork: {
-    req: {
-      artworkId: string;
-    };
-    res:
-      | {
-          ok: true;
-        }
-      | {
-          ok: false;
-          reason: "NOT_LOGGED_IN" | "PERMISION_DENIED";
-        };
-  };
-  duplicateArtwork: {
-    req: {
-      artworkId: string;
-      title: string;
-    };
-    res:
-      | {
-          ok: true;
-          artworkId: string;
-        }
-      | {
-          ok: false;
-          reason: "NOT_LOGGED_IN" | "ARTWORK_NOT_FOUND" | "PERMISION_DENIED";
         };
   };
 };

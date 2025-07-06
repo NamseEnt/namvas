@@ -5,21 +5,19 @@ import { Badge } from "@/components/ui/badge";
 import { createContext, useContext, useState, useEffect } from "react";
 import { X, Plus, Minus, ShoppingCart } from "lucide-react";
 import { userApi } from "@/lib/api";
-import type { SavedArtwork } from "../../../shared/types";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import type { Artwork } from "../../../shared/types";
 
 export const Route = createFileRoute("/create-order")({
   component: CreateOrderPage,
 });
 
 type OrderItem = {
-  artwork: SavedArtwork;
+  artwork: Artwork;
   quantity: number;
 };
 
 type CreateOrderState = {
-  artworks: SavedArtwork[];
+  artworks: Artwork[];
   orderItems: OrderItem[];
   isLoading: boolean;
 };
@@ -27,7 +25,7 @@ type CreateOrderState = {
 const CreateOrderContext = createContext<{
   state: CreateOrderState;
   updateState: (updates: Partial<CreateOrderState>) => void;
-  addToOrder: (artwork: SavedArtwork) => void;
+  addToOrder: (artwork: Artwork) => void;
   removeFromOrder: (artworkId: string) => void;
   updateQuantity: (artworkId: string, quantity: number) => void;
   getTotalPrice: () => number;
@@ -38,7 +36,7 @@ const CreateOrderContext = createContext<{
 const useCreateOrderContext = () => useContext(CreateOrderContext);
 
 const CANVAS_PRICE = 13000; // 캔버스 가격 13,000원
-const PLASTIC_STAND_PRICE = 250; // 플라스틱 받침대 250원
+// const PLASTIC_STAND_PRICE = 250; // 플라스틱 받침대 250원
 
 export default function CreateOrderPage() {
   const [state, setState] = useState<CreateOrderState>({
@@ -54,7 +52,7 @@ export default function CreateOrderPage() {
   const loadArtworks = async () => {
     try {
       updateState({ isLoading: true });
-      const response = await userApi.getMyArtworks();
+      const response = await userApi.queryArtworksOfUser({});
       updateState({ artworks: response.artworks, isLoading: false });
     } catch (error) {
       console.error("Failed to load artworks:", error);
@@ -62,7 +60,7 @@ export default function CreateOrderPage() {
     }
   };
 
-  const addToOrder = (artwork: SavedArtwork) => {
+  const addToOrder = (artwork: Artwork) => {
     const existingItem = state.orderItems.find(item => item.artwork.id === artwork.id);
     if (existingItem) {
       updateQuantity(artwork.id, existingItem.quantity + 1);
@@ -170,7 +168,7 @@ function OrderBuilderLayout() {
 }
 
 function ArtworksSection() {
-  const { state, addToOrder } = useCreateOrderContext();
+  const { state } = useCreateOrderContext();
 
   if (state.isLoading) {
     return (
@@ -220,14 +218,14 @@ function ArtworksSection() {
   );
 }
 
-function ArtworkCard({ artwork }: { artwork: SavedArtwork }) {
+function ArtworkCard({ artwork }: { artwork: Artwork }) {
   const { addToOrder } = useCreateOrderContext();
 
   return (
     <Card className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
       <div className="aspect-[4/3] bg-muted overflow-hidden">
         <img
-          src={`https://your-s3-bucket.s3.amazonaws.com/${artwork.thumbnailS3Key}`}
+          src={`https://your-s3-bucket.s3.amazonaws.com/${artwork.thumbnailId}`}
           alt={artwork.title}
           className="w-full h-full object-cover"
         />
@@ -248,7 +246,7 @@ function ArtworkCard({ artwork }: { artwork: SavedArtwork }) {
 }
 
 function OrderSummarySection() {
-  const { state, removeFromOrder, updateQuantity, getTotalPrice, getTotalItems } = useCreateOrderContext();
+  const { state, getTotalPrice, getTotalItems } = useCreateOrderContext();
 
   return (
     <Card className="h-fit sticky top-8">
@@ -304,7 +302,7 @@ function OrderItemCard({ item }: { item: OrderItem }) {
     <div className="flex gap-3 p-3 border rounded-lg">
       <div className="w-16 h-12 bg-muted rounded overflow-hidden flex-shrink-0">
         <img
-          src={`https://your-s3-bucket.s3.amazonaws.com/${item.artwork.thumbnailS3Key}`}
+          src={`https://your-s3-bucket.s3.amazonaws.com/${item.artwork.thumbnailId}`}
           alt={item.artwork.title}
           className="w-full h-full object-cover"
         />
@@ -389,11 +387,11 @@ function PageFooter() {
   );
 }
 
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-}
+// function formatDate(dateString: string) {
+//   const date = new Date(dateString);
+//   return date.toLocaleDateString('ko-KR', {
+//     year: 'numeric',
+//     month: 'long',
+//     day: 'numeric'
+//   });
+// }

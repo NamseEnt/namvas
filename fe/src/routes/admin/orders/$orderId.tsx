@@ -267,8 +267,7 @@ function ArtworkInfoCard({ order }: { order: Order }) {
 
         <div>
           <Label>작품 정보</Label>
-          <p>S3 Key: {order.artwork.originalImageS3Key}</p>
-          <p>해상도: {order.artwork.mmPerPixel} mm/pixel</p>
+          <p>원본 이미지 ID: {order.artwork.originalImageId}</p>
           <p>중앙 좌표: ({order.artwork.imageCenterXy.x}, {order.artwork.imageCenterXy.y})</p>
           <p>가장자리 처리: {order.artwork.sideProcessing.type}</p>
         </div>
