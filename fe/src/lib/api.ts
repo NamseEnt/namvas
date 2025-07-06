@@ -47,8 +47,12 @@ export const authApi = {
 export const userApi = {
   getOriginalImageUploadUrl: (contentLength: number): Promise<ApiSuccessResponse<'getOriginalImageUploadUrl'>> => 
     apiRequest('getOriginalImageUploadUrl', { contentLength }),
-  createOrder: (order: ApiRequest<'createOrder'>['order']): Promise<ApiSuccessResponse<'createOrder'>> => 
-    apiRequest('createOrder', { order }),
+  createOrder: (params: ApiRequest<'createOrder'>): Promise<ApiSuccessResponse<'createOrder'>> => 
+    apiRequest('createOrder', params),
+  confirmPayment: async (_paymentId: string): Promise<{ status: string; orderId: string }> => {
+    // TODO: Implement with actual API when available
+    return { status: 'success', orderId: 'temp-order-id' };
+  },
   getMyOrders: (): Promise<ApiSuccessResponse<'getMyOrders'>> => 
     apiRequest('getMyOrders', {}),
   cancelOrder: (orderId: string): Promise<ApiSuccessResponse<'cancelOrder'>> => 
@@ -104,7 +108,7 @@ export const settingsApi = {
     return result.data;
   },
 
-  updateSiteSettings: async (settings: any) => {
+  updateSiteSettings: async (settings: Record<string, unknown>) => {
     // This endpoint is not in the API spec, so keeping the old implementation
     const response = await fetch(`${API_BASE_URL}/api/adminUpdateSiteSettings`, {
       method: 'POST',

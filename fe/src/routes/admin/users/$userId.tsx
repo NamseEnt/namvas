@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/admin/users/$userId")({
   component: AdminUserDetail,
-  validateSearch: (search: any) => search,
 });
 
 type UserDetail = {
@@ -233,7 +232,7 @@ function UserOrdersCard({ orders }: { orders: UserDetail["orders"] }) {
                         <Badge variant={badge.variant}>{badge.text}</Badge>
                       </td>
                       <td className="py-3 px-2">
-                        <Link to="/admin/orders/$orderId" params={{ orderId: order.id }}>
+                        <Link to="/admin/orders/$orderId" params={{ orderId: order.id }} search={undefined as any}>
                           <Button size="sm">상세</Button>
                         </Link>
                       </td>

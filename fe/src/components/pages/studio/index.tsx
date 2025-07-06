@@ -288,6 +288,7 @@ export default function StudioPage() {
         to: "/order",
         search: {
           fromStudio: "true",
+          fromBuildOrder: undefined,
         },
       });
     } catch (error) {

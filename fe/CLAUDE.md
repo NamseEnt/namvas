@@ -519,3 +519,33 @@ navigate({ to: "/chat/$chatId", params: { chatId: id } });
 // ❌ Wrong - Never use window.location
 window.location.href = `/chat/${id}`;
 ```
+
+# Work Completion Review Process
+
+## MANDATORY: Post-Work Review
+
+**ALWAYS perform this review after completing any task:**
+
+1. **Architecture Compliance Check**:
+   - ✅ Routes contain only `createFileRoute` definitions
+   - ✅ Page logic is in `src/components/pages/*`
+   - ✅ Common components are in `src/components/common/*`
+   - ✅ Custom hooks encapsulate API calls (no direct mutations in components)
+
+2. **Code Quality Check**:
+   - ✅ No `any` types (use specific types)
+   - ✅ Prefer `undefined` over `null`
+   - ✅ Use TanStack Router for navigation (no `window.location`)
+   - ✅ Follow useEffect naming pattern
+   - ✅ Use curly braces for all if statements
+
+3. **Build & Type Check**:
+   - ✅ Run `npm run build` to verify no errors
+   - ✅ Run `npm run lint` if available
+   - ✅ Check for TypeScript errors
+
+4. **Documentation Update**:
+   - ✅ Update CLAUDE.md if new patterns were established
+   - ✅ Remove outdated TODOs and unnecessary comments
+
+**If any check fails, fix the issues before considering the task complete.**

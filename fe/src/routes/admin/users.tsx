@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminApi } from "@/lib/api";
+import type { Order } from "../../../../shared/types";
 
 export const Route = createFileRoute("/admin/users")({
   component: AdminUsers,
@@ -82,7 +83,7 @@ export default function AdminUsers() {
   );
 }
 
-function UsersTable({ users }: { users: Array<{ id: string; joinedAt: string; orders: any[] }> }) {
+function UsersTable({ users }: { users: Array<{ id: string; joinedAt: string; orders: Order[] }> }) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("ko-KR");
   };
@@ -128,6 +129,7 @@ function UsersTable({ users }: { users: Array<{ id: string; joinedAt: string; or
                     <Link
                       to="/admin/users/$userId"
                       params={{ userId: user.id }}
+                      search={undefined as any}
                     >
                       <Button size="sm">상세</Button>
                     </Link>

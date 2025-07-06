@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, X, Plus, Minus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ShoppingCart, X, Plus, Minus, Loader2 } from "lucide-react";
 import type { Artwork } from "../../../../../shared/types";
 
 type OrderItem = {
@@ -13,18 +14,31 @@ type OrderSummarySectionProps = {
   orderItems: OrderItem[];
   totalPrice: number;
   totalItems: number;
+  plasticStandCount: number;
+  isPaymentLoading: boolean;
   onRemoveFromOrder: (artworkId: string) => void;
   onUpdateQuantity: (artworkId: string, quantity: number) => void;
+  updatePlasticStandCount: (count: number) => void;
+  matchPlasticStandToArtworks: () => void;
+  getPlasticStandPrice: () => number;
+  getFinalTotalPrice: () => number;
+  handlePayment: () => void;
 };
 
-const CANVAS_PRICE = 13000;
+const CANVAS_PRICE = 10000;
 
 export function OrderSummarySection({ 
   orderItems, 
-  totalPrice, 
   totalItems, 
+  plasticStandCount,
+  isPaymentLoading,
   onRemoveFromOrder, 
-  onUpdateQuantity 
+  onUpdateQuantity,
+  updatePlasticStandCount,
+  matchPlasticStandToArtworks,
+  getPlasticStandPrice,
+  getFinalTotalPrice,
+  handlePayment
 }: OrderSummarySectionProps) {
   return (
     <Card className="h-fit sticky top-8">
@@ -55,21 +69,45 @@ export function OrderSummarySection({
               ))}
             </div>
             
+            <PlasticStandSection 
+              plasticStandCount={plasticStandCount}
+              totalItems={totalItems}
+              updatePlasticStandCount={updatePlasticStandCount}
+              matchPlasticStandToArtworks={matchPlasticStandToArtworks}
+              getPlasticStandPrice={getPlasticStandPrice}
+            />
+            
             <div className="border-t pt-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>캔버스 ({totalItems}개)</span>
                   <span>{(CANVAS_PRICE * totalItems).toLocaleString()}원</span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span>플라스틱 스탠드 ({plasticStandCount}개)</span>
+                  <span>{getPlasticStandPrice().toLocaleString()}원</span>
+                </div>
                 <div className="flex justify-between font-semibold text-lg">
                   <span>총 결제금액</span>
-                  <span>{totalPrice.toLocaleString()}원</span>
+                  <span>{getFinalTotalPrice().toLocaleString()}원</span>
                 </div>
               </div>
             </div>
 
-            <Button className="w-full" size="lg" asChild>
-              <a href="/payment">결제하기</a>
+            <Button 
+              className="w-full" 
+              size="lg" 
+              onClick={handlePayment}
+              disabled={isPaymentLoading}
+            >
+              {isPaymentLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  처리 중...
+                </>
+              ) : (
+                '배송지 입력하고 결제하기'
+              )}
             </Button>
           </div>
         )}
@@ -137,6 +175,71 @@ function OrderItemCard({
               <X className="w-4 h-4" />
             </Button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlasticStandSection({
+  plasticStandCount,
+  totalItems,
+  updatePlasticStandCount,
+  matchPlasticStandToArtworks,
+  getPlasticStandPrice
+}: {
+  plasticStandCount: number;
+  totalItems: number;
+  updatePlasticStandCount: (count: number) => void;
+  matchPlasticStandToArtworks: () => void;
+  getPlasticStandPrice: () => number;
+}) {
+  return (
+    <div className="border-t pt-4">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">플라스틱 스탠드</span>
+          <Badge variant="secondary">옵션</Badge>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => updatePlasticStandCount(plasticStandCount - 1)}
+            className="h-8 w-8 p-0"
+          >
+            <Minus className="w-3 h-3" />
+          </Button>
+          <Input
+            type="number"
+            value={plasticStandCount}
+            onChange={(e) => updatePlasticStandCount(parseInt(e.target.value) || 0)}
+            className="w-16 h-8 text-center"
+            min="0"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => updatePlasticStandCount(plasticStandCount + 1)}
+            className="h-8 w-8 p-0"
+          >
+            <Plus className="w-3 h-3" />
+          </Button>
+        </div>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={matchPlasticStandToArtworks}
+          className="w-full"
+        >
+          작품 개수와 맞추기 ({totalItems}개)
+        </Button>
+        
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>단가: 250원</span>
+          <span>소계: {getPlasticStandPrice().toLocaleString()}원</span>
         </div>
       </div>
     </div>

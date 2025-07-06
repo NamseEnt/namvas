@@ -19,7 +19,7 @@ export default function OrderCompletePage() {
   const displayAmount = amount ? parseInt(amount).toLocaleString() : "13,000";
 
   const handleViewOrders = () => {
-    navigate({ to: "/my" });
+    navigate({ to: "/orders" });
   };
 
   const handleGoHome = () => {

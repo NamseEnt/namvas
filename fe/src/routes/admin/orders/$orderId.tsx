@@ -12,7 +12,7 @@ import type { Order, OrderStatus } from "../../../../../shared/types";
 
 export const Route = createFileRoute("/admin/orders/$orderId")({
   component: AdminOrderDetail,
-  validateSearch: (search: any) => search,
+  validateSearch: () => ({}),
 });
 
 
@@ -110,7 +110,9 @@ export default function AdminOrderDetail() {
 function OrderInfoCard({ order }: { order: Order }) {
   const getStatusBadge = (status: OrderStatus) => {
     const badges = {
+      payment_pending: { text: "결제대기", variant: "secondary" as const },
       payment_completed: { text: "결제완료", variant: "default" as const },
+      payment_failed: { text: "결제실패", variant: "destructive" as const },
       in_production: { text: "제작중", variant: "secondary" as const },
       shipping: { text: "배송중", variant: "default" as const },
       delivered: { text: "배송완료", variant: "outline" as const },
@@ -166,7 +168,9 @@ function OrderManagementCard({
   isSaving: boolean;
 }) {
   const statusOptions = [
+    { value: "payment_pending", label: "결제대기" },
     { value: "payment_completed", label: "결제완료" },
+    { value: "payment_failed", label: "결제실패" },
     { value: "in_production", label: "제작중" },
     { value: "shipping", label: "배송중" },
     { value: "delivered", label: "배송완료" },
