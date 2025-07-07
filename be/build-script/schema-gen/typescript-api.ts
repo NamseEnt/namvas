@@ -1,6 +1,6 @@
 // TypeScript API for schema definition
 
-import { SchemaCommand, FieldType } from './evolution-types.js';
+import { SchemaCommand, FieldType } from './schema-types.js';
 
 // Type constants
 export const string = Symbol('string');

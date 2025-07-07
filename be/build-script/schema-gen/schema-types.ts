@@ -83,7 +83,7 @@ export interface MigrationStep {
   description: string;
 }
 
-export interface SchemaEvolution {
+export interface ParsedSchema {
   documents: Map<string, DocumentDefinition>;
   indexes: Map<string, IndexDefinition>;
   ownerships: OwnershipRelation[];

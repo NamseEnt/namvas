@@ -3,7 +3,7 @@
 import { writeFileSync } from 'fs';
 import { parseTypeScriptSchema } from './typescript-type-parser.js';
 import { generateMigrations } from './migration-generator.js';
-import { generateEvolutionCRUD } from './evolution-crud-generator.js';
+import { generateSchemaCRUD } from './schema-crud-generator.js';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -26,22 +26,22 @@ async function main() {
   try {
     console.log(`📖 Parsing TypeScript schema from: ${inputFile}`);
     
-    const evolution = parseTypeScriptSchema(inputFile);
+    const schema = parseTypeScriptSchema(inputFile);
     
-    if (evolution.documents.size === 0) {
+    if (schema.documents.size === 0) {
       console.log('⚠️  No documents found in the schema file.');
       process.exit(0);
     }
 
-    console.log(`📊 Found ${evolution.documents.size} document(s):`);
-    for (const [name, doc] of evolution.documents) {
+    console.log(`📊 Found ${schema.documents.size} document(s):`);
+    for (const [name, doc] of schema.documents) {
       console.log(`  - ${name} (${doc.fields.length} fields)`);
     }
 
     console.log('⚙️  Generating TypeScript code...');
     
     // Generate CRUD functions
-    const crudCode = generateEvolutionCRUD(evolution);
+    const crudCode = generateSchemaCRUD(schema);
     
     // Combine everything
     const fullOutput = `// Auto-generated schema and CRUD functions
@@ -57,8 +57,8 @@ ${crudCode}
     console.log('✅ TypeScript schema generation completed successfully!');
     console.log(`
 📋 Summary:
-  - Documents: ${evolution.documents.size}
-  - Generated functions: ${Array.from(evolution.documents.keys()).map(name => 
+  - Documents: ${schema.documents.size}
+  - Generated functions: ${Array.from(schema.documents.keys()).map(name => 
     `get${capitalizeFirst(name)}, create${capitalizeFirst(name)}, update${capitalizeFirst(name)}, delete${capitalizeFirst(name)}, list${capitalizeFirst(name)}s`
   ).join(', ')}
 `);

@@ -23,8 +23,8 @@ describe("Transaction API", () => {
       await ddb.tx((tx) =>
         tx
           .createUserDoc(userData)
-          .createArtwork(artworkData, { id: "user123" })
-          .deleteSession("old-session")
+          .createArtworkDoc(artworkData, { id: "user123" })
+          .deleteSessionDoc("old-session")
       );
     } catch (error: unknown) {
       // Expected to fail in test environment (no actual DynamoDB)
@@ -44,7 +44,7 @@ describe("Transaction API", () => {
     // Update with new fluent API
     try {
       await ddb.tx((tx) =>
-        tx.updateUserDoc(existingUser).deleteSession("old-session")
+        tx.updateUserDoc(existingUser).deleteSessionDoc("old-session")
       );
     } catch (error: unknown) {
       // Expected to fail in test environment
@@ -69,7 +69,7 @@ describe("Transaction API", () => {
           })
 
           // 2. 환영 작품 자동 생성 (ownership 강제됨!)
-          .createArtwork(
+          .createArtworkDoc(
             {
               id: artworkId,
               ownerId: userId,
@@ -83,14 +83,14 @@ describe("Transaction API", () => {
           )
 
           // 3. OAuth 연결
-          .createIdentity({
+          .createIdentityDoc({
             provider: "google",
             providerId: "google-oauth-id-123",
             userId: userId,
           })
 
           // 4. 로그인 세션 생성
-          .createSession({
+          .createSessionDoc({
             id: sessionId,
             userId: userId,
           })
@@ -124,7 +124,7 @@ describe("Transaction API", () => {
           }, userId)
 
           // 2. 새 작품 생성
-          .createArtwork(
+          .createArtworkDoc(
             {
               id: newArtworkId,
               ownerId: userId,
@@ -138,7 +138,7 @@ describe("Transaction API", () => {
           )
 
           // 3. 오래된 세션 정리
-          .deleteSession(oldSessionId)
+          .deleteSessionDoc(oldSessionId)
       );
     } catch (error: unknown) {
       // Expected to fail in test environment
@@ -167,8 +167,8 @@ describe("Transaction API", () => {
             createdAt: new Date().toISOString(),
             tosAgreed: true,
           })
-          .deleteArtwork("old-artwork-123", "user456") // with index cleanup
-          .createSession({
+          .deleteArtworkDoc("old-artwork-123", "user456") // with index cleanup
+          .createSessionDoc({
             id: "new-session-789",
             userId: "user456",
           })
@@ -190,14 +190,14 @@ describe("Transaction API", () => {
           }, "user123")
 
           // Traditional object-based update still works
-          .updateSession({
+          .updateSessionDoc({
             id: "session456",
             userId: "user123",
             $v: 2,
           })
 
           // More complex function-based update
-          .updateArtwork((artwork) => {
+          .updateArtworkDoc((artwork) => {
             artwork.dpi = 0.8;
             artwork.imageCenterXy = { x: 200, y: 300 };
             return artwork;
@@ -254,7 +254,7 @@ describe("Transaction API", () => {
           }, "user123")
 
           // Scenario 2: Update artwork positioning
-          .updateArtwork((artwork) => {
+          .updateArtworkDoc((artwork) => {
             // Move artwork to center and increase resolution
             artwork.imageCenterXy = { x: 250, y: 250 };
             artwork.dpi = 0.1;
@@ -262,7 +262,7 @@ describe("Transaction API", () => {
           }, "artwork456")
 
           // Scenario 3: Extend session (if we had expiry field)
-          .updateSession((session) => {
+          .updateSessionDoc((session) => {
             // This would extend session time
             return session;
           }, "session789")

@@ -1,8 +1,8 @@
 import * as ts from 'typescript';
-import { DocumentDefinition, IndexDefinition, OwnershipRelation, FieldDefinition, FieldType, SchemaEvolution } from './evolution-types.js';
+import { DocumentDefinition, IndexDefinition, OwnershipRelation, FieldDefinition, FieldType, ParsedSchema } from './schema-types.js';
 import { readFileSync } from 'fs';
 
-export function parseTypeScriptSchema(filePath: string): SchemaEvolution {
+export function parseTypeScriptSchema(filePath: string): ParsedSchema {
   const sourceText = readFileSync(filePath, 'utf-8');
   const sourceFile = ts.createSourceFile(
     filePath,
@@ -72,7 +72,9 @@ export function parseTypeScriptSchema(filePath: string): SchemaEvolution {
 }
 
 function hasExportModifier(node: ts.Node): boolean {
-  return node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
+  if (!ts.canHaveModifiers(node)) return false;
+  const modifiers = ts.getModifiers(node);
+  return modifiers ? modifiers.some((m: ts.Modifier) => m.kind === ts.SyntaxKind.ExportKeyword) : false;
 }
 
 function parseIndexType(typeNode: ts.TypeNode, indexName: string, sourceText: string): IndexDefinition | null {

@@ -1,9 +1,9 @@
 import { readFileSync } from 'fs';
 import { pathToFileURL } from 'url';
-import { SchemaEvolution, DocumentDefinition, MigrationStep } from './evolution-types.js';
+import { ParsedSchema, DocumentDefinition, MigrationStep } from './schema-types.js';
 import { resetCommands, getCommands } from './typescript-api.js';
 
-export async function executeTypeScriptSchema(filePath: string): Promise<SchemaEvolution> {
+export async function executeTypeScriptSchema(filePath: string): Promise<ParsedSchema> {
   // Reset command collector
   resetCommands();
 

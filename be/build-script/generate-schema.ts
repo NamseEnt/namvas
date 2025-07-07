@@ -1,31 +1,31 @@
 import { parseTypeScriptSchema } from './schema-gen/typescript-type-parser';
-import { generateEvolutionCRUD } from './schema-gen/evolution-crud-generator';
+import { generateSchemaCRUD } from './schema-gen/schema-crud-generator';
 import { writeFileSync } from 'fs';
 
 export function generateSchema(inputPath: string, outputPath: string): void {
   console.log(`📖 Parsing TypeScript schema from: ${inputPath}`);
   
-  const evolution = parseTypeScriptSchema(inputPath);
+  const schema = parseTypeScriptSchema(inputPath);
   
-  if (evolution.documents.size === 0) {
+  if (schema.documents.size === 0) {
     throw new Error('No documents found in the schema file');
   }
 
-  console.log(`📊 Found ${evolution.documents.size} document(s):`);
-  for (const [name, doc] of evolution.documents) {
+  console.log(`📊 Found ${schema.documents.size} document(s):`);
+  for (const [name, doc] of schema.documents) {
     console.log(`  - ${name} (${doc.fields.length} fields)`);
   }
   
-  if (evolution.indexes.size > 0) {
-    console.log(`🔍 Found ${evolution.indexes.size} index(es):`);
-    for (const [name, index] of evolution.indexes) {
+  if (schema.indexes.size > 0) {
+    console.log(`🔍 Found ${schema.indexes.size} index(es):`);
+    for (const [name, index] of schema.indexes) {
       console.log(`  - ${name} (${index.ownerDocument} -> ${index.itemDocument})`);
     }
   }
   
-  if (evolution.ownerships.length > 0) {
-    console.log(`🔗 Found ${evolution.ownerships.length} ownership relation(s):`);
-    for (const ownership of evolution.ownerships) {
+  if (schema.ownerships.length > 0) {
+    console.log(`🔗 Found ${schema.ownerships.length} ownership relation(s):`);
+    for (const ownership of schema.ownerships) {
       console.log(`  - ${ownership.ownerDocument} owns ${ownership.ownedDocument} via ${ownership.ownerField}`);
     }
   }
@@ -33,7 +33,7 @@ export function generateSchema(inputPath: string, outputPath: string): void {
   console.log('⚙️  Generating TypeScript code...');
   
   // Generate CRUD functions
-  const crudCode = generateEvolutionCRUD(evolution);
+  const crudCode = generateSchemaCRUD(schema);
   
   // Combine everything
   const fullOutput = `// Auto-generated database functions
