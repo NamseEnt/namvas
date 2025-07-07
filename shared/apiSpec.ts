@@ -1,5 +1,6 @@
 import type { Artwork, Order, OrderStatus } from "./types";
 
+
 export type ApiSpec = {
   getMe: {
     req: {};
@@ -58,12 +59,41 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "FILE_TOO_LARGE" | "INTERNAL_ERROR";
+          reason: "FILE_TOO_LARGE" | "NOT_LOGGED_IN";
         };
   };
   createOrder: {
     req: {
-      order: Order;
+      orderItems: Array<{
+        artwork: {
+          title: string;
+          originalImageId: string;
+          dpi: number;
+          imageCenterXy: { x: number; y: number };
+          sideProcessing:
+            | {
+                type: "clip" | "flip" | "none";
+              }
+            | {
+                type: "color";
+                color: string;
+              };
+        };
+        quantity: number;
+        price: number;
+      }>;
+      plasticStandCount: number;
+      plasticStandPrice: number;
+      totalPrice: number;
+      naverPaymentId: string;
+      recipient: {
+        name: string;
+        phone: string;
+        postalCode: string;
+        address: string;
+        addressDetail: string;
+        memo: string;
+      };
     };
     res:
       | {
@@ -72,7 +102,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "INVALID_ARTWORK";
+          reason: "NOT_LOGGED_IN" | "EMPTY_ORDER_ITEMS" | "PRICE_MISMATCH";
         };
   };
   getMyOrders: {
@@ -106,10 +136,14 @@ export type ApiSpec = {
       artwork: {
         originalImageId: string;
         imageCenterXy: { x: number; y: number };
-        sideProcessing: {
-          type: "stretch" | "repeat" | "solid_color" | "clip" | "flip" | "none" | "color";
-          color?: string;
-        };
+        sideProcessing:
+          | {
+              type: "clip" | "flip" | "none";
+            }
+          | {
+              type: "color";
+              color: string;
+            };
         canvasBackgroundColor: string;
       };
       thumbnailId: string;
@@ -121,7 +155,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "INTERNAL_ERROR";
+          reason: "NOT_LOGGED_IN";
         };
   };
   queryArtworksOfUser: {
@@ -133,7 +167,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "INTERNAL_ERROR";
+          reason: "NOT_LOGGED_IN";
         };
   };
   updateArtwork: {
@@ -143,10 +177,14 @@ export type ApiSpec = {
       artwork?: {
         originalImageId: string;
         imageCenterXy: { x: number; y: number };
-        sideProcessing: {
-          type: "stretch" | "repeat" | "solid_color" | "clip" | "flip" | "none" | "color";
-          color?: string;
-        };
+        sideProcessing:
+          | {
+              type: "clip" | "flip" | "none";
+            }
+          | {
+              type: "color";
+              color: string;
+            };
         canvasBackgroundColor: string;
       };
       thumbnailId?: string;
@@ -157,7 +195,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "ARTWORK_NOT_FOUND" | "PERMISSION_DENIED" | "INTERNAL_ERROR";
+          reason: "ARTWORK_NOT_FOUND" | "PERMISSION_DENIED";
         };
   };
   deleteArtwork: {
@@ -170,7 +208,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "ARTWORK_NOT_FOUND" | "PERMISSION_DENIED" | "INTERNAL_ERROR";
+          reason: "ARTWORK_NOT_FOUND" | "PERMISSION_DENIED";
         };
   };
   duplicateArtwork: {
@@ -185,7 +223,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "ARTWORK_NOT_FOUND" | "PERMISSION_DENIED" | "INTERNAL_ERROR";
+          reason: "ARTWORK_NOT_FOUND" | "PERMISSION_DENIED";
         };
   };
   adminGetDashboard: {
@@ -295,6 +333,24 @@ export type ApiSpec = {
       | {
           ok: false;
           reason: "NOT_LOGGED_IN";
+        };
+  };
+  adminGetFailedPayments: {
+    req: {
+      page?: number;
+      limit?: number;
+    };
+    res:
+      | {
+          ok: true;
+          orders: Order[];
+          total: number;
+          page: number;
+          totalPages: number;
+        }
+      | {
+          ok: false;
+          reason: "NOT_ADMIN";
         };
   };
 };

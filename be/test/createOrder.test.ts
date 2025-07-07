@@ -1,17 +1,32 @@
 import { apis } from "../src/apis";
 import { ddb } from "../src/__generated/db";
+import { sqs } from "../src/sqs";
 import { ApiRequest } from "../src/types";
 
+// SQS 모킹 (db.ts와 같은 방식)
+sqs.send = () => Promise.resolve();
+
 describe("createOrder", () => {
-  test("should return INTERNAL_ERROR when not logged in", async () => {
+  test("should return NOT_LOGGED_IN when not logged in", async () => {
     ddb.getSessionDoc = () => Promise.resolve(undefined);
 
     const req: ApiRequest = { cookies: {}, headers: {} };
     const result = await apis.createOrder({
-      orderItems: [{ artworkId: "artwork1", quantity: 1, price: 10000 }],
+      orderItems: [{ 
+        artwork: {
+          title: "Test Artwork",
+          originalImageId: "image123",
+          dpi: 300,
+          imageCenterXy: { x: 0.5, y: 0.5 },
+          sideProcessing: { type: "none" }
+        },
+        quantity: 1, 
+        price: 10000 
+      }],
       plasticStandCount: 0,
       plasticStandPrice: 0,
       totalPrice: 10000,
+      naverPaymentId: "naver_pay_123",
       recipient: {
         name: "홍길동",
         phone: "010-1234-5678",
@@ -22,10 +37,10 @@ describe("createOrder", () => {
       }
     }, req);
 
-    expect(result).toEqual({ ok: false, reason: "INTERNAL_ERROR" });
+    expect(result).toEqual({ ok: false, reason: "NOT_LOGGED_IN" });
   });
 
-  test("should return INVALID_REQUEST when no order items", async () => {
+  test("should return EMPTY_ORDER_ITEMS when no order items", async () => {
     ddb.getSessionDoc = () =>
       Promise.resolve({ userId: "user123", id: "session123", $v: 1 });
 
@@ -38,6 +53,7 @@ describe("createOrder", () => {
       plasticStandCount: 0,
       plasticStandPrice: 0,
       totalPrice: 0,
+      naverPaymentId: "naver_pay_123",
       recipient: {
         name: "홍길동",
         phone: "010-1234-5678",
@@ -48,10 +64,10 @@ describe("createOrder", () => {
       }
     }, req);
 
-    expect(result).toEqual({ ok: false, reason: "INVALID_REQUEST" });
+    expect(result).toEqual({ ok: false, reason: "EMPTY_ORDER_ITEMS" });
   });
 
-  test("should return INVALID_REQUEST when price mismatch", async () => {
+  test("should return PRICE_MISMATCH when price mismatch", async () => {
     ddb.getSessionDoc = () =>
       Promise.resolve({ userId: "user123", id: "session123", $v: 1 });
 
@@ -60,10 +76,21 @@ describe("createOrder", () => {
       headers: {},
     };
     const result = await apis.createOrder({
-      orderItems: [{ artworkId: "artwork1", quantity: 1, price: 10000 }],
+      orderItems: [{ 
+        artwork: {
+          title: "Test Artwork",
+          originalImageId: "image123",
+          dpi: 300,
+          imageCenterXy: { x: 0.5, y: 0.5 },
+          sideProcessing: { type: "none" }
+        },
+        quantity: 1, 
+        price: 10000 
+      }],
       plasticStandCount: 0,
       plasticStandPrice: 0,
       totalPrice: 15000, // 잘못된 가격
+      naverPaymentId: "naver_pay_123",
       recipient: {
         name: "홍길동",
         phone: "010-1234-5678",
@@ -74,23 +101,34 @@ describe("createOrder", () => {
       }
     }, req);
 
-    expect(result).toEqual({ ok: false, reason: "INVALID_REQUEST" });
+    expect(result).toEqual({ ok: false, reason: "PRICE_MISMATCH" });
   });
 
-  test("should return INVALID_REQUEST when artwork not found", async () => {
+  test("should create order successfully (no artwork not found test needed)", async () => {
     ddb.getSessionDoc = () =>
       Promise.resolve({ userId: "user123", id: "session123", $v: 1 });
-    ddb.getArtworkDoc = () => Promise.resolve(undefined);
+    ddb.tx = () => Promise.resolve();
 
     const req: ApiRequest = {
       cookies: { sessionId: "session123" },
       headers: {},
     };
     const result = await apis.createOrder({
-      orderItems: [{ artworkId: "nonexistent", quantity: 1, price: 10000 }],
+      orderItems: [{ 
+        artwork: {
+          title: "Test Artwork",
+          originalImageId: "image123",
+          dpi: 300,
+          imageCenterXy: { x: 0.5, y: 0.5 },
+          sideProcessing: { type: "none" }
+        },
+        quantity: 1, 
+        price: 10000 
+      }],
       plasticStandCount: 0,
       plasticStandPrice: 0,
       totalPrice: 10000,
+      naverPaymentId: "naver_pay_123",
       recipient: {
         name: "홍길동",
         phone: "010-1234-5678",
@@ -101,26 +139,16 @@ describe("createOrder", () => {
       }
     }, req);
 
-    expect(result).toEqual({ ok: false, reason: "INVALID_REQUEST" });
+    expect(result.ok).toBe(true);
   });
 
   test("should create order successfully", async () => {
     ddb.getSessionDoc = () =>
       Promise.resolve({ userId: "user123", id: "session123", $v: 1 });
-    ddb.getArtworkDoc = () =>
-      Promise.resolve({
-        $v: 1,
-        id: "artwork1",
-        ownerId: "user123",
-        title: "Test Artwork",
-        originalImageId: "image123",
-        dpi: 300,
-        imageCenterXy: { x: 0.5, y: 0.5 },
-        sideProcessing: { type: "none" }
-      });
-    let putOrderDocCalled = false;
-    ddb.putOrderDoc = () => {
-      putOrderDocCalled = true;
+    
+    let txCalled = false;
+    ddb.tx = () => {
+      txCalled = true;
       return Promise.resolve();
     };
 
@@ -129,10 +157,21 @@ describe("createOrder", () => {
       headers: {},
     };
     const result = await apis.createOrder({
-      orderItems: [{ artworkId: "artwork1", quantity: 2, price: 10000 }],
+      orderItems: [{ 
+        artwork: {
+          title: "Test Artwork",
+          originalImageId: "image123",
+          dpi: 300,
+          imageCenterXy: { x: 0.5, y: 0.5 },
+          sideProcessing: { type: "none" }
+        },
+        quantity: 2, 
+        price: 10000 
+      }],
       plasticStandCount: 1,
       plasticStandPrice: 5000,
       totalPrice: 25000, // 2 * 10000 + 1 * 5000
+      naverPaymentId: "naver_pay_123",
       recipient: {
         name: "홍길동",
         phone: "010-1234-5678",
@@ -146,10 +185,7 @@ describe("createOrder", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.orderId).toBeDefined();
-      expect(result.paymentUrl).toBeDefined();
-      expect(result.paymentRequestId).toBeDefined();
-      expect(result.paymentUrl).toContain(result.paymentRequestId);
     }
-    expect(putOrderDocCalled).toBe(true);
+    expect(txCalled).toBe(true);
   });
 });

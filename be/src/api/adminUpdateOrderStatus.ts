@@ -4,7 +4,7 @@ import { ddb } from "../__generated/db";
 import { isAdmin } from "../session/adminCheck";
 
 export const adminUpdateOrderStatus = async (
-  { orderId, status, adminMemo }: ApiSpec["adminUpdateOrderStatus"]["req"],
+  { orderId, status }: ApiSpec["adminUpdateOrderStatus"]["req"],
   req: ApiRequest
 ): Promise<ApiSpec["adminUpdateOrderStatus"]["res"]> => {
   if (!(await isAdmin(req))) {
@@ -12,7 +12,7 @@ export const adminUpdateOrderStatus = async (
   }
 
   try {
-    const order = await ddb.getOrder({ id: orderId });
+    const order = await ddb.getOrderDoc({ id: orderId });
     
     if (!order) {
       return { ok: false, reason: "ORDER_NOT_FOUND" };
@@ -20,11 +20,10 @@ export const adminUpdateOrderStatus = async (
 
     const updatedOrder = {
       ...order,
-      status,
-      adminMemo
+      status: status as "payment_pending" | "payment_completed" | "payment_failed" | "in_production" | "shipping" | "delivered"
     };
 
-    await ddb.putOrder(updatedOrder);
+    await ddb.tx(tx => tx.updateOrderDoc(updatedOrder));
     
     return { ok: true };
   } catch (error) {

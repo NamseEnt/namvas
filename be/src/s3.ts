@@ -6,21 +6,22 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { isLocalDev } from "./isLocalDev";
 
-const s3ClientConfig = isLocalDev() ? {
-  endpoint: "http://localhost:4566",
-  region: "us-east-1",
-  credentials: {
-    accessKeyId: "test",
-    secretAccessKey: "test"
-  },
-  forcePathStyle: true
-} : {
-  region: process.env.AWS_REGION || "us-east-1",
-};
+const s3ClientConfig = isLocalDev()
+  ? {
+      endpoint: "http://localhost:4566",
+      region: "us-east-1",
+      credentials: {
+        accessKeyId: "test",
+        secretAccessKey: "test",
+      },
+      forcePathStyle: true,
+    }
+  : {};
 
 const s3Client = new S3Client(s3ClientConfig);
 
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || (isLocalDev() ? "namvas-local" : undefined);
+const BUCKET_NAME =
+  process.env.S3_BUCKET_NAME || (isLocalDev() ? "namvas-local" : undefined);
 
 export const s3 = {
   getPresignedUploadUrl: async (

@@ -5,7 +5,8 @@ import type {
 } from "aws-lambda";
 import { ApiRequest } from "../types";
 import { apis } from "../apis";
-import { queueProcessor } from "../handlers/queueProcessor";
+import { sqsHandlers } from "../sqsHandlers";
+import { QueueMessageSpec } from "../sqs";
 
 export async function handler(
   event: LambdaFunctionURLEvent | SQSEvent
@@ -13,7 +14,32 @@ export async function handler(
   // SQS 이벤트인지 확인
   if ('Records' in event && event.Records?.[0]?.eventSource === 'aws:sqs') {
     console.log('[Lambda] Processing SQS event');
-    await queueProcessor(event as SQSEvent, {} as any, {} as any);
+    
+    // SQS 메시지들을 처리
+    for (const record of (event as SQSEvent).Records) {
+      try {
+        const message = JSON.parse(record.body);
+        const { type, req } = message;
+
+        console.log(`Processing SQS message: ${type}`);
+
+        // sqsHandlers에서 해당 핸들러 찾기
+        const handler = sqsHandlers[type as keyof QueueMessageSpec];
+        if (!handler) {
+          console.error(`No handler found for message type: ${type}`);
+          continue;
+        }
+
+        await handler(req);
+        
+        console.log(`Successfully processed SQS message: ${type}`);
+      } catch (error) {
+        console.error("Error processing SQS message:", error);
+        // SQS에서 메시지를 재시도하도록 에러를 던짐
+        throw error;
+      }
+    }
+    
     return; // SQS 처리는 응답이 필요 없음
   }
 

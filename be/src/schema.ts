@@ -48,7 +48,6 @@ export type OrderDoc = {
   $v: number;
   id: Pk<string>;
   userId: string;
-  paymentRequestId: string;
   naverPaymentId: string;
   rows: Array<{
     item:
@@ -81,7 +80,13 @@ export type OrderDoc = {
     addressDetail: string;
     memo: string;
   };
-  status: "payment_pending" | "payment_completed" | "payment_failed" | "in_production" | "shipping" | "delivered";
+  status:
+    | "payment_pending"
+    | "payment_completed"
+    | "payment_failed"
+    | "in_production"
+    | "shipping"
+    | "delivered";
   logs: Array<{
     type:
       | "payment_pending"

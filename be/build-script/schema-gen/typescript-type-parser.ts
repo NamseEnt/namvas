@@ -112,23 +112,22 @@ function extractDocumentName(typeNode: ts.TypeNode, sourceText: string): string 
 }
 
 function findOwnerFieldInDocument(ownedDoc: DocumentDefinition, ownerDocName: string): string | null {
-  // Convert OwnerDoc to expected field patterns
+  // Find field that references the owner document type
   const ownerBaseName = ownerDocName.replace(/Doc$/, '');
-  const possibleFieldNames = [
-    ownerBaseName.toLowerCase() + 'Id',
-    'ownerId',
-    'userId' // Common pattern
-  ];
   
-  // Find field that matches any of the expected patterns
-  for (const fieldName of possibleFieldNames) {
-    const field = ownedDoc.fields.find(f => f.name === fieldName);
-    if (field) {
-      return fieldName;
+  // Look for a field that contains reference to owner document
+  for (const field of ownedDoc.fields) {
+    if (field.name.toLowerCase().includes(ownerBaseName.toLowerCase()) && field.name.endsWith('Id')) {
+      return field.name;
     }
   }
   
-  return null;
+  // Fallback to standard ownership patterns
+  const standardOwnerFields = ownedDoc.fields.filter(f => 
+    f.name === 'ownerId' || f.name === 'userId' || f.name.endsWith('Id')
+  );
+  
+  return standardOwnerFields.length > 0 ? standardOwnerFields[0].name : null;
 }
 
 function parseTypeFields(typeNode: ts.TypeNode, sourceText: string): FieldDefinition[] {

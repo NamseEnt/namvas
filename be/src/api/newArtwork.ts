@@ -25,10 +25,7 @@ export const newArtwork = async (
     sideProcessing: { type: "none" as const },
   };
 
-  await ddb.putArtworkDoc({
-    ...newArtworkDoc,
-    $v: 1
-  });
+  await ddb.tx(tx => tx.createArtworkDoc(newArtworkDoc, { id: session.userId }));
 
   return { ok: true, artworkId };
 };

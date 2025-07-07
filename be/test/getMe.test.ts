@@ -4,7 +4,7 @@ import { ApiRequest } from "../src/types";
 
 describe("getMe", () => {
   test("should return NOT_LOGGED_IN when no session", async () => {
-    ddb.getSession = () => Promise.resolve(undefined);
+    ddb.getSessionDoc = () => Promise.resolve(undefined);
 
     const req: ApiRequest = { cookies: {}, headers: {} };
     const result = await apis.getMe({}, req);
@@ -13,9 +13,9 @@ describe("getMe", () => {
   });
 
   test("should return NOT_LOGGED_IN when user not found", async () => {
-    ddb.getSession = () =>
-      Promise.resolve({ userId: "user123", id: "session123" });
-    ddb.getUser = () => Promise.resolve(undefined);
+    ddb.getSessionDoc = () =>
+      Promise.resolve({ userId: "user123", id: "session123", $v: 1 });
+    ddb.getUserDoc = () => Promise.resolve(undefined);
 
     const req: ApiRequest = {
       cookies: { sessionId: "session123" },
@@ -27,13 +27,14 @@ describe("getMe", () => {
   });
 
   test("should return user data when logged in", async () => {
-    ddb.getSession = () =>
-      Promise.resolve({ userId: "user123", id: "session123" });
-    ddb.getUser = () =>
+    ddb.getSessionDoc = () =>
+      Promise.resolve({ userId: "user123", id: "session123", $v: 1 });
+    ddb.getUserDoc = () =>
       Promise.resolve({
         id: "user123",
         createdAt: "2023-01-01",
         tosAgreed: true,
+        $v: 1,
       });
 
     const req: ApiRequest = {

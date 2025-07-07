@@ -78,10 +78,8 @@ describe("loginWithTwitter", () => {
       },
     ];
 
-    ddb.getIdentity = () => Promise.resolve(undefined);
-    ddb.putUser = () => Promise.resolve();
-    ddb.putIdentity = () => Promise.resolve();
-    ddb.putSession = () => Promise.resolve();
+    ddb.getIdentityDoc = () => Promise.resolve(undefined);
+    ddb.tx = () => Promise.resolve();
 
     const req: ApiRequest = { cookies: {}, headers: {} };
     const result = await apis.loginWithTwitter(
@@ -109,13 +107,14 @@ describe("loginWithTwitter", () => {
       },
     ];
 
-    ddb.getIdentity = () =>
+    ddb.getIdentityDoc = () =>
       Promise.resolve({
         userId: "existing-user-123",
         provider: "twitter",
         providerId: "twitter-123",
+        $v: 1,
       });
-    ddb.putSession = () => Promise.resolve();
+    ddb.tx = () => Promise.resolve();
 
     const req: ApiRequest = { cookies: {}, headers: {} };
     const result = await apis.loginWithTwitter(

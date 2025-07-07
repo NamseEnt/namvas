@@ -4,13 +4,14 @@ export const setLoggedIn = (
   userId: string = "user-123",
   sessionId: string = "session-123"
 ) => {
-  ddb.getSession = () =>
+  ddb.getSessionDoc = () =>
     Promise.resolve({
       id: sessionId,
       userId: userId,
+      $v: 1,
     });
 };
 
 export const setLoggedOut = () => {
-  ddb.getSession = () => Promise.resolve(undefined);
+  ddb.getSessionDoc = () => Promise.resolve(undefined);
 };

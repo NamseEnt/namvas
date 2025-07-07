@@ -63,32 +63,33 @@ export const loginWithGoogle: Apis["loginWithGoogle"] = async (
     console.log('🔐 Google Provider ID for admin setup:', `google:${googleId}`);
 
     // Check if user exists
-    const identity = await ddb.getIdentity({
+    const identity = await ddb.getIdentityDoc({
       provider: "google",
       providerId: googleId,
     });
     let userId = identity?.userId;
     if (!userId) {
       userId = generateId();
-      // TODO: Transaction
-      await ddb.putUser({
-        id: userId,
-        tosAgreed: false,
-        createdAt: new Date().toISOString(),
-      });
-      await ddb.putIdentity({
-        provider: "google",
-        providerId: googleId,
-        userId,
-      });
+      await ddb.tx(tx => 
+        tx.createUserDoc({
+          id: userId,
+          tosAgreed: false,
+          createdAt: new Date().toISOString(),
+        })
+        .createIdentityDoc({
+          provider: "google",
+          providerId: googleId,
+          userId,
+        })
+      );
     }
 
     // Create session
     const sessionId = generateId();
-    await ddb.putSession({
+    await ddb.tx(tx => tx.createSessionDoc({
       id: sessionId,
       userId,
-    });
+    }));
 
     // Set session cookie
     req.cookies.sessionId = sessionId;

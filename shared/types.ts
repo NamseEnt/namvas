@@ -1,5 +1,7 @@
 export type OrderStatus =
+  | "payment_pending"
   | "payment_completed"
+  | "payment_failed"
   | "in_production"
   | "shipping"
   | "delivered"
@@ -9,9 +11,14 @@ export type Order = {
   id: string;
   orderDate: string;
   status: OrderStatus;
-  artwork: Artwork;
-  plasticStand: boolean;
-  quantity: number;
+  items: Array<{
+    artwork: Artwork;
+    quantity: number;
+    price: number;
+  }>;
+  plasticStandCount: number;
+  plasticStandPrice: number;
+  totalPrice: number;
   recipient: {
     name: string;
     phone: string;
@@ -20,6 +27,10 @@ export type Order = {
     addressDetail: string;
   };
   deliveryMemo: string;
+  // Legacy properties for backward compatibility
+  quantity: number;
+  plasticStand: boolean;
+  artwork: Artwork;
 };
 
 export type Artwork = {

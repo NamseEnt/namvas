@@ -76,32 +76,33 @@ export const loginWithTwitter: Apis["loginWithTwitter"] = async (
     console.log('🔐 Twitter Provider ID for admin setup:', `twitter:${twitterId}`);
 
     // Check if user exists
-    const identity = await ddb.getIdentity({
+    const identity = await ddb.getIdentityDoc({
       provider: "twitter",
       providerId: twitterId,
     });
     let userId = identity?.userId;
     if (!userId) {
       userId = generateId();
-      // TODO: Transaction
-      await ddb.putUser({
-        id: userId,
-        tosAgreed: false,
-        createdAt: new Date().toISOString(),
-      });
-      await ddb.putIdentity({
-        provider: "twitter",
-        providerId: twitterId,
-        userId,
-      });
+      await ddb.tx(tx => 
+        tx.createUserDoc({
+          id: userId,
+          tosAgreed: false,
+          createdAt: new Date().toISOString(),
+        })
+        .createIdentityDoc({
+          provider: "twitter",
+          providerId: twitterId,
+          userId,
+        })
+      );
     }
 
     // Create session
     const sessionId = generateId();
-    await ddb.putSession({
+    await ddb.tx(tx => tx.createSessionDoc({
       id: sessionId,
       userId,
-    });
+    }));
 
     // Set session cookie
     req.cookies.sessionId = sessionId;

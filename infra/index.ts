@@ -70,6 +70,23 @@ const dynamoTable = new aws.dynamodb.Table("app-table", {
   ],
 });
 
+// SQS Dead Letter Queue for all async processing
+const mainDlq = new aws.sqs.Queue("main-dlq", {
+  name: "main-dlq",
+  messageRetentionSeconds: 1209600, // 14 days
+});
+
+// SQS Queue for all async processing (공용 큐)
+const mainQueue = new aws.sqs.Queue("main-queue", {
+  name: "main-queue",
+  visibilityTimeoutSeconds: 300, // 5 minutes
+  messageRetentionSeconds: 1209600, // 14 days
+  redrivePolicy: pulumi.jsonStringify({
+    deadLetterTargetArn: mainDlq.arn,
+    maxReceiveCount: 3,
+  }),
+});
+
 // IAM role for Lambda
 const lambdaRole = new aws.iam.Role("lambda-role", {
   assumeRolePolicy: JSON.stringify({
@@ -86,10 +103,10 @@ const lambdaRole = new aws.iam.Role("lambda-role", {
   }),
 });
 
-// IAM policy for Lambda to access DynamoDB
+// IAM policy for Lambda to access DynamoDB and SQS
 const lambdaPolicy = new aws.iam.RolePolicy("lambda-policy", {
   role: lambdaRole.id,
-  policy: pulumi.all([dynamoTable.arn]).apply(([tableArn]) =>
+  policy: pulumi.all([dynamoTable.arn, mainQueue.arn, mainDlq.arn]).apply(([tableArn, queueArn, dlqArn]) =>
     JSON.stringify({
       Version: "2012-10-17",
       Statement: [
@@ -114,6 +131,16 @@ const lambdaPolicy = new aws.iam.RolePolicy("lambda-policy", {
           ],
           Resource: [tableArn, `${tableArn}/index/*`],
         },
+        {
+          Effect: "Allow",
+          Action: [
+            "sqs:SendMessage",
+            "sqs:ReceiveMessage",
+            "sqs:DeleteMessage",
+            "sqs:GetQueueAttributes",
+          ],
+          Resource: [queueArn, dlqArn],
+        },
       ],
     })
   ),
@@ -135,12 +162,13 @@ const lambdaFunction = new aws.lambda.Function(
     handler: "lambda-entry.handler",
     runtime: "provided.al2023",
     role: lambdaRole.arn,
-    timeout: 30,
+    timeout: 300, // 5 minutes for both API and SQS processing
     architectures: ["x86_64"],
     layers: [llrtLayer.arn],
     environment: {
       variables: {
         DYNAMODB_TABLE_NAME: dynamoTable.name,
+        QUEUE_URL: mainQueue.url,
         NODE_ENV: "production",
         LAMBDA: "true",
         GOOGLE_CLIENT_ID: "825743979695-5pe39r26j325f4omi4d5tieb9c55tv9m.apps.googleusercontent.com",
@@ -154,6 +182,22 @@ const lambdaFunction = new aws.lambda.Function(
   },
   { dependsOn: [lambdaPolicy] }
 );
+
+// SQS Event Source Mapping - 기존 Lambda가 공용 큐 처리
+new aws.lambda.EventSourceMapping("queue-processor-sqs-trigger", {
+  eventSourceArn: mainQueue.arn,
+  functionName: lambdaFunction.name, // 기존 Lambda 사용
+  batchSize: 1, // Process one message at a time
+  maximumBatchingWindowInSeconds: 5,
+});
+
+// Dead Letter Queue Event Source Mapping for manual processing
+new aws.lambda.EventSourceMapping("queue-processor-dlq-trigger", {
+  eventSourceArn: mainDlq.arn,
+  functionName: lambdaFunction.name, // 기존 Lambda 사용
+  batchSize: 1,
+  maximumBatchingWindowInSeconds: 5,
+});
 
 // Lambda Function URL
 const lambdaFunctionUrl = new aws.lambda.FunctionUrl("backend-lambda-url", {
@@ -277,6 +321,10 @@ export const frontendBucketWebsiteUrl = frontendBucketWebsite.websiteEndpoint;
 export const dynamoTableName = dynamoTable.name;
 export const lambdaFunctionName = lambdaFunction.name;
 export const lambdaFunctionUrlEndpoint = lambdaFunctionUrl.functionUrl;
+export const mainQueueUrl = mainQueue.url;
+export const mainQueueArn = mainQueue.arn;
+export const mainDlqUrl = mainDlq.url;
+export const mainDlqArn = mainDlq.arn;
 export const cloudFrontDomainName = cloudFrontDistribution.domainName;
 export const cloudFrontDistributionId = cloudFrontDistribution.id;
 export const sslCertificateArn = sslCertificate?.arn;

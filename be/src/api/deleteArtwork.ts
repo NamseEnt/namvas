@@ -9,7 +9,7 @@ export const deleteArtwork = async (
 ): Promise<ApiSpec["deleteArtwork"]["res"]> => {
   const session = await getSession(req);
   if (!session) {
-    return { ok: false, reason: "NOT_LOGGED_IN" };
+    return { ok: false, reason: "PERMISSION_DENIED" };
   }
 
   const existingArtwork = await ddb.getArtworkDoc({ id: artworkId });
@@ -18,7 +18,7 @@ export const deleteArtwork = async (
   }
 
   if (existingArtwork.ownerId !== session.userId) {
-    return { ok: false, reason: "PERMISION_DENIED" };
+    return { ok: false, reason: "PERMISSION_DENIED" };
   }
 
   await ddb.deleteArtworkDoc({ id: artworkId });

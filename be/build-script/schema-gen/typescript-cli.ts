@@ -59,7 +59,7 @@ ${crudCode}
 📋 Summary:
   - Documents: ${evolution.documents.size}
   - Generated functions: ${Array.from(evolution.documents.keys()).map(name => 
-    `get${capitalizeFirst(name)}, put${capitalizeFirst(name)}, delete${capitalizeFirst(name)}, list${capitalizeFirst(name)}s`
+    `get${capitalizeFirst(name)}, create${capitalizeFirst(name)}, update${capitalizeFirst(name)}, delete${capitalizeFirst(name)}, list${capitalizeFirst(name)}s`
   ).join(', ')}
 `);
     

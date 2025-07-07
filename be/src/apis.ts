@@ -38,8 +38,6 @@ export const apis: Apis = {
     ),
   createOrder: async (params, req) =>
     (await import("./api/createOrder")).createOrder(params, req),
-  confirmPayment: async (params, req) =>
-    (await import("./api/confirmPayment")).confirmPayment(params, req),
   getMyOrders: async (params, req) =>
     (await import("./api/getMyOrders")).getMyOrders(params, req),
   cancelOrder: async (params, req) =>
@@ -62,7 +60,7 @@ export const apis: Apis = {
   queryMyArtworks: async (params, req) =>
     (await import("./api/getMyArtworks")).queryMyArtworks(params, req),
   queryArtworksOfUser: async (params, req) =>
-    (await import("./api/getMyArtworks")).queryMyArtworks(params, req),
+    (await import("./api/queryArtworksOfUser")).queryArtworksOfUser(params, req),
   adminGetFailedPayments: async (params, req) =>
     (await import("./api/adminGetFailedPayments")).adminGetFailedPayments(params, req),
   updateArtwork: async (params, req) =>

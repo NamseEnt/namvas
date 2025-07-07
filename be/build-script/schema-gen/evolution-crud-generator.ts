@@ -1,4 +1,150 @@
-import { SchemaEvolution, DocumentDefinition, IndexDefinition, OwnershipRelation } from './evolution-types.js';
+import { SchemaEvolution, DocumentDefinition, IndexDefinition, OwnershipRelation, FieldDefinition } from './evolution-types.js';
+
+function generateTransactionBuilderMethods(evolution: SchemaEvolution): string {
+  const methods: string[] = [];
+  
+  // Generate create methods
+  for (const [docName, docDef] of evolution.documents) {
+    const typeName = capitalizeFirst(docName);
+    const baseName = docName.replace(/Doc$/, '').toLowerCase();
+    
+    // Check if this document has ownership relations
+    const ownership = evolution.ownerships.find(o => o.ownedDocument === docName);
+    
+    if (ownership) {
+      // For owned documents, need owner parameter
+      methods.push(`  create${typeName}(${baseName}: Omit<Schema.${docName}, '$v'>, forUser: {id: string}) {
+    this.operations.push({ 
+      _type: 'create-${baseName}' as const, 
+      data: { ...${baseName}, $v: 1 }, 
+      owner: forUser 
+    });
+    return this;
+  }`);
+    } else {
+      // For standalone documents
+      methods.push(`  create${typeName}(${baseName}: Omit<Schema.${docName}, '$v'>) {
+    this.operations.push({ 
+      _type: 'create-${baseName}' as const, 
+      data: { ...${baseName}, $v: 1 }
+    });
+    return this;
+  }`);
+    }
+  }
+  
+  // Generate update methods
+  for (const [docName, docDef] of evolution.documents) {
+    const typeName = capitalizeFirst(docName);
+    const baseName = docName.replace(/Doc$/, '').toLowerCase();
+    const pkFields = findPrimaryKeyFields(docDef);
+    
+    if (pkFields.length === 0) continue;
+    
+    // Generate parameter for function-based updates
+    let functionParams = '';
+    if (pkFields.length === 1) {
+      functionParams = `${baseName}${capitalizeFirst(pkFields[0].name)}?: ${getTypeScriptType(pkFields[0].type)}`;
+    } else {
+      // For composite keys, use individual parameters
+      functionParams = pkFields.map(f => `${f.name}?: ${getTypeScriptType(f.type)}`).join(', ');
+    }
+    
+    const functionCheck = pkFields.length === 1 
+      ? `!${baseName}${capitalizeFirst(pkFields[0].name)}` 
+      : pkFields.map(f => `!${f.name}`).join(' || ');
+      
+    const functionError = pkFields.length === 1
+      ? `'${baseName}${capitalizeFirst(pkFields[0].name)} is required for function-based updates'`
+      : `'${pkFields.map(f => f.name).join(' and ')} are required for function-based updates'`;
+    
+    methods.push(`  update${typeName}(${baseName}OrUpdater: Schema.${docName} | ((${baseName}: Schema.${docName}) => Schema.${docName}), ${functionParams}) {
+    if (typeof ${baseName}OrUpdater === 'function') {
+      if (${functionCheck}) {
+        throw new Error(${functionError});
+      }
+      this.operations.push({
+        _type: 'update-${baseName}-with-function' as const,
+        updater: ${baseName}OrUpdater,
+${pkFields.map(f => `        ${f.name}: ${f.name}`).join(',\n')}
+      });
+      return this;
+    } else {
+      this.operations.push({
+        _type: 'update-${baseName}' as const,
+        data: { ...${baseName}OrUpdater, $v: ${baseName}OrUpdater.$v + 1 },
+        expectedVersion: ${baseName}OrUpdater.$v
+      });
+      return this;
+    }
+  }`);
+  }
+  
+  // Generate delete methods
+  for (const [docName, docDef] of evolution.documents) {
+    const typeName = capitalizeFirst(docName);
+    const baseName = docName.replace(/Doc$/, '').toLowerCase();
+    const pkFields = findPrimaryKeyFields(docDef);
+    
+    if (pkFields.length === 0) continue;
+    
+    // Check if this document has indexes that need cleanup
+    const relatedIndexes = Array.from(evolution.indexes.values()).filter(idx => idx.itemDocument === docName);
+    
+    if (pkFields.length === 1) {
+      const pkField = pkFields[0];
+      if (relatedIndexes.length > 0) {
+        // Need owner field for index cleanup
+        const ownerField = findOwnerFieldFromSchema(docDef, evolution.ownerships);
+        if (ownerField) {
+          methods.push(`  delete${typeName}(${pkField.name}: ${getTypeScriptType(pkField.type)}, ${ownerField}?: string) {
+    this.operations.push({ 
+      _type: 'delete-${baseName}' as const, 
+      ${pkField.name},
+      ${ownerField}
+    });
+    return this;
+  }`);
+        } else {
+          methods.push(`  delete${typeName}(${pkField.name}: ${getTypeScriptType(pkField.type)}) {
+    this.operations.push({ 
+      _type: 'delete-${baseName}' as const, 
+      ${pkField.name}
+    });
+    return this;
+  }`);
+        }
+      } else {
+        methods.push(`  delete${typeName}(${pkField.name}: ${getTypeScriptType(pkField.type)}) {
+    this.operations.push({ 
+      _type: 'delete-${baseName}' as const, 
+      ${pkField.name}
+    });
+    return this;
+  }`);
+      }
+    } else {
+      // Composite primary key
+      const params = pkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
+      const ops = pkFields.map(f => f.name).join(',\n      ');
+      
+      methods.push(`  delete${typeName}(${params}) {
+    this.operations.push({ 
+      _type: 'delete-${baseName}' as const, 
+      ${ops}
+    });
+    return this;
+  }`);
+    }
+  }
+  
+  return methods.join('\n  \n');
+}
+
+function findOwnerFieldFromSchema(docDef: DocumentDefinition, ownerships: OwnershipRelation[]): string | null {
+  const ownership = ownerships.find(o => o.ownedDocument === docDef.name);
+  return ownership ? ownership.ownerField : null;
+}
 
 export function generateEvolutionCRUD(evolution: SchemaEvolution): string {
   let output = `import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
@@ -9,7 +155,7 @@ import { isLocalDev } from "../isLocalDev";
 
 // Transaction item types
 export type DbTransactionItem = 
-  | { type: 'put'; tableName: string; item: any }
+  | { type: 'create'; tableName: string; item: any }
   | { type: 'delete'; tableName: string; key: any }
   | { type: 'update'; tableName: string; key: any; updateExpression: string; expressionAttributeNames?: any; expressionAttributeValues?: any }
   | { type: 'conditionCheck'; tableName: string; key: any; conditionExpression: string; expressionAttributeNames?: any; expressionAttributeValues?: any };
@@ -18,162 +164,7 @@ export type DbTransactionItem =
 class TransactionBuilder {
   private operations: any[] = [];
   
-  // Create operations (fail if exists)
-  createUser(user: Omit<Schema.UserDoc, '$v'>) {
-    this.operations.push({ 
-      _type: 'create-user' as const, 
-      data: { ...user, $v: 1 }
-    });
-    return this;
-  }
-  
-  createArtwork(artwork: Omit<Schema.ArtworkDoc, '$v'>, forUser: {id: string}) {
-    this.operations.push({ 
-      _type: 'create-artwork' as const, 
-      data: { ...artwork, $v: 1 }, 
-      owner: forUser 
-    });
-    return this;
-  }
-  
-  createSession(session: Omit<Schema.SessionDoc, '$v'>) {
-    this.operations.push({ 
-      _type: 'create-session' as const, 
-      data: { ...session, $v: 1 }
-    });
-    return this;
-  }
-  
-  createIdentity(identity: Omit<Schema.IdentityDoc, '$v'>) {
-    this.operations.push({ 
-      _type: 'create-identity' as const, 
-      data: { ...identity, $v: 1 }
-    });
-    return this;
-  }
-  
-  // Update operations (requires $v for optimistic locking)
-  updateUser(userOrUpdater: Schema.UserDoc | ((user: Schema.UserDoc) => Schema.UserDoc), userId?: string) {
-    if (typeof userOrUpdater === 'function') {
-      // Function-based update: we need userId to fetch current document
-      if (!userId) {
-        throw new Error('userId is required for function-based updates');
-      }
-      this.operations.push({
-        _type: 'update-user-with-function' as const,
-        updater: userOrUpdater,
-        userId: userId
-      });
-      return this;
-    } else {
-      // Direct object update
-      this.operations.push({
-        _type: 'update-user' as const,
-        data: { ...userOrUpdater, $v: userOrUpdater.$v + 1 },
-        expectedVersion: userOrUpdater.$v
-      });
-      return this;
-    }
-  }
-  
-  updateArtwork(artworkOrUpdater: Schema.ArtworkDoc | ((artwork: Schema.ArtworkDoc) => Schema.ArtworkDoc), artworkId?: string) {
-    if (typeof artworkOrUpdater === 'function') {
-      if (!artworkId) {
-        throw new Error('artworkId is required for function-based updates');
-      }
-      this.operations.push({
-        _type: 'update-artwork-with-function' as const,
-        updater: artworkOrUpdater,
-        artworkId: artworkId
-      });
-      return this;
-    } else {
-      this.operations.push({
-        _type: 'update-artwork' as const,
-        data: { ...artworkOrUpdater, $v: artworkOrUpdater.$v + 1 },
-        expectedVersion: artworkOrUpdater.$v
-      });
-      return this;
-    }
-  }
-  
-  updateSession(sessionOrUpdater: Schema.SessionDoc | ((session: Schema.SessionDoc) => Schema.SessionDoc), sessionId?: string) {
-    if (typeof sessionOrUpdater === 'function') {
-      if (!sessionId) {
-        throw new Error('sessionId is required for function-based updates');
-      }
-      this.operations.push({
-        _type: 'update-session-with-function' as const,
-        updater: sessionOrUpdater,
-        sessionId: sessionId
-      });
-      return this;
-    } else {
-      this.operations.push({
-        _type: 'update-session' as const,
-        data: { ...sessionOrUpdater, $v: sessionOrUpdater.$v + 1 },
-        expectedVersion: sessionOrUpdater.$v
-      });
-      return this;
-    }
-  }
-  
-  updateIdentity(identityOrUpdater: Schema.IdentityDoc | ((identity: Schema.IdentityDoc) => Schema.IdentityDoc), provider?: string, providerId?: string) {
-    if (typeof identityOrUpdater === 'function') {
-      if (!provider || !providerId) {
-        throw new Error('provider and providerId are required for function-based updates');
-      }
-      this.operations.push({
-        _type: 'update-identity-with-function' as const,
-        updater: identityOrUpdater,
-        provider: provider,
-        providerId: providerId
-      });
-      return this;
-    } else {
-      this.operations.push({
-        _type: 'update-identity' as const,
-        data: { ...identityOrUpdater, $v: identityOrUpdater.$v + 1 },
-        expectedVersion: identityOrUpdater.$v
-      });
-      return this;
-    }
-  }
-  
-  // Delete operations (no error if not exists)
-  deleteUser(id: string) {
-    this.operations.push({ 
-      _type: 'delete-user' as const, 
-      id 
-    });
-    return this;
-  }
-  
-  deleteArtwork(id: string, userId?: string) {
-    this.operations.push({ 
-      _type: 'delete-artwork' as const, 
-      id,
-      userId 
-    });
-    return this;
-  }
-  
-  deleteSession(id: string) {
-    this.operations.push({ 
-      _type: 'delete-session' as const, 
-      id 
-    });
-    return this;
-  }
-  
-  deleteIdentity(provider: string, providerId: string) {
-    this.operations.push({ 
-      _type: 'delete-identity' as const, 
-      provider, 
-      providerId 
-    });
-    return this;
-  }
+${generateTransactionBuilderMethods(evolution)}
   
   getOperations() {
     return this.operations;
@@ -201,7 +192,7 @@ const client = DynamoDBDocument.from(new DynamoDBClient(clientConfig));
   const functions: string[] = [];
   
   // Add the transaction write function first
-  functions.push(generateTransactionWriteFunction());
+  functions.push(generateTransactionWriteFunction(evolution));
   
   // Add tx function that uses builder pattern
   functions.push(generateTxFunction());
@@ -218,9 +209,6 @@ const client = DynamoDBDocument.from(new DynamoDBClient(clientConfig));
 
     // Generate get function with migration
     functions.push(generateGetFunction(docName, typeName, pkFields));
-
-    // Generate put function
-    functions.push(generatePutFunction(docName, typeName, pkFields, evolution.indexes));
 
     // Generate delete function
     functions.push(generateDeleteFunction(docName, typeName, pkFields, evolution.indexes));
@@ -282,67 +270,6 @@ function generateGetFunction(docName: string, typeName: string, pkFields: any[])
   }`;
 }
 
-function generatePutFunction(docName: string, typeName: string, pkFields: any[], indexes: Map<string, IndexDefinition>): string {
-  const keyString = pkFields.map(f => `${f.name}=\${${docName}.${f.name}}`).join('/');
-  
-  // Find indexes where this document is the item document
-  const relatedIndexes = Array.from(indexes.values()).filter(idx => idx.itemDocument === docName);
-  
-  let putOperations = `    await client.put({
-      TableName: config.DYNAMODB_TABLE_NAME,
-      Item: item
-    });`;
-  
-  // Add deprecation warning if this document is part of ownership relations
-  let deprecationWarning = '';
-  if (relatedIndexes.length > 0) {
-    const ownerDocs = relatedIndexes.map(idx => idx.ownerDocument.replace(/Doc$/, '')).join(', ');
-    deprecationWarning = `    // WARNING: This document has ownership relations with ${ownerDocs}.
-    // Consider using create${typeName}For${ownerDocs} for transactional creation instead.
-    `;
-  }
-  
-  // Add index entries for each related index
-  if (relatedIndexes.length > 0) {
-    const indexPuts = relatedIndexes.map(index => {
-      // We need to find the field that references the owner document
-      // For now, assume it's a field with the pattern "ownerId" or similar
-      const ownerField = findOwnerField(docName, index.ownerDocument);
-      if (!ownerField) return '';
-      
-      return `
-    
-    // Create index entry for ${index.name}
-    const indexItem = {
-      $p: \`${index.ownerDocument}/id=\${${docName}.${ownerField}}\`,
-      $s: \`${docName}#\${${docName}.id}\`,
-      ...${docName}
-    };
-    
-    await client.put({
-      TableName: config.DYNAMODB_TABLE_NAME,
-      Item: indexItem
-    });`;
-    }).filter(Boolean);
-    
-    if (indexPuts.length > 0) {
-      putOperations = `    await client.put({
-      TableName: config.DYNAMODB_TABLE_NAME,
-      Item: item
-    });${indexPuts.join('')}`;
-    }
-  }
-  
-  return `  async put${typeName}(${docName}: Schema.${docName}): Promise<void> {
-${deprecationWarning}    const item = {
-      $p: \`${docName}/${keyString}\`,
-      $s: '_',
-      ...${docName}
-    };
-    
-${putOperations}
-  }`;
-}
 
 function generateDeleteFunction(docName: string, typeName: string, pkFields: any[], indexes: Map<string, IndexDefinition>): string {
   const keyParams = pkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
@@ -382,7 +309,7 @@ function generateDeleteFunction(docName: string, typeName: string, pkFields: any
       await client.delete({
         TableName: config.DYNAMODB_TABLE_NAME,
         Key: {
-          $p: \`${index.ownerDocument}/id=\${itemToDelete.Item.${ownerField}}\`,
+          $p: \`${index.ownerDocument}/\${getOwnerKeyString(evolution, index.ownerDocument, itemToDelete.Item.${ownerField})}\`,
           $s: \`${docName}#\${${keyObject}}\`
         }
       });
@@ -405,35 +332,6 @@ function generateDeleteFunction(docName: string, typeName: string, pkFields: any
   return `  async delete${typeName}({${keyObject}}: {${keyParams}}): Promise<void> {
 ${deleteOperations}
   }`;
-}
-
-function findPrimaryKeyFields(docDef: DocumentDefinition) {
-  // Find all fields marked as primary keys
-  const pkFields = docDef.fields.filter(f => f.isPrimaryKey);
-  
-  if (pkFields.length === 0) {
-    // Fallback to 'id' field if no primary keys are explicitly marked
-    const idField = docDef.fields.find(f => f.name === 'id');
-    if (idField) {
-      return [idField];
-    }
-    // Last fallback to first field
-    return docDef.fields.length > 0 ? [docDef.fields[0]] : [];
-  }
-  
-  return pkFields;
-}
-
-function getTypeScriptType(fieldType: string): string {
-  switch (fieldType) {
-    case 'string': return 'string';
-    case 'number': return 'number';
-    case 'boolean': return 'boolean';
-    case 'string[]': return 'string[]';
-    case 'number[]': return 'number[]';
-    case 'object': return 'object';
-    default: return 'any';
-  }
 }
 
 function generateQueryFunction(indexName: string, indexDef: IndexDefinition, ownerDoc: DocumentDefinition, itemDoc: DocumentDefinition): string {
@@ -487,15 +385,6 @@ function generateQueryFunction(indexName: string, indexDef: IndexDefinition, own
   }`;
 }
 
-function findOwnerField(itemDocName: string, ownerDocName: string): string | null {
-  // Convert OwnerDoc to ownerId pattern
-  const ownerBaseName = ownerDocName.replace(/Doc$/, '');
-  const ownerFieldName = ownerBaseName.toLowerCase() + 'Id';
-  
-  // For now, we'll assume the field exists. In a more sophisticated system,
-  // we could validate against the actual document fields
-  return ownerFieldName;
-}
 
 function generateTransactionalCreateFunction(ownership: OwnershipRelation, ownerDoc: DocumentDefinition, ownedDoc: DocumentDefinition): string {
   const ownedTypeName = capitalizeFirst(ownedDoc.name);
@@ -714,7 +603,12 @@ function generateTxFunction(): string {
   }`;
 }
 
-function generateTransactionWriteFunction(): string {
+function generateTransactionWriteFunction(evolution: SchemaEvolution): string {
+  const createCases = generateCreateCases(evolution);
+  const updateCases = generateUpdateCases(evolution);
+  const updateWithFunctionCases = generateUpdateWithFunctionCases(evolution);
+  const deleteCases = generateDeleteCases(evolution);
+  
   return `  async write(...operations: any[]): Promise<void> {
     if (operations.length === 0) {
       return;
@@ -730,332 +624,10 @@ function generateTransactionWriteFunction(): string {
       if (op._type) {
         // Handle simple transaction helpers
         switch (op._type) {
-          case 'create-user':
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`UserDoc/id=\${op.data.id}\`,
-                  $s: '_',
-                  ...op.data
-                },
-                ConditionExpression: 'attribute_not_exists($p)'
-              }
-            });
-            break;
-            
-          case 'create-artwork':
-            const artwork = { ...op.data, userId: op.owner.id };
-            // Main artwork document
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`ArtworkDoc/id=\${artwork.id}\`,
-                  $s: '_',
-                  ...artwork
-                },
-                ConditionExpression: 'attribute_not_exists($p)'
-              }
-            });
-            // Index entry
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`UserDoc/id=\${op.owner.id}\`,
-                  $s: \`ArtworkDoc#\${artwork.id}\`,
-                  ...artwork
-                }
-              }
-            });
-            break;
-            
-          case 'create-session':
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`SessionDoc/id=\${op.data.id}\`,
-                  $s: '_',
-                  ...op.data
-                },
-                ConditionExpression: 'attribute_not_exists($p)'
-              }
-            });
-            break;
-            
-          case 'create-identity':
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`IdentityDoc/provider=\${op.data.provider}/providerId=\${op.data.providerId}\`,
-                  $s: '_',
-                  ...op.data
-                },
-                ConditionExpression: 'attribute_not_exists($p)'
-              }
-            });
-            break;
-            
-          case 'update-user':
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`UserDoc/id=\${op.data.id}\`,
-                  $s: '_',
-                  ...op.data
-                },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
-                ExpressionAttributeValues: { ':expectedVersion': op.expectedVersion }
-              }
-            });
-            break;
-            
-          case 'update-artwork':
-            const updatedArtwork = op.data;
-            // Update main artwork document
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`ArtworkDoc/id=\${updatedArtwork.id}\`,
-                  $s: '_',
-                  ...updatedArtwork
-                },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
-                ExpressionAttributeValues: { ':expectedVersion': op.expectedVersion }
-              }
-            });
-            // Update index entry
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`UserDoc/id=\${updatedArtwork.userId}\`,
-                  $s: \`ArtworkDoc#\${updatedArtwork.id}\`,
-                  ...updatedArtwork
-                },
-                ConditionExpression: 'attribute_exists($p)'
-              }
-            });
-            break;
-            
-          case 'update-session':
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`SessionDoc/id=\${op.data.id}\`,
-                  $s: '_',
-                  ...op.data
-                },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
-                ExpressionAttributeValues: { ':expectedVersion': op.expectedVersion }
-              }
-            });
-            break;
-            
-          case 'update-identity':
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`IdentityDoc/provider=\${op.data.provider}/providerId=\${op.data.providerId}\`,
-                  $s: '_',
-                  ...op.data
-                },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
-                ExpressionAttributeValues: { ':expectedVersion': op.expectedVersion }
-              }
-            });
-            break;
-            
-          case 'update-user-with-function':
-            // Get current user, apply function, then update
-            const currentUser = await this.getUserDoc({id: op.userId});
-            if (!currentUser) {
-              throw new Error(\`User not found for function-based update: \${op.userId}\`);
-            }
-            const updatedUserFromFunction = op.updater(currentUser);
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`UserDoc/id=\${updatedUserFromFunction.id}\`,
-                  $s: '_',
-                  ...updatedUserFromFunction,
-                  $v: updatedUserFromFunction.$v + 1
-                },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
-                ExpressionAttributeValues: { ':expectedVersion': currentUser.$v }
-              }
-            });
-            break;
-            
-          case 'update-artwork-with-function':
-            const currentArtwork = await this.getArtworkDoc({id: op.artworkId});
-            if (!currentArtwork) {
-              throw new Error(\`Artwork not found for function-based update: \${op.artworkId}\`);
-            }
-            const updatedArtworkFromFunction = op.updater(currentArtwork);
-            // Update main artwork document
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`ArtworkDoc/id=\${updatedArtworkFromFunction.id}\`,
-                  $s: '_',
-                  ...updatedArtworkFromFunction,
-                  $v: updatedArtworkFromFunction.$v + 1
-                },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
-                ExpressionAttributeValues: { ':expectedVersion': currentArtwork.$v }
-              }
-            });
-            // Update index entry
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`UserDoc/id=\${updatedArtworkFromFunction.userId}\`,
-                  $s: \`ArtworkDoc#\${updatedArtworkFromFunction.id}\`,
-                  ...updatedArtworkFromFunction,
-                  $v: updatedArtworkFromFunction.$v + 1
-                },
-                ConditionExpression: 'attribute_exists($p)'
-              }
-            });
-            break;
-            
-          case 'update-session-with-function':
-            const currentSession = await this.getSessionDoc({id: op.sessionId});
-            if (!currentSession) {
-              throw new Error(\`Session not found for function-based update: \${op.sessionId}\`);
-            }
-            const updatedSessionFromFunction = op.updater(currentSession);
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`SessionDoc/id=\${updatedSessionFromFunction.id}\`,
-                  $s: '_',
-                  ...updatedSessionFromFunction,
-                  $v: updatedSessionFromFunction.$v + 1
-                },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
-                ExpressionAttributeValues: { ':expectedVersion': currentSession.$v }
-              }
-            });
-            break;
-            
-          case 'update-identity-with-function':
-            const currentIdentity = await this.getIdentityDoc({provider: op.provider, providerId: op.providerId});
-            if (!currentIdentity) {
-              throw new Error(\`Identity not found for function-based update: \${op.provider}/\${op.providerId}\`);
-            }
-            const updatedIdentityFromFunction = op.updater(currentIdentity);
-            transactItems.push({
-              Put: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Item: {
-                  $p: \`IdentityDoc/provider=\${updatedIdentityFromFunction.provider}/providerId=\${updatedIdentityFromFunction.providerId}\`,
-                  $s: '_',
-                  ...updatedIdentityFromFunction,
-                  $v: updatedIdentityFromFunction.$v + 1
-                },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
-                ExpressionAttributeValues: { ':expectedVersion': currentIdentity.$v }
-              }
-            });
-            break;
-            
-          case 'delete-user':
-            transactItems.push({
-              Delete: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Key: {
-                  $p: \`UserDoc/id=\${op.id}\`,
-                  $s: '_'
-                }
-              }
-            });
-            break;
-            
-          case 'delete-artwork':
-            // Delete main document (no error if not exists)
-            transactItems.push({
-              Delete: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Key: {
-                  $p: \`ArtworkDoc/id=\${op.id}\`,
-                  $s: '_'
-                }
-              }
-            });
-            // Delete index entry if userId is provided
-            if (op.userId) {
-              transactItems.push({
-                Delete: {
-                  TableName: config.DYNAMODB_TABLE_NAME,
-                  Key: {
-                    $p: \`UserDoc/id=\${op.userId}\`,
-                    $s: \`ArtworkDoc#\${op.id}\`
-                  }
-                }
-              });
-            }
-            break;
-            
-          case 'delete-session':
-            transactItems.push({
-              Delete: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Key: {
-                  $p: \`SessionDoc/id=\${op.id}\`,
-                  $s: '_'
-                }
-              }
-            });
-            break;
-            
-          case 'delete-identity':
-            transactItems.push({
-              Delete: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Key: {
-                  $p: \`IdentityDoc/provider=\${op.provider}/providerId=\${op.providerId}\`,
-                  $s: '_'
-                }
-              }
-            });
-            break;
-            
-          case 'update-user-last-login':
-            transactItems.push({
-              Update: {
-                TableName: config.DYNAMODB_TABLE_NAME,
-                Key: {
-                  $p: \`UserDoc/id=\${op.userId}\`,
-                  $s: '_'
-                },
-                UpdateExpression: 'SET #lastLogin = :timestamp',
-                ExpressionAttributeNames: { '#lastLogin': 'lastLogin' },
-                ExpressionAttributeValues: { ':timestamp': op.timestamp }
-              }
-            });
-            break;
-            
+${createCases}
+${updateCases}
+${updateWithFunctionCases}
+${deleteCases}
           default:
             throw new Error(\`Unknown simple transaction type: \${op._type}\`);
         }
@@ -1108,12 +680,361 @@ function generateTransactionWriteFunction(): string {
       }
     }
     
-    if (transactItems.length > 0) {
+    if (transactItems.length === 0) {
+      return;
+    } else if (transactItems.length === 1) {
+      // Execute single operation directly (TransactWriteItems requires minimum 2 items)
+      const item = transactItems[0];
+      if (item.Put) {
+        await client.put({
+          TableName: item.Put.TableName,
+          Item: item.Put.Item,
+          ConditionExpression: item.Put.ConditionExpression,
+          ExpressionAttributeNames: item.Put.ExpressionAttributeNames,
+          ExpressionAttributeValues: item.Put.ExpressionAttributeValues
+        });
+      } else if (item.Update) {
+        await client.update({
+          TableName: item.Update.TableName,
+          Key: item.Update.Key,
+          UpdateExpression: item.Update.UpdateExpression,
+          ConditionExpression: item.Update.ConditionExpression,
+          ExpressionAttributeNames: item.Update.ExpressionAttributeNames,
+          ExpressionAttributeValues: item.Update.ExpressionAttributeValues
+        });
+      } else if (item.Delete) {
+        await client.delete({
+          TableName: item.Delete.TableName,
+          Key: item.Delete.Key,
+          ConditionExpression: item.Delete.ConditionExpression,
+          ExpressionAttributeNames: item.Delete.ExpressionAttributeNames,
+          ExpressionAttributeValues: item.Delete.ExpressionAttributeValues
+        });
+      } else if (item.ConditionCheck) {
+        // ConditionCheck can only be used in transactions, so we can't execute it alone
+        // Convert to a get operation to check if condition would pass
+        await client.get({
+          TableName: item.ConditionCheck.TableName,
+          Key: item.ConditionCheck.Key
+        });
+      }
+    } else {
+      // Execute as transaction (2 or more items)
       await client.transactWrite({
         TransactItems: transactItems
       });
     }
   }`;
+}
+
+function generateCreateCases(evolution: SchemaEvolution): string {
+  const cases: string[] = [];
+  
+  for (const [docName, docDef] of evolution.documents) {
+    const baseName = docName.replace(/Doc$/, '').toLowerCase();
+    const pkFields = findPrimaryKeyFields(docDef);
+    const ownership = evolution.ownerships.find(o => o.ownedDocument === docName);
+    
+    if (pkFields.length === 0) continue;
+    
+    const keyPattern = pkFields.map(f => `${f.name}=\${${ownership ? baseName : 'op.data'}.${f.name}}`).join('/');
+    
+    if (ownership) {
+      // Document with ownership relation
+      const ownerField = ownership.ownerField;
+      
+      cases.push(`          case 'create-${baseName}':
+            const ${baseName} = { ...op.data, ${ownerField}: op.owner.id };
+            // Main ${baseName} document
+            transactItems.push({
+              Put: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Item: {
+                  $p: \`${docName}/${keyPattern.replace(baseName, baseName)}\`,
+                  $s: '_',
+                  ...${baseName}
+                },
+                ConditionExpression: 'attribute_not_exists($p)'
+              }
+            });
+            // Index entry
+            transactItems.push({
+              Put: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Item: {
+                  $p: \`${ownership.ownerDocument}/\${getOwnerKeyString(evolution, ownership.ownerDocument, op.owner.id)}\`,
+                  $s: \`${docName}#\${${baseName}.${pkFields[0].name}}\`,
+                  ...${baseName}
+                }
+              }
+            });
+            break;`);
+    } else {
+      // Standalone document
+      cases.push(`          case 'create-${baseName}':
+            transactItems.push({
+              Put: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Item: {
+                  $p: \`${docName}/${keyPattern}\`,
+                  $s: '_',
+                  ...op.data
+                },
+                ConditionExpression: 'attribute_not_exists($p)'
+              }
+            });
+            break;`);
+    }
+  }
+  
+  return cases.join('\n            \n');
+}
+
+function generateUpdateCases(evolution: SchemaEvolution): string {
+  const cases: string[] = [];
+  
+  for (const [docName, docDef] of evolution.documents) {
+    const baseName = docName.replace(/Doc$/, '').toLowerCase();
+    const pkFields = findPrimaryKeyFields(docDef);
+    const ownership = evolution.ownerships.find(o => o.ownedDocument === docName);
+    
+    if (pkFields.length === 0) continue;
+    
+    const keyPattern = pkFields.map(f => `${f.name}=\${op.data.${f.name}}`).join('/');
+    
+    if (ownership) {
+      // Document with ownership relation - need to update both main and index
+      const ownerField = ownership.ownerField;
+      
+      cases.push(`          case 'update-${baseName}':
+            const updated${capitalizeFirst(baseName)} = op.data;
+            // Update main ${baseName} document
+            transactItems.push({
+              Put: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Item: {
+                  $p: \`${docName}/${keyPattern.replace('op.data', `updated${capitalizeFirst(baseName)}`)}\`,
+                  $s: '_',
+                  ...updated${capitalizeFirst(baseName)}
+                },
+                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
+                ExpressionAttributeNames: { '#v': '$v' },
+                ExpressionAttributeValues: { ':expectedVersion': op.expectedVersion }
+              }
+            });
+            // Update index entry
+            transactItems.push({
+              Put: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Item: {
+                  $p: \`${ownership.ownerDocument}/id=\${updated${capitalizeFirst(baseName)}.${ownerField}}\`,
+                  $s: \`${docName}#\${updated${capitalizeFirst(baseName)}.${pkFields[0].name}}\`,
+                  ...updated${capitalizeFirst(baseName)}
+                },
+                ConditionExpression: 'attribute_exists($p)'
+              }
+            });
+            break;`);
+    } else {
+      // Standalone document
+      cases.push(`          case 'update-${baseName}':
+            transactItems.push({
+              Put: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Item: {
+                  $p: \`${docName}/${keyPattern}\`,
+                  $s: '_',
+                  ...op.data
+                },
+                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
+                ExpressionAttributeNames: { '#v': '$v' },
+                ExpressionAttributeValues: { ':expectedVersion': op.expectedVersion }
+              }
+            });
+            break;`);
+    }
+  }
+  
+  return cases.join('\n            \n');
+}
+
+function generateUpdateWithFunctionCases(evolution: SchemaEvolution): string {
+  const cases: string[] = [];
+  
+  for (const [docName, docDef] of evolution.documents) {
+    const baseName = docName.replace(/Doc$/, '').toLowerCase();
+    const typeName = capitalizeFirst(docName);
+    const pkFields = findPrimaryKeyFields(docDef);
+    const ownership = evolution.ownerships.find(o => o.ownedDocument === docName);
+    
+    if (pkFields.length === 0) continue;
+    
+    // Generate parameters for function call
+    const getFuncParams = pkFields.length === 1 
+      ? `{${pkFields[0].name}: op.${pkFields[0].name}}`
+      : `{${pkFields.map(f => `${f.name}: op.${f.name}`).join(', ')}}`;
+    
+    const keyPattern = pkFields.map(f => `${f.name}=\${updated${capitalizeFirst(baseName)}FromFunction.${f.name}}`).join('/');
+    
+    if (ownership) {
+      // Document with ownership relation
+      const ownerField = ownership.ownerField;
+      
+      cases.push(`          case 'update-${baseName}-with-function':
+            const current${capitalizeFirst(baseName)} = await this.get${typeName}(${getFuncParams});
+            if (!current${capitalizeFirst(baseName)}) {
+              throw new Error(\`${capitalizeFirst(baseName)} not found for function-based update: \${${pkFields.map(f => `op.${f.name}`).join(' + "/" + ')}}\`);
+            }
+            const updated${capitalizeFirst(baseName)}FromFunction = op.updater(current${capitalizeFirst(baseName)});
+            // Update main ${baseName} document
+            transactItems.push({
+              Put: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Item: {
+                  $p: \`${docName}/${keyPattern}\`,
+                  $s: '_',
+                  ...updated${capitalizeFirst(baseName)}FromFunction,
+                  $v: updated${capitalizeFirst(baseName)}FromFunction.$v + 1
+                },
+                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
+                ExpressionAttributeNames: { '#v': '$v' },
+                ExpressionAttributeValues: { ':expectedVersion': current${capitalizeFirst(baseName)}.$v }
+              }
+            });
+            // Update index entry
+            transactItems.push({
+              Put: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Item: {
+                  $p: \`${ownership.ownerDocument}/id=\${updated${capitalizeFirst(baseName)}FromFunction.${ownerField}}\`,
+                  $s: \`${docName}#\${updated${capitalizeFirst(baseName)}FromFunction.${pkFields[0].name}}\`,
+                  ...updated${capitalizeFirst(baseName)}FromFunction,
+                  $v: updated${capitalizeFirst(baseName)}FromFunction.$v + 1
+                },
+                ConditionExpression: 'attribute_exists($p)'
+              }
+            });
+            break;`);
+    } else {
+      // Standalone document
+      cases.push(`          case 'update-${baseName}-with-function':
+            const current${capitalizeFirst(baseName)} = await this.get${typeName}(${getFuncParams});
+            if (!current${capitalizeFirst(baseName)}) {
+              throw new Error(\`${capitalizeFirst(baseName)} not found for function-based update: \${${pkFields.map(f => `op.${f.name}`).join(' + "/" + ')}}\`);
+            }
+            const updated${capitalizeFirst(baseName)}FromFunction = op.updater(current${capitalizeFirst(baseName)});
+            transactItems.push({
+              Put: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Item: {
+                  $p: \`${docName}/${keyPattern}\`,
+                  $s: '_',
+                  ...updated${capitalizeFirst(baseName)}FromFunction,
+                  $v: updated${capitalizeFirst(baseName)}FromFunction.$v + 1
+                },
+                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
+                ExpressionAttributeNames: { '#v': '$v' },
+                ExpressionAttributeValues: { ':expectedVersion': current${capitalizeFirst(baseName)}.$v }
+              }
+            });
+            break;`);
+    }
+  }
+  
+  return cases.join('\n            \n');
+}
+
+function generateDeleteCases(evolution: SchemaEvolution): string {
+  const cases: string[] = [];
+  
+  for (const [docName, docDef] of evolution.documents) {
+    const baseName = docName.replace(/Doc$/, '').toLowerCase();
+    const pkFields = findPrimaryKeyFields(docDef);
+    const ownership = evolution.ownerships.find(o => o.ownedDocument === docName);
+    
+    if (pkFields.length === 0) continue;
+    
+    const keyPattern = pkFields.map(f => `${f.name}=\${op.${f.name}}`).join('/');
+    
+    if (ownership) {
+      // Document with ownership relation
+      const ownerField = ownership.ownerField;
+      
+      cases.push(`          case 'delete-${baseName}':
+            // Delete main document (no error if not exists)
+            transactItems.push({
+              Delete: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Key: {
+                  $p: \`${docName}/${keyPattern}\`,
+                  $s: '_'
+                }
+              }
+            });
+            // Delete index entry if ${ownerField} is provided
+            if (op.${ownerField}) {
+              transactItems.push({
+                Delete: {
+                  TableName: config.DYNAMODB_TABLE_NAME,
+                  Key: {
+                    $p: \`${ownership.ownerDocument}/\${getOwnerKeyString(evolution, ownership.ownerDocument, op.${ownerField})}\`,
+                    $s: \`${docName}#\${op.${pkFields[0].name}}\`
+                  }
+                }
+              });
+            }
+            break;`);
+    } else {
+      // Standalone document
+      cases.push(`          case 'delete-${baseName}':
+            transactItems.push({
+              Delete: {
+                TableName: config.DYNAMODB_TABLE_NAME,
+                Key: {
+                  $p: \`${docName}/${keyPattern}\`,
+                  $s: '_'
+                }
+              }
+            });
+            break;`);
+    }
+  }
+  
+  return cases.join('\n            \n');
+}
+
+function getOwnerKeyString(evolution: SchemaEvolution, ownerDocName: string, ownerId: string): string {
+  const ownerDoc = evolution.documents.get(ownerDocName);
+  if (!ownerDoc) return `id=${ownerId}`;
+  
+  const pkFields = findPrimaryKeyFields(ownerDoc);
+  if (pkFields.length === 0) return `id=${ownerId}`;
+  if (pkFields.length === 1) return `${pkFields[0].name}=${ownerId}`;
+  
+  // For composite keys, assume first field is the main identifier
+  return `${pkFields[0].name}=${ownerId}`;
+}
+
+function findPrimaryKeyFields(docDef: DocumentDefinition): FieldDefinition[] {
+  return docDef.fields.filter(f => f.isPrimaryKey);
+}
+
+function getTypeScriptType(fieldType: string): string {
+  switch (fieldType) {
+    case 'string': return 'string';
+    case 'number': return 'number';
+    case 'boolean': return 'boolean';
+    case 'string[]': return 'string[]';
+    case 'number[]': return 'number[]';
+    case 'object': return 'object';
+    default: return 'any';
+  }
+}
+
+function findOwnerField(docName: string, ownerDocName: string): string | null {
+  // Convert OwnerDoc to expected field patterns
+  const ownerBaseName = ownerDocName.replace(/Doc$/, '');
+  return ownerBaseName.toLowerCase() + 'Id';
 }
 
 function capitalizeFirst(str: string): string {

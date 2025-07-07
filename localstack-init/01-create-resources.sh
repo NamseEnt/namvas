@@ -15,4 +15,13 @@ awslocal dynamodb create-table \
   --billing-mode PAY_PER_REQUEST \
   --region us-east-1 || echo "Table may already exist"
 
+echo "Creating SQS queues..."
+awslocal sqs create-queue \
+  --queue-name main-queue \
+  --region us-east-1 || echo "Main queue may already exist"
+
+awslocal sqs create-queue \
+  --queue-name main-dlq \
+  --region us-east-1 || echo "Main DLQ may already exist"
+
 echo "LocalStack resources created successfully!"

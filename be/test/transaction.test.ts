@@ -22,7 +22,7 @@ describe("Transaction API", () => {
     try {
       await ddb.tx((tx) =>
         tx
-          .createUser(userData)
+          .createUserDoc(userData)
           .createArtwork(artworkData, { id: "user123" })
           .deleteSession("old-session")
       );
@@ -44,7 +44,7 @@ describe("Transaction API", () => {
     // Update with new fluent API
     try {
       await ddb.tx((tx) =>
-        tx.updateUser(existingUser).deleteSession("old-session")
+        tx.updateUserDoc(existingUser).deleteSession("old-session")
       );
     } catch (error: unknown) {
       // Expected to fail in test environment
@@ -62,7 +62,7 @@ describe("Transaction API", () => {
       await ddb.tx((tx) =>
         tx
           // 1. 새 유저 생성 ($v는 자동으로 1로 설정됨)
-          .createUser({
+          .createUserDoc({
             id: userId,
             createdAt: new Date().toISOString(),
             tosAgreed: true,
@@ -118,7 +118,7 @@ describe("Transaction API", () => {
       await ddb.tx((tx) =>
         tx
           // 1. 사용자 정보 업데이트 (function-based update)
-          .updateUser((user) => {
+          .updateUserDoc((user) => {
             user.tosAgreed = true;
             return user;
           }, userId)
@@ -162,7 +162,7 @@ describe("Transaction API", () => {
     try {
       await ddb.tx((tx) =>
         tx
-          .createUser({
+          .createUserDoc({
             id: "user456",
             createdAt: new Date().toISOString(),
             tosAgreed: true,
@@ -184,7 +184,7 @@ describe("Transaction API", () => {
       await ddb.tx((tx) =>
         tx
           // Function-based update - much cleaner!
-          .updateUser((user) => {
+          .updateUserDoc((user) => {
             user.tosAgreed = true;
             return user;
           }, "user123")
@@ -229,8 +229,8 @@ describe("Transaction API", () => {
       await ddb.tx(
         (tx) =>
           tx
-            .createUser(userData) // $v will be set to 1
-            .updateUser(existingUserFromDB) // $v will be incremented to 4, with condition check
+            .createUserDoc(userData) // $v will be set to 1
+            .updateUserDoc(existingUserFromDB) // $v will be incremented to 4, with condition check
       );
     } catch (error: unknown) {
       // Expected to fail in test environment
@@ -248,7 +248,7 @@ describe("Transaction API", () => {
       await ddb.tx((tx) =>
         tx
           // Scenario 1: Toggle user settings
-          .updateUser((user) => {
+          .updateUserDoc((user) => {
             user.tosAgreed = !user.tosAgreed;
             return user;
           }, "user123")

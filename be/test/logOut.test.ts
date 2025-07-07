@@ -4,7 +4,7 @@ import { ApiRequest } from "../src/types";
 
 describe("logOut", () => {
   test("should return ok when no session", async () => {
-    ddb.getSession = () => Promise.resolve(undefined);
+    ddb.getSessionDoc = () => Promise.resolve(undefined);
 
     const req: ApiRequest = { cookies: {}, headers: {} };
     const result = await apis.logOut({}, req);
@@ -13,9 +13,9 @@ describe("logOut", () => {
   });
 
   test("should delete session and clear cookie when session exists", async () => {
-    ddb.getSession = () =>
-      Promise.resolve({ userId: "user123", id: "session123" });
-    ddb.deleteSession = () => Promise.resolve();
+    ddb.getSessionDoc = () =>
+      Promise.resolve({ userId: "user123", id: "session123", $v: 1 });
+    ddb.deleteSessionDoc = () => Promise.resolve();
 
     const req: ApiRequest = {
       cookies: { sessionId: "session123" },

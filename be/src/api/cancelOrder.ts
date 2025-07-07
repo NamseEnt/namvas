@@ -9,25 +9,25 @@ export const cancelOrder = async (
 ): Promise<ApiSpec["cancelOrder"]["res"]> => {
   const session = await getSession(req);
   if (!session) {
-    return { ok: false, reason: "NOT_AUTHORIZED" };
+    return { ok: false, reason: "PERMISION_DENIED" };
   }
 
   try {
-    const order = await ddb.getOrder({ id: orderId });
+    const order = await ddb.getOrderDoc({ id: orderId });
     
     if (!order) {
       return { ok: false, reason: "ORDER_NOT_FOUND" };
     }
 
     if (order.userId !== session.userId) {
-      return { ok: false, reason: "NOT_AUTHORIZED" };
+      return { ok: false, reason: "PERMISION_DENIED" };
     }
 
     if (order.status === "shipping" || order.status === "delivered") {
       return { ok: false, reason: "TOO_LATE_TO_CANCEL" };
     }
 
-    await ddb.deleteOrder({ id: orderId });
+    await ddb.deleteOrderDoc({ id: orderId });
     
     return { ok: true };
   } catch (error) {

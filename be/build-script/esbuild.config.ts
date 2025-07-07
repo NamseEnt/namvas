@@ -54,6 +54,9 @@ export const testOptions: BuildOptions = {
   entryPoints: ["test/*.test.ts"],
   outdir: "dist",
   minify: false,
+  define: {
+    "process.env.NODE_ENV": '"test"'
+  },
 };
 
 // Local development build configuration

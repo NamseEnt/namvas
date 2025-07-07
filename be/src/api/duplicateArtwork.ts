@@ -10,7 +10,7 @@ export const duplicateArtwork = async (
 ): Promise<ApiSpec["duplicateArtwork"]["res"]> => {
   const session = await getSession(req);
   if (!session) {
-    return { ok: false, reason: "NOT_LOGGED_IN" };
+    return { ok: false, reason: "PERMISSION_DENIED" };
   }
 
   const existingArtwork = await ddb.getArtworkDoc({ id: artworkId });
@@ -19,7 +19,7 @@ export const duplicateArtwork = async (
   }
 
   if (existingArtwork.ownerId !== session.userId) {
-    return { ok: false, reason: "PERMISION_DENIED" };
+    return { ok: false, reason: "PERMISSION_DENIED" };
   }
 
   const newArtworkId = generateId();
@@ -31,10 +31,7 @@ export const duplicateArtwork = async (
     title,
   };
 
-  await ddb.putArtworkDoc({
-    ...duplicatedArtwork,
-    $v: 1
-  });
+  await ddb.tx(tx => tx.createArtworkDoc(duplicatedArtwork, { id: session.userId }));
 
   return { ok: true, artworkId: newArtworkId };
 };
