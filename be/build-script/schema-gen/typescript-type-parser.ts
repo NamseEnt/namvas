@@ -30,6 +30,18 @@ export function parseTypeScriptSchema(filePath: string): ParsedSchema {
         if (indexDef) {
           indexes.set(typeName, indexDef);
         }
+      } else if (typeName.endsWith('List')) {
+        // List type - special handling
+        const fields = parseTypeFields(node.type, sourceText);
+        
+        if (fields.length > 0) {
+          documents.set(typeName, {
+            name: typeName,
+            fields,
+            version: 1,
+            isList: true, // Mark as list type
+          });
+        }
       } else {
         // Regular document type
         const fields = parseTypeFields(node.type, sourceText);
@@ -146,6 +158,7 @@ function parseTypeFields(typeNode: ts.TypeNode, sourceText: string): FieldDefini
             name: fieldName,
             type: fieldType.type,
             isPrimaryKey: fieldType.isPrimaryKey,
+            isSortKey: fieldType.isSortKey || false,
           });
         }
       }
@@ -158,10 +171,11 @@ function parseTypeFields(typeNode: ts.TypeNode, sourceText: string): FieldDefini
 interface ParsedFieldType {
   type: FieldType;
   isPrimaryKey: boolean;
+  isSortKey?: boolean;
 }
 
 function parseFieldType(typeNode: ts.TypeNode, sourceText: string): ParsedFieldType | null {
-  // Check if it's wrapped in Pk<T>
+  // Check if it's wrapped in Pk<T> or Sk<T>
   if (ts.isTypeReferenceNode(typeNode)) {
     const typeName = typeNode.typeName;
     if (ts.isIdentifier(typeName) && typeName.text === 'Pk') {
@@ -170,6 +184,14 @@ function parseFieldType(typeNode: ts.TypeNode, sourceText: string): ParsedFieldT
         const innerType = parseFieldType(typeNode.typeArguments[0], sourceText);
         if (innerType) {
           return { ...innerType, isPrimaryKey: true };
+        }
+      }
+    } else if (ts.isIdentifier(typeName) && typeName.text === 'Sk') {
+      // This is a sort key
+      if (typeNode.typeArguments && typeNode.typeArguments.length > 0) {
+        const innerType = parseFieldType(typeNode.typeArguments[0], sourceText);
+        if (innerType) {
+          return { ...innerType, isSortKey: true };
         }
       }
     }

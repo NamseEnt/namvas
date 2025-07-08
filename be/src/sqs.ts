@@ -36,7 +36,6 @@ export type QueueMessageSpec = {
   processPayment: {
     req: {
       orderId: string;
-      naverPaymentId: string;
     };
   };
 };

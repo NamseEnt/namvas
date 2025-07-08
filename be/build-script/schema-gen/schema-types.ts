@@ -7,12 +7,14 @@ export interface FieldDefinition {
   type: FieldType;
   defaultValue?: string;
   isPrimaryKey?: boolean;
+  isSortKey?: boolean;
 }
 
 export interface DocumentDefinition {
   name: string;
   fields: FieldDefinition[];
   version: number; // Version when this document was created
+  isList?: boolean; // If true, this is a List type
 }
 
 export interface IndexDefinition {

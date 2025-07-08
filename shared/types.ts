@@ -41,22 +41,24 @@ export type Order = {
     memo: string;
   };
   status:
-    | "payment_pending"
-    | "payment_completed"
+    | "payment_verifing"
     | "payment_failed"
+    | "waiting_start_production"
     | "in_production"
     | "shipping"
-    | "delivered";
+    | "delivered"
+    | "order_canceled";
   logs: Array<{
     type:
-      | "payment_pending"
-      | "payment_completed"
-      | "payment_failed"
+      | "order_arrived"
+      | "payment_verification_failed"
+      | "payment_verification_completed"
       | "production_started"
       | "production_completed"
       | "shipment_registered"
       | "package_picked_up"
-      | "package_delivered";
+      | "package_delivered"
+      | "order_cancel_requested";
     timestamp: string;
     message: string;
   }>;
