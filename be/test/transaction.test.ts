@@ -83,11 +83,14 @@ describe("Transaction API", () => {
           )
 
           // 3. OAuth 연결
-          .createIdentityDoc({
-            provider: "google",
-            providerId: "google-oauth-id-123",
-            userId: userId,
-          })
+          .createIdentityDoc(
+            {
+              provider: "google",
+              providerId: "google-oauth-id-123",
+              userId: userId,
+            },
+            { id: userId }
+          )
 
           // 4. 로그인 세션 생성
           .createSessionDoc({
@@ -281,6 +284,7 @@ describe("Transaction API", () => {
       const result = await ddb.queryArtworksOfUser({
         id: "user123",
         nextToken: undefined,
+        limit: 10,
       });
 
       // This should have the same structure as queryArtworksOfUser

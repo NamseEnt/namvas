@@ -73,6 +73,6 @@ function capitalizeFirst(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-if (import.meta.main) {
+if ((import.meta as any).main) {
   main();
 }

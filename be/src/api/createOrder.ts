@@ -17,6 +17,30 @@ export const createOrder: Apis["createOrder"] = async (
     return { ok: false, reason: "EMPTY_ORDER_ITEMS" };
   }
 
+  // 각 주문 항목 검증
+  for (const row of rows) {
+    // 1. 아이템 타입 검증
+    if (row.item.type !== "artwork" && row.item.type !== "plasticStand") {
+      return { ok: false, reason: "INVALID_ITEM_TYPE" };
+    }
+    
+    // 2. 갯수 검증
+    if (row.count <= 0) {
+      return { ok: false, reason: "INVALID_COUNT" };
+    }
+    
+    // 3. 가격 검증
+    if (row.price <= 0) {
+      return { ok: false, reason: "INVALID_PRICE" };
+    }
+    
+    // 4. 아이템별 정확한 가격 검증
+    const expectedPrice = row.item.type === "artwork" ? 10000 : 250;
+    if (row.price !== expectedPrice) {
+      return { ok: false, reason: "INVALID_PRICE" };
+    }
+  }
+
   const orderId = generateId();
 
   await ddb.tx((tx) =>

@@ -1,6 +1,7 @@
 import { ddb } from "../__generated/db";
 import { config } from "../config";
 import { OrderDoc } from "../schema";
+import { calculateTotalPayAmount } from "./calculateTotalPayAmount";
 
 const alreadyCanceledStatuses: OrderDoc["status"][] = [
   "payment_canceled",
@@ -147,11 +148,4 @@ enum Code {
   FaultCheckOngoing = "FaultCheckOngoing",
   // 즉시 할인 정책에 따라 취소가 불가합니다.
   InvalidDiscountCancelCondition = "InvalidDiscountCancelCondition",
-}
-function calculateTotalPayAmount(orderDoc: OrderDoc) {
-  let totalPayAmount = 0;
-  for (const item of orderDoc.rows) {
-    totalPayAmount += item.price * item.count;
-  }
-  return totalPayAmount;
 }

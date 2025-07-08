@@ -35,6 +35,8 @@ export async function executeTypeScriptSchema(filePath: string): Promise<ParsedS
 
     return {
       documents,
+      indexes: new Map(),
+      ownerships: [],
       commands,
       currentVersion,
       migrations

@@ -103,7 +103,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "NOT_LOGGED_IN" | "EMPTY_ORDER_ITEMS";
+          reason: "NOT_LOGGED_IN" | "EMPTY_ORDER_ITEMS" | "INVALID_ITEM_TYPE" | "INVALID_COUNT" | "INVALID_PRICE";
         };
   };
   listMyOrders: {

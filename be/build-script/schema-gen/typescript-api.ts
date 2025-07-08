@@ -27,7 +27,7 @@ export function pk(type: TypeSymbol): TypeSymbol {
 }
 
 // Type mapping
-type TypeSymbol = typeof string | typeof number | typeof boolean | typeof stringArray | typeof numberArray | typeof object;
+type TypeSymbol = typeof string | typeof number | typeof boolean | typeof stringArray | typeof numberArray | typeof object | symbol;
 
 const typeSymbolToString = new Map<TypeSymbol, FieldType>([
   [string, 'string'],

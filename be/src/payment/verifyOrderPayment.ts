@@ -1,6 +1,6 @@
 import { ddb } from "../__generated/db";
 import { config } from "../config";
-import { OrderDoc } from "../schema";
+import { calculateTotalPayAmount } from "./calculateTotalPayAmount";
 
 export async function verifyOrderPayment({ orderId }: { orderId: string }) {
   const orderDoc = await ddb.getOrderDoc({ id: orderId });
@@ -108,11 +108,4 @@ enum Code {
   NotEnoughAccountBalance = "NotEnoughAccountBalance",
   MaintenanceOngoing = "MaintenanceOngoing",
   FaultCheckOngoing = "FaultCheckOngoing",
-}
-function calculateTotalPayAmount(orderDoc: OrderDoc) {
-  let totalPayAmount = 0;
-  for (const item of orderDoc.rows) {
-    totalPayAmount += item.price * item.count;
-  }
-  return totalPayAmount;
 }
