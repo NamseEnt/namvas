@@ -273,7 +273,7 @@ ${generateTransactionBuilderMethods(schema)}
 }
 
 const clientConfig = isLocalDev() ? {
-  endpoint: "http://localhost:4566",
+  endpoint: process.env.AWS_ENDPOINT_URL || "http://localhost:4566",
   region: "us-east-1",
   credentials: {
     accessKeyId: "test",
@@ -533,7 +533,10 @@ function generateQueryFunction(indexName: string, indexDef: IndexDefinition, own
   return `  async ${camelCaseName}({${ownerKeyValues}, nextToken, limit}: {${ownerKeyParams}, nextToken?: string, limit: number}): Promise<{items: Schema.${itemDoc.name}[], nextToken?: string}> {
     const result = await client.query({
       TableName: config.DYNAMODB_TABLE_NAME,
-      KeyConditionExpression: \`$p = :pk\`,
+      KeyConditionExpression: \`#p = :pk\`,
+      ExpressionAttributeNames: {
+        '#p': '$p'
+      },
       ExpressionAttributeValues: {
         ':pk': \`${indexName}/${ownerKeyPattern}\`
       },
@@ -1406,7 +1409,10 @@ function generateListQueryFunction(docName: string, typeName: string): string {
   return `  async ${functionName}({nextToken, limit}: {nextToken?: string, limit: number}): Promise<{items: Schema.${docName}[], nextToken?: string}> {
     const result = await client.query({
       TableName: config.DYNAMODB_TABLE_NAME,
-      KeyConditionExpression: \`$p = :pk\`,
+      KeyConditionExpression: \`#p = :pk\`,
+      ExpressionAttributeNames: {
+        '#p': '$p'
+      },
       ExpressionAttributeValues: {
         ':pk': '${listName}'
       },

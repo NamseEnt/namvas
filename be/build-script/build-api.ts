@@ -30,7 +30,7 @@ export async function buildLocal(
   const adjustedOptions = {
     ...localOptions,
     entryPoints,
-    outfile: path.resolve(beDir, localOptions.outfile ?? ""),
+    outdir: path.resolve(beDir, localOptions.outdir ?? "dist"),
     absWorkingDir: beDir,
   };
 

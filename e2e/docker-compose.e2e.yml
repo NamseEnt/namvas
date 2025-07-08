@@ -1,0 +1,59 @@
+services:
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack-e2e
+    environment:
+      - SERVICES=s3,dynamodb,sqs,lambda,iam,apigateway
+      - DEBUG=0
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - PERSIST=0
+      - CORS_ALLOW_ORIGIN=*
+      - CORS_EXPOSE_HEADERS=*
+    volumes:
+      - ../localstack-init:/etc/localstack/init/ready.d
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  lambda-emulator:
+    build:
+      context: ..
+      dockerfile: e2e/Dockerfile.lambda-emulator
+    container_name: lambda-emulator-e2e
+    environment:
+      - PORT=3003
+      - LOCAL_DEV=1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    depends_on:
+      localstack:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "http://localhost:3003/__emulator/request"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  frontend-deploy:
+    build:
+      context: ..
+      dockerfile: e2e/Dockerfile.frontend-deploy
+    container_name: frontend-deploy-e2e
+    working_dir: /opt/code
+    environment:
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - LOCALSTACK_PORT=${LOCALSTACK_PORT:-4568}
+    depends_on:
+      lambda-emulator:
+        condition: service_healthy
+    command: ["/opt/code/frontend-deploy.sh"]

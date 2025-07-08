@@ -1,0 +1,27 @@
+FROM alpine:latest
+
+# Install necessary packages
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    nodejs \
+    npm \
+    curl \
+    bash
+
+# Install AWS CLI and awslocal
+RUN pip3 install --break-system-packages awscli awscli-local
+
+# Set working directory
+WORKDIR /opt/code
+
+# Copy frontend and shared code
+COPY fe /opt/code/fe
+COPY shared /opt/code/shared
+COPY e2e/frontend-deploy.sh /opt/code/frontend-deploy.sh
+
+# Make script executable
+RUN chmod +x /opt/code/frontend-deploy.sh
+
+# Default command
+CMD ["sh"]
