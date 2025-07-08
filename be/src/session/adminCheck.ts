@@ -1,5 +1,6 @@
 import { getSession } from "./index";
 import { ApiRequest } from "../types";
+import { ddb } from "../__generated/db";
 
 // Hardcoded admin provider IDs  
 const ADMIN_PROVIDER_IDS = new Set([
@@ -10,20 +11,17 @@ const ADMIN_PROVIDER_IDS = new Set([
 export const isAdmin = async (req: ApiRequest): Promise<boolean> => {
   const session = await getSession(req);
   if (!session) {
-    return false;
+    return false; // 로그인하지 않은 것은 비즈니스 로직상 관리자가 아님
   }
 
-  // Get all identities for this user and check if any match admin provider IDs
-  try {
-    // TODO: Implement efficient query to get identities by userId
-    // For now, we'll need to check against known admin identities
-    // This is a placeholder implementation
-    
-    // Check if any provider ID matches hardcoded admin IDs
-    // This would need a proper implementation with identity lookup by userId
-    return false; // TODO: Implement proper admin check based on provider ID
-  } catch (error) {
-    console.error("Admin check error:", error);
-    return false;
-  }
+  // 에러가 발생하면 그대로 throw하여 호출자가 적절히 처리하도록 함
+  const { items: identities } = await ddb.queryIdentitiesOfUser({
+    id: session.userId,
+    limit: 10
+  });
+
+  // Check if any identity matches admin provider IDs
+  return identities.some(identity => 
+    ADMIN_PROVIDER_IDS.has(`${identity.provider}:${identity.providerId}`)
+  );
 };

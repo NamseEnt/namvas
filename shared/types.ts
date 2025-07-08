@@ -9,28 +9,57 @@ export type OrderStatus =
 
 export type Order = {
   id: string;
-  orderDate: string;
-  status: OrderStatus;
-  items: Array<{
-    artwork: Artwork;
-    quantity: number;
+  rows: Array<{
+    item:
+      | {
+          type: "artwork";
+          title: string;
+          originalImageId: string;
+          dpi: number;
+          imageCenterXy: { x: number; y: number };
+          sideProcessing:
+            | {
+                type: "clip" | "flip" | "none";
+              }
+            | {
+                type: "color";
+                color: string;
+              };
+        }
+      | {
+          type: "plasticStand";
+        };
+    count: number;
     price: number;
   }>;
-  plasticStandCount: number;
-  plasticStandPrice: number;
-  totalPrice: number;
   recipient: {
     name: string;
     phone: string;
     postalCode: string;
     address: string;
     addressDetail: string;
+    memo: string;
   };
-  deliveryMemo: string;
-  // Legacy properties for backward compatibility
-  quantity: number;
-  plasticStand: boolean;
-  artwork: Artwork;
+  status:
+    | "payment_pending"
+    | "payment_completed"
+    | "payment_failed"
+    | "in_production"
+    | "shipping"
+    | "delivered";
+  logs: Array<{
+    type:
+      | "payment_pending"
+      | "payment_completed"
+      | "payment_failed"
+      | "production_started"
+      | "production_completed"
+      | "shipment_registered"
+      | "package_picked_up"
+      | "package_delivered";
+    timestamp: string;
+    message: string;
+  }>;
 };
 
 export type Artwork = {

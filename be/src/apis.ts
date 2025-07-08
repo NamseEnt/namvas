@@ -38,31 +38,16 @@ export const apis: Apis = {
     ),
   createOrder: async (params, req) =>
     (await import("./api/createOrder")).createOrder(params, req),
-  getMyOrders: async (params, req) =>
-    (await import("./api/getMyOrders")).getMyOrders(params, req),
+  listMyOrders: async (params, req) =>
+    (await import("./api/listMyOrders")).listMyOrders(params, req),
   cancelOrder: async (params, req) =>
     (await import("./api/cancelOrder")).cancelOrder(params, req),
-  adminGetDashboard: async (params, req) =>
-    (await import("./api/adminGetDashboard")).adminGetDashboard(params, req),
-  adminGetOrder: async (params, req) =>
-    (await import("./api/adminGetOrder")).adminGetOrder(params, req),
-  adminGetOrders: async (params, req) =>
-    (await import("./api/adminGetOrders")).adminGetOrders(params, req),
-  adminUpdateOrderStatus: async (params, req) =>
-    (await import("./api/adminUpdateOrderStatus")).adminUpdateOrderStatus(
-      params,
-      req
-    ),
-  adminGetUsers: async (params, req) =>
-    (await import("./api/adminGetUsers")).adminGetUsers(params, req),
   newArtwork: async (params, req) =>
     (await import("./api/newArtwork")).newArtwork(params, req),
-  queryMyArtworks: async (params, req) =>
-    (await import("./api/getMyArtworks")).queryMyArtworks(params, req),
-  queryArtworksOfUser: async (params, req) =>
-    (await import("./api/queryArtworksOfUser")).queryArtworksOfUser(params, req),
-  adminGetFailedPayments: async (params, req) =>
-    (await import("./api/adminGetFailedPayments")).adminGetFailedPayments(params, req),
+  listMyArtworks: async (params, req) =>
+    (await import("./api/listMyArtworks")).listMyArtworks(params, req),
+  listArtworksOfUser: async (params, req) =>
+    (await import("./api/listArtworksOfUser")).listArtworksOfUser(params, req),
   updateArtwork: async (params, req) =>
     (await import("./api/updateArtwork")).updateArtwork(params, req),
   deleteArtwork: async (params, req) =>

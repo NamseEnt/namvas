@@ -19,4 +19,5 @@ export let config = {
   DYNAMODB_TABLE_NAME: process.env.DYNAMODB_TABLE_NAME || "main",
   QUEUE_URL:
     process.env.QUEUE_URL || "http://localhost:4566/000000000000/main-queue",
+  PAGINATION_ENCRYPTION_KEY: process.env.PAGINATION_ENCRYPTION_KEY || "test-key-for-development-only-123456789",
 };

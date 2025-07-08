@@ -1,16 +1,15 @@
-import { ApiSpec } from "shared";
 import { getSession } from "../session";
-import { ApiRequest } from "../types";
 import { ddb } from "../__generated/db";
 import { generateId } from "../utils/uuid";
+import { Apis } from "../apis";
 
-export const duplicateArtwork = async (
-  { artworkId, title }: ApiSpec["duplicateArtwork"]["req"],
-  req: ApiRequest
-): Promise<ApiSpec["duplicateArtwork"]["res"]> => {
+export const duplicateArtwork: Apis["duplicateArtwork"] = async (
+  { artworkId, title },
+  req
+) => {
   const session = await getSession(req);
   if (!session) {
-    return { ok: false, reason: "PERMISSION_DENIED" };
+    return { ok: false, reason: "NOT_LOGGED_IN" };
   }
 
   const existingArtwork = await ddb.getArtworkDoc({ id: artworkId });
@@ -23,7 +22,6 @@ export const duplicateArtwork = async (
   }
 
   const newArtworkId = generateId();
-  const now = new Date().toISOString();
 
   const duplicatedArtwork = {
     ...existingArtwork,
@@ -31,7 +29,9 @@ export const duplicateArtwork = async (
     title,
   };
 
-  await ddb.tx(tx => tx.createArtworkDoc(duplicatedArtwork, { id: session.userId }));
+  await ddb.tx((tx) =>
+    tx.createArtworkDoc(duplicatedArtwork, { id: session.userId })
+  );
 
   return { ok: true, artworkId: newArtworkId };
 };

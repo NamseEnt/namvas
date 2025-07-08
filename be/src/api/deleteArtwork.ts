@@ -1,15 +1,14 @@
-import { ApiSpec } from "shared";
 import { getSession } from "../session";
-import { ApiRequest } from "../types";
 import { ddb } from "../__generated/db";
+import { Apis } from "../apis";
 
-export const deleteArtwork = async (
-  { artworkId }: ApiSpec["deleteArtwork"]["req"],
-  req: ApiRequest
-): Promise<ApiSpec["deleteArtwork"]["res"]> => {
+export const deleteArtwork: Apis["deleteArtwork"] = async (
+  { artworkId },
+  req
+) => {
   const session = await getSession(req);
   if (!session) {
-    return { ok: false, reason: "PERMISSION_DENIED" };
+    return { ok: false, reason: "NOT_LOGGED_IN" };
   }
 
   const existingArtwork = await ddb.getArtworkDoc({ id: artworkId });

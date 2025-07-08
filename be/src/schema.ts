@@ -1,5 +1,22 @@
 // ⚠️ 당신이 AI라면 이 파일을 수정하기에 앞서서 꼭 허락을 받으세요 ⚠️
 
+/**
+ * # Schema Types
+ *
+ * ## Doc
+ *
+ * 일반적인 DynamoDB Document. pk는 필수, sk는 선택.
+ *
+ * ## Index
+ *
+ * 두 Doc 사이의 Ownership 관계를 나타내는 인덱스.
+ *
+ * ## List
+ *
+ * 하나의 pk를 공유하여 sk로 query 가능한 목록.
+ *
+ */
+
 type Pk<T> = T;
 type Sk<T> = T;
 type Index<Owner, Item> = unknown;
@@ -24,7 +41,7 @@ export type IdentityDoc = {
   userId: string;
 };
 
-export type ArtworksOfUserIndex = Index<UserDoc, ArtworkDoc>;
+export type IdentitiesOfUserIndex = Index<UserDoc, IdentityDoc>;
 
 export type ArtworkDoc = {
   $v: number;
@@ -43,6 +60,8 @@ export type ArtworkDoc = {
         color: string;
       };
 };
+
+export type ArtworksOfUserIndex = Index<UserDoc, ArtworkDoc>;
 
 export type OrderDoc = {
   $v: number;
@@ -81,25 +100,34 @@ export type OrderDoc = {
     memo: string;
   };
   status:
-    | "payment_pending"
-    | "payment_completed"
+    | "payment_verifing"
     | "payment_failed"
+    | "waiting_start_production"
     | "in_production"
     | "shipping"
-    | "delivered";
+    | "delivered"
+    | "order_canceled";
   logs: Array<{
     type:
-      | "payment_pending"
-      | "payment_completed"
-      | "payment_failed"
+      | "order_arrived"
+      | "payment_verification_failed"
+      | "payment_verification_completed"
       | "production_started"
       | "production_completed"
       | "shipment_registered"
       | "package_picked_up"
-      | "package_delivered";
+      | "package_delivered"
+      | "order_cancel_requested";
     timestamp: string;
     message: string;
   }>;
+};
+
+export type OrdersOfUserIndex = Index<UserDoc, OrderDoc>;
+
+export type PaymentVerifingOrderList = {
+  $v: number;
+  orderId: Sk<string>;
 };
 
 // export type OrderDoc = {

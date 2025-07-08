@@ -1,13 +1,12 @@
-import { ApiSpec } from "shared";
 import { getSession } from "../session";
-import { ApiRequest } from "../types";
 import { ddb } from "../__generated/db";
 import { generateId } from "../utils/uuid";
+import { Apis } from "../apis";
 
-export const newArtwork = async (
-  {}: ApiSpec["newArtwork"]["req"],
-  req: ApiRequest
-): Promise<ApiSpec["newArtwork"]["res"]> => {
+export const newArtwork: Apis["newArtwork"] = async (
+  { title, artwork },
+  req
+) => {
   const session = await getSession(req);
   if (!session) {
     return { ok: false, reason: "NOT_LOGGED_IN" };
@@ -15,17 +14,20 @@ export const newArtwork = async (
 
   const artworkId = generateId();
 
-  const newArtworkDoc = {
-    id: artworkId,
-    ownerId: session.userId,
-    title: "Untitled Artwork",
-    originalImageId: "",
-    dpi: 300,
-    imageCenterXy: { x: 0, y: 0 },
-    sideProcessing: { type: "none" as const },
-  };
-
-  await ddb.tx(tx => tx.createArtworkDoc(newArtworkDoc, { id: session.userId }));
+  await ddb.tx((tx) =>
+    tx.createArtworkDoc(
+      {
+        id: artworkId,
+        ownerId: session.userId,
+        title,
+        originalImageId: artwork.originalImageId,
+        dpi: artwork.dpi,
+        imageCenterXy: artwork.imageCenterXy,
+        sideProcessing: artwork.sideProcessing,
+      },
+      { id: session.userId }
+    )
+  );
 
   return { ok: true, artworkId };
 };

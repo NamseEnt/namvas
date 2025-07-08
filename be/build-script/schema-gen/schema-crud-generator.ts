@@ -152,11 +152,40 @@ function findOwnerFieldFromSchema(docDef: DocumentDefinition, ownerships: Owners
 }
 
 export function generateSchemaCRUD(schema: ParsedSchema): string {
-  let output = `import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+  let output = `import crypto from "crypto";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 import type * as Schema from "../schema";
 import { config } from "../config";
 import { isLocalDev } from "../isLocalDev";
+
+// Pagination token encryption/decryption
+const ALGORITHM = "aes-256-cbc";
+const IV_LENGTH = 16;
+
+function encryptPaginationToken(lastEvaluatedKey: Record<string, any>): string {
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const key = crypto.createHash("sha256").update(config.PAGINATION_ENCRYPTION_KEY).digest();
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  
+  let encrypted = cipher.update(JSON.stringify(lastEvaluatedKey), "utf8", "hex");
+  encrypted += cipher.final("hex");
+  
+  return Buffer.concat([iv, Buffer.from(encrypted, "hex")]).toString("base64");
+}
+
+function decryptPaginationToken(token: string): Record<string, any> {
+  const data = Buffer.from(token, "base64");
+  const iv = data.subarray(0, IV_LENGTH);
+  const encrypted = data.subarray(IV_LENGTH).toString("hex");
+  
+  const key = crypto.createHash("sha256").update(config.PAGINATION_ENCRYPTION_KEY).digest();
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  let decrypted = decipher.update(encrypted, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+  
+  return JSON.parse(decrypted);
+}
 
 // Transaction item types
 export type DbTransactionItem = 
@@ -238,7 +267,7 @@ const client = DynamoDBDocument.from(new DynamoDBClient(clientConfig));
     const ownedDoc = schema.documents.get(ownership.ownedDocument);
     
     if (ownerDoc && ownedDoc) {
-      functions.push(generateTransactionalCreateFunction(ownership, ownerDoc, ownedDoc));
+      functions.push(generateTransactionalCreateFunction(ownership, ownerDoc, ownedDoc, schema));
       functions.push(generateTransactionalCreateHelperFunction(ownership, ownerDoc, ownedDoc));
     }
   }
@@ -281,6 +310,9 @@ function generateDeleteFunction(docName: string, typeName: string, pkFields: any
   const keyObject = pkFields.map(f => f.name).join(', ');
   const keyString = pkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
   
+  // Create sort key template for index entries
+  const sortKeyTemplate = pkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
+  
   // Find indexes where this document is the item document
   const relatedIndexes = Array.from(indexes.values()).filter(idx => idx.itemDocument === docName);
   
@@ -315,8 +347,8 @@ function generateDeleteFunction(docName: string, typeName: string, pkFields: any
       await client.delete({
         TableName: config.DYNAMODB_TABLE_NAME,
         Key: {
-          $p: \`${index.ownerDocument}/id=\${itemToDelete.Item.${ownerField}}\`,
-          $s: \`${docName}#\${${keyObject}}\`
+          $p: \`${index.name}/id=\${itemToDelete.Item.${ownerField}}\`,
+          $s: \`${sortKeyTemplate}\`
         }
       });
     }`;
@@ -364,15 +396,15 @@ function generateQueryFunction(indexName: string, indexDef: IndexDefinition, own
   // Extract the item document name without "Doc" suffix for the result type
   const itemTypeName = itemDoc.name.replace(/Doc$/, '');
   
-  return `  async ${camelCaseName}({${ownerKeyValues}, nextToken}: {${ownerKeyParams}, nextToken?: string}): Promise<{items: Schema.${itemDoc.name}[], nextToken?: string}> {
+  return `  async ${camelCaseName}({${ownerKeyValues}, nextToken, limit}: {${ownerKeyParams}, nextToken?: string, limit?: number}): Promise<{items: Schema.${itemDoc.name}[], nextToken?: string}> {
     const result = await client.query({
       TableName: config.DYNAMODB_TABLE_NAME,
-      KeyConditionExpression: \`$p = :pk AND begins_with($s, :sk)\`,
+      KeyConditionExpression: \`$p = :pk\`,
       ExpressionAttributeValues: {
-        ':pk': \`${ownerDoc.name}/${ownerKeyPattern}\`,
-        ':sk': \`${itemDoc.name}#\`
+        ':pk': \`${indexName}/${ownerKeyPattern}\`
       },
-      ExclusiveStartKey: nextToken ? JSON.parse(Buffer.from(nextToken, 'base64').toString()) : undefined
+      ExclusiveStartKey: nextToken ? decryptPaginationToken(nextToken) : undefined,
+      Limit: limit
     });
     
     const items = (result.Items || []).map(item => {
@@ -381,7 +413,7 @@ function generateQueryFunction(indexName: string, indexDef: IndexDefinition, own
     });
     
     const resultNextToken = result.LastEvaluatedKey ? 
-      Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64') : 
+      encryptPaginationToken(result.LastEvaluatedKey) : 
       undefined;
     
     return {
@@ -392,10 +424,20 @@ function generateQueryFunction(indexName: string, indexDef: IndexDefinition, own
 }
 
 
-function generateTransactionalCreateFunction(ownership: OwnershipRelation, ownerDoc: DocumentDefinition, ownedDoc: DocumentDefinition): string {
+function generateTransactionalCreateFunction(ownership: OwnershipRelation, ownerDoc: DocumentDefinition, ownedDoc: DocumentDefinition, schema: ParsedSchema): string {
   const ownedTypeName = capitalizeFirst(ownedDoc.name);
   const ownerPkFields = findPrimaryKeyFields(ownerDoc);
   const ownedPkFields = findPrimaryKeyFields(ownedDoc);
+  
+  // Find the corresponding index
+  const index = Array.from(schema.indexes.values()).find(idx => 
+    idx.ownerDocument === ownerDoc.name && idx.itemDocument === ownedDoc.name
+  );
+  
+  if (!index) {
+    console.warn(`Cannot find index for ${ownerDoc.name} -> ${ownedDoc.name}`);
+    return '';
+  }
   
   if (ownerPkFields.length === 0 || ownedPkFields.length === 0) {
     console.warn(`Cannot generate transactional create for ${ownedDoc.name}: missing primary keys`);
@@ -436,8 +478,8 @@ function generateTransactionalCreateFunction(ownership: OwnershipRelation, owner
         Put: {
           TableName: config.DYNAMODB_TABLE_NAME,
           Item: {
-            $p: \`${ownerDoc.name}/${ownerKeyPattern}\`,
-            $s: \`${ownedDoc.name}#\${itemToCreate.${ownedPkFields[0].name}}\`,
+            $p: \`${index.name}/${ownerKeyPattern}\`,
+            $s: \`${ownedPkFields.map(f => `${f.name}=\${itemToCreate.${f.name}}`).join('/')}\`,
             ...itemToCreate
           }
         }
@@ -455,6 +497,10 @@ function generateTransactionHelperFunctions(docName: string, typeName: string, p
   const keyObject = pkFields.map(f => f.name).join(', ');
   const keyString = pkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
   const itemKeyString = pkFields.map(f => `${f.name}=\${${docName}.${f.name}}`).join('/');
+  
+  // Create sort key template for index entries
+  const sortKeyTemplateForDelete = pkFields.map(f => `${f.name}=\${existingItem.${f.name}}`).join('/');
+  const sortKeyTemplateForCreate = pkFields.map(f => `${f.name}=\${${docName}.${f.name}}`).join('/');
   
   // Find indexes where this document is the item document
   const relatedIndexes = Array.from(indexes.values()).filter(idx => idx.itemDocument === docName);
@@ -483,8 +529,8 @@ function generateTransactionHelperFunctions(docName: string, typeName: string, p
       type: 'create',
       tableName: config.DYNAMODB_TABLE_NAME,
       item: {
-        $p: \`${index.ownerDocument}/id=\${${docName}.${ownerField}}\`,
-        $s: \`${docName}#\${${docName}.${pkFields[0].name}}\`,
+        $p: \`${index.name}/id=\${${docName}.${ownerField}}\`,
+        $s: \`${sortKeyTemplateForCreate}\`,
         ...${docName}
       }
     });`;
@@ -524,8 +570,8 @@ function generateTransactionHelperFunctions(docName: string, typeName: string, p
       type: 'delete',
       tableName: config.DYNAMODB_TABLE_NAME,
       key: {
-        $p: \`${index.ownerDocument}/id=\${existingItem.${ownerField}}\`,
-        $s: \`${docName}#\${${keyObject}}\`
+        $p: \`${index.name}/id=\${existingItem.${ownerField}}\`,
+        $s: \`${sortKeyTemplateForDelete}\`
       }
     });`;
     }).filter(Boolean);

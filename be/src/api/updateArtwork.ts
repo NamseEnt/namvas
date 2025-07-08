@@ -1,41 +1,37 @@
-import { ApiSpec } from "shared";
 import { getSession } from "../session";
-import { ApiRequest } from "../types";
 import { ddb } from "../__generated/db";
+import { Apis } from "../apis";
 
-export const updateArtwork = async (
-  { artworkId, title, artwork }: ApiSpec["updateArtwork"]["req"],
-  req: ApiRequest
-): Promise<ApiSpec["updateArtwork"]["res"]> => {
+export const updateArtwork: Apis["updateArtwork"] = async (
+  { artworkId, title, artwork },
+  req
+) => {
   const session = await getSession(req);
   if (!session) {
-    return { ok: false, reason: "PERMISSION_DENIED" };
+    return { ok: false, reason: "NOT_LOGGED_IN" };
   }
 
-  const existingArtwork = await ddb.getArtworkDoc({ id: artworkId });
-  if (!existingArtwork) {
+  const existingArtworkDoc = await ddb.getArtworkDoc({ id: artworkId });
+  if (!existingArtworkDoc) {
     return { ok: false, reason: "ARTWORK_NOT_FOUND" };
   }
 
-  if (existingArtwork.ownerId !== session.userId) {
+  if (existingArtworkDoc.ownerId !== session.userId) {
     return { ok: false, reason: "PERMISSION_DENIED" };
   }
 
-  const updatedArtwork = {
-    ...existingArtwork,
-    ...(title !== undefined && { title }),
-    ...(artwork !== undefined && {
-      originalImageId: artwork.originalImageId,
-      imageCenterXy: artwork.imageCenterXy,
-      sideProcessing: artwork.sideProcessing as any,
-      canvasBackgroundColor: artwork.canvasBackgroundColor
-    }),
-  };
+  if (title) {
+    existingArtworkDoc.title = title;
+  }
 
-  await ddb.tx(tx => tx.updateArtworkDoc({
-    ...updatedArtwork,
-    $v: existingArtwork.$v
-  }));
+  if (artwork) {
+    existingArtworkDoc.originalImageId = artwork.originalImageId;
+    existingArtworkDoc.imageCenterXy = artwork.imageCenterXy;
+    existingArtworkDoc.dpi = artwork.dpi;
+    existingArtworkDoc.sideProcessing = artwork.sideProcessing;
+  }
+
+  await ddb.tx((tx) => tx.updateArtworkDoc(existingArtworkDoc));
 
   return { ok: true };
 };
