@@ -20,6 +20,9 @@ export function PageHeader({ title = "NAMVAS", actions }: PageHeaderProps) {
           ) : (
             <div className="flex gap-3">
               <Button variant="outline" size="sm" asChild>
+                <a href="/artworks">내 작품</a>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
                 <a href="/my">주문내역</a>
               </Button>
               <Button variant="outline" size="sm">

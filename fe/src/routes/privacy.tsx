@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+// 예외: 정적 개인정보처리방침 콘텐츠이므로 라우트 파일에서 직접 구현
 export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
 });
 
-export default function PrivacyPage() {
+function PrivacyPage() {
   return <PrivacyContent />;
 }
 

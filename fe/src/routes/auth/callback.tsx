@@ -4,24 +4,23 @@ import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/lib/api";
 
 export const Route = createFileRoute("/auth/callback")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    code: search.code as string | undefined,
+    error: search.error as string | undefined,
+  }),
   component: AuthCallback,
 });
 
 function AuthCallback() {
   const navigate = useNavigate();
+  const { code, error } = Route.useSearch();
 
   const twitterLoginMutation = useMutation({
     mutationFn: ({ code, codeVerifier }: { code: string; codeVerifier: string }) => 
       authApi.loginWithTwitter(code, codeVerifier),
     onSuccess: () => {
       sessionStorage.removeItem("twitter_code_verifier");
-      const urlParams = new URLSearchParams(window.location.search);
-      const state = urlParams.get("state");
-      if (state === "admin") {
-        navigate({ to: "/admin/dashboard" });
-      } else {
-        navigate({ to: "/" });
-      }
+      navigate({ to: "/" });
     },
     onError: (error) => {
       console.error("Twitter login failed:", error);
@@ -32,13 +31,7 @@ function AuthCallback() {
   const googleLoginMutation = useMutation({
     mutationFn: (code: string) => authApi.loginWithGoogle(code),
     onSuccess: () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const state = urlParams.get("state");
-      if (state === "admin") {
-        navigate({ to: "/admin/dashboard" });
-      } else {
-        navigate({ to: "/" });
-      }
+      navigate({ to: "/" });
     },
     onError: (error) => {
       console.error("Google login failed:", error);
@@ -53,9 +46,7 @@ function AuthCallback() {
         return;
       }
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get("code");
-      const error = urlParams.get("error");
+      // code와 error는 이미 Route.useSearch()에서 가져옴
 
       if (error) {
         console.error("OAuth error:", error);
@@ -78,7 +69,7 @@ function AuthCallback() {
         googleLoginMutation.mutate(code);
       }
     },
-    [] // Empty dependency array to run only once on mount
+    [code, error, googleLoginMutation, navigate, twitterLoginMutation] // Dependencies
   );
 
   return (

@@ -49,18 +49,14 @@ export const userApi = {
     apiRequest('getOriginalImageUploadUrl', { contentLength }),
   createOrder: (params: ApiRequest<'createOrder'>): Promise<ApiSuccessResponse<'createOrder'>> => 
     apiRequest('createOrder', params),
-  confirmPayment: async (_paymentId: string): Promise<{ status: string; orderId: string }> => {
-    // TODO: Implement with actual API when available
-    return { status: 'success', orderId: 'temp-order-id' };
-  },
-  getMyOrders: (): Promise<ApiSuccessResponse<'getMyOrders'>> => 
-    apiRequest('getMyOrders', {}),
+  listMyOrders: (params: ApiRequest<'listMyOrders'>): Promise<ApiSuccessResponse<'listMyOrders'>> => 
+    apiRequest('listMyOrders', params),
   cancelOrder: (orderId: string): Promise<ApiSuccessResponse<'cancelOrder'>> => 
     apiRequest('cancelOrder', { orderId }),
   newArtwork: (params: ApiRequest<'newArtwork'>): Promise<ApiSuccessResponse<'newArtwork'>> => 
     apiRequest('newArtwork', params),
-  queryArtworksOfUser: (params: ApiRequest<'queryArtworksOfUser'>): Promise<ApiSuccessResponse<'queryArtworksOfUser'>> => 
-    apiRequest('queryArtworksOfUser', params),
+  listMyArtworks: (params: ApiRequest<'listMyArtworks'>): Promise<ApiSuccessResponse<'listMyArtworks'>> => 
+    apiRequest('listMyArtworks', params),
   updateArtwork: (params: ApiRequest<'updateArtwork'>): Promise<ApiSuccessResponse<'updateArtwork'>> => 
     apiRequest('updateArtwork', params),
   deleteArtwork: (artworkId: string): Promise<ApiSuccessResponse<'deleteArtwork'>> => 
@@ -69,62 +65,6 @@ export const userApi = {
     apiRequest('duplicateArtwork', { artworkId, title }),
 };
 
-// Admin APIs
-export const adminApi = {
-  getDashboard: (): Promise<ApiSuccessResponse<'adminGetDashboard'>> => 
-    apiRequest('adminGetDashboard', {}),
-  getOrders: (params: ApiRequest<'adminGetOrders'>): Promise<ApiSuccessResponse<'adminGetOrders'>> => 
-    apiRequest('adminGetOrders', params),
-  getOrder: (orderId: string): Promise<ApiSuccessResponse<'adminGetOrder'>> => 
-    apiRequest('adminGetOrder', { orderId }),
-  updateOrderStatus: (orderId: string, status: ApiRequest<'adminUpdateOrderStatus'>['status'], adminMemo: string): Promise<ApiSuccessResponse<'adminUpdateOrderStatus'>> => 
-    apiRequest('adminUpdateOrderStatus', { orderId, status, adminMemo }),
-  getUsers: (params: ApiRequest<'adminGetUsers'>): Promise<ApiSuccessResponse<'adminGetUsers'>> => 
-    apiRequest('adminGetUsers', params),
-};
-
-// Legacy compatibility aliases
-export const dashboardApi = {
-  getDashboard: adminApi.getDashboard,
-};
-
-export const orderApi = {
-  getOrders: adminApi.getOrders,
-  getOrderDetail: adminApi.getOrder,
-  updateOrderStatus: (data: { orderId: string; status?: ApiRequest<'adminUpdateOrderStatus'>['status']; adminMemo?: string }) =>
-    adminApi.updateOrderStatus(data.orderId, data.status!, data.adminMemo || ''),
-};
-
-export const settingsApi = {
-  getSiteSettings: async () => {
-    // This endpoint is not in the API spec, so keeping the old implementation
-    const response = await fetch(`${API_BASE_URL}/api/adminGetSiteSettings`, {
-      credentials: 'include',
-    });
-    const result = await response.json();
-    if (!result.ok) {
-      throw new Error(result.error || 'Failed to get site settings');
-    }
-    return result.data;
-  },
-
-  updateSiteSettings: async (settings: Record<string, unknown>) => {
-    // This endpoint is not in the API spec, so keeping the old implementation
-    const response = await fetch(`${API_BASE_URL}/api/adminUpdateSiteSettings`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(settings),
-    });
-    const result = await response.json();
-    if (!result.ok) {
-      throw new Error(result.error || 'Failed to update site settings');
-    }
-    return result.data;
-  },
-};
 
 export const oauthApi = {
   loginWithTwitter: authApi.loginWithTwitter,

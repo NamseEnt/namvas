@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { userApi } from "@/lib/api";
+import { PRICES } from "@/constants";
 import type { Artwork } from "../../../shared/types";
 
 type OrderItem = {
@@ -19,8 +20,8 @@ export function useBuildOrder() {
   const loadArtworks = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await userApi.queryArtworksOfUser({});
-      setArtworks(response.artworks);
+      const response = await userApi.listMyArtworks({ pageSize: 100 });
+      setArtworks(response.artworks.filter(artwork => 'title' in artwork) as Artwork[]);
     } catch (error) {
       console.error("Failed to load artworks:", error);
     } finally {
@@ -60,9 +61,8 @@ export function useBuildOrder() {
   }, [removeFromOrder]);
 
   const getTotalPrice = useCallback(() => {
-    const CANVAS_PRICE = 10000;
     return orderItems.reduce((total, item) => {
-      return total + (CANVAS_PRICE * item.quantity);
+      return total + (PRICES.CANVAS * item.quantity);
     }, 0);
   }, [orderItems]);
 
@@ -80,8 +80,7 @@ export function useBuildOrder() {
   }, [getTotalItems]);
 
   const getPlasticStandPrice = useCallback(() => {
-    const PLASTIC_STAND_PRICE = 250;
-    return plasticStandCount * PLASTIC_STAND_PRICE;
+    return plasticStandCount * PRICES.PLASTIC_STAND;
   }, [plasticStandCount]);
 
   const getFinalTotalPrice = useCallback(() => {

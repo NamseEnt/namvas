@@ -16,19 +16,11 @@ export function ArtworksPage() {
   }, [loadArtworks]);
 
   const handleDeleteArtwork = async (artworkId: string) => {
-    try {
-      await deleteArtwork(artworkId);
-    } catch (error) {
-      // Error is already logged in the hook
-    }
+    await deleteArtwork(artworkId);
   };
 
   const handleDuplicateArtwork = async (artworkId: string, title: string) => {
-    try {
-      await duplicateArtwork(artworkId, title);
-    } catch (error) {
-      // Error is already logged in the hook
-    }
+    await duplicateArtwork(artworkId, title);
   };
 
   return (

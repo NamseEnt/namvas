@@ -8,29 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { createContext, useContext, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { authApi } from "@/lib/api";
-
-// PKCE helper functions for Twitter OAuth
-function generateCodeVerifier(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return btoa(String.fromCharCode(...array))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-}
-
-async function generateCodeChallenge(codeVerifier: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(codeVerifier);
-  const buffer = await crypto.subtle.digest("SHA-256", data);
-  const array = new Uint8Array(buffer);
-  return btoa(String.fromCharCode(...array))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-}
+import { useAuth } from "@/hooks/useAuth";
 
 type HomePageState = {
   isLoginModalOpen: boolean;
@@ -44,15 +22,9 @@ const HomePageContext = createContext<{
   handleXLogin: () => void;
   handleLogout: () => void;
   isLoadingAuth: boolean;
-} | null>(null);
+}>(null!);
 
-const useHomePageContext = () => {
-  const context = useContext(HomePageContext);
-  if (!context) {
-    throw new Error("useHomePageContext must be used within HomePageContext");
-  }
-  return context;
-};
+const useHomePageContext = () => useContext(HomePageContext);
 
 export function HomePage() {
   const [state, setState] = useState<HomePageState>({
@@ -60,89 +32,39 @@ export function HomePage() {
   });
   
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  
+  // 인증 상태와 네비게이션에 필요한 부분만 가져옴
+  const {
+    isLoading: isLoadingAuth,
+    logout,
+    isLoggingOut,
+    loginWithGoogle,
+    loginWithX,
+    isAuthenticated
+  } = useAuth();
 
   const updateState = (updates: Partial<HomePageState>) => {
     setState((prev) => ({ ...prev, ...updates }));
   };
 
-  // Check authentication status
-  const { data: user, isLoading: isLoadingAuth } = useQuery({
-    queryKey: ['auth'],
-    queryFn: authApi.getMe,
-    retry: false,
-    staleTime: Infinity,
-  });
-
-  // Logout mutation
-  const logoutMutation = useMutation({
-    mutationFn: authApi.logout,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['auth'] });
-    },
-  });
-
   const handleCreateCanvas = () => {
-    if (user) {
-      // If logged in, navigate to studio
+    if (isAuthenticated) {
       navigate({ to: '/studio', search: { artwork: undefined } });
     } else {
-      // If not logged in, show login modal
       updateState({ isLoginModalOpen: true });
     }
   };
 
   const handleLogout = () => {
-    logoutMutation.mutate();
+    logout();
   };
 
   const handleGoogleLogin = () => {
-    // Create Google OAuth URL
-    const googleAuthUrl = new URL(
-      "https://accounts.google.com/o/oauth2/v2/auth"
-    );
-    googleAuthUrl.searchParams.set(
-      "client_id",
-      import.meta.env.VITE_GOOGLE_CLIENT_ID
-    );
-    googleAuthUrl.searchParams.set(
-      "redirect_uri",
-      import.meta.env.VITE_GOOGLE_REDIRECT_URI
-    );
-    googleAuthUrl.searchParams.set("response_type", "code");
-    googleAuthUrl.searchParams.set("scope", "openid email profile");
-    googleAuthUrl.searchParams.set("state", "google_login");
-
-    // Redirect to Google OAuth
-    window.location.href = googleAuthUrl.toString();
+    loginWithGoogle();
   };
 
-  const handleXLogin = async () => {
-    // Generate code verifier and challenge for PKCE
-    const codeVerifier = generateCodeVerifier();
-    const codeChallenge = await generateCodeChallenge(codeVerifier);
-
-    // Store code verifier in sessionStorage for later use
-    sessionStorage.setItem("twitter_code_verifier", codeVerifier);
-
-    // Create Twitter OAuth URL
-    const twitterAuthUrl = new URL("https://twitter.com/i/oauth2/authorize");
-    twitterAuthUrl.searchParams.set("response_type", "code");
-    twitterAuthUrl.searchParams.set(
-      "client_id",
-      import.meta.env.VITE_TWITTER_CLIENT_ID
-    );
-    twitterAuthUrl.searchParams.set(
-      "redirect_uri",
-      import.meta.env.VITE_TWITTER_REDIRECT_URI
-    );
-    twitterAuthUrl.searchParams.set("scope", "tweet.read users.read");
-    twitterAuthUrl.searchParams.set("state", "state"); // You might want to generate a random state
-    twitterAuthUrl.searchParams.set("code_challenge", codeChallenge);
-    twitterAuthUrl.searchParams.set("code_challenge_method", "S256");
-
-    // Redirect to Twitter OAuth
-    window.location.href = twitterAuthUrl.toString();
+  const handleXLogin = () => {
+    loginWithX();
   };
 
   return (
@@ -154,7 +76,7 @@ export function HomePage() {
         handleGoogleLogin,
         handleXLogin,
         handleLogout,
-        isLoadingAuth,
+        isLoadingAuth: isLoadingAuth || isLoggingOut,
       }}
     >
       <div className="min-h-screen flex flex-col bg-background">
@@ -169,14 +91,7 @@ export function HomePage() {
 
 function PageHeader() {
   const { handleGoogleLogin, handleXLogin, handleLogout, isLoadingAuth } = useHomePageContext();
-  
-  // Get user data directly from query
-  const { data: user } = useQuery({
-    queryKey: ['auth'],
-    queryFn: authApi.getMe,
-    retry: false,
-    staleTime: Infinity,
-  });
+  const { user } = useAuth();
 
   return (
     <header className="border-b bg-card">

@@ -70,7 +70,7 @@ export const clearStorageIfNeeded = () => {
       localStorage.removeItem('namvas_artwork');
       localStorage.removeItem('namvas_texture');
     }
-  } catch (e) {
+  } catch {
     // If we can't check, just clear to be safe
     localStorage.removeItem('namvas_artwork');
     localStorage.removeItem('namvas_texture');

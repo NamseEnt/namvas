@@ -28,7 +28,7 @@ import {
   saveMetadataToStorage,
   getMetadataFromStorage,
 } from "@/utils/storageManager";
-import { userApi } from "@/lib/api";
+import { useArtworks } from "@/hooks/useArtworks";
 import { useState as reactUseState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -56,6 +56,7 @@ const StudioContext = createContext<{
   handleOrder: () => void;
   handleClearWork: () => void;
   handleSaveToArtworks: (title: string) => Promise<void>;
+  isSaving: boolean;
 } | null>(null);
 
 export const useStudioContext = () => {
@@ -69,21 +70,16 @@ export const useStudioContext = () => {
 const CanvasViewsContext = createContext<{
   state: CanvasViewsState;
   updateState: (updates: Partial<CanvasViewsState>) => void;
-} | null>(null);
+}>(null!);
 
-export const useCanvasViewsContext = () => {
-  const context = useContext(CanvasViewsContext);
-  if (!context) {
-    throw new Error(
-      "useCanvasViewsContext must be used within CanvasViewsContext"
-    );
-  }
-  return context;
-};
+export const useCanvasViewsContext = () => useContext(CanvasViewsContext);
 
 export default function StudioPage() {
   const navigate = useNavigate();
   useSearch({ from: "/studio/" });
+  
+  // 아트워크 관련 기능들
+  const { saveArtwork, isSaving } = useArtworks();
 
   // Track if we've already restored from storage
   const [hasRestoredFromStorage, setHasRestoredFromStorage] = useState(false);
@@ -310,62 +306,17 @@ export default function StudioPage() {
       throw new Error("Canvas texture not loaded yet");
     }
 
-    try {
-      // First upload the original image to get S3 key
-      const imageBlob = await fetch(state.imageDataUrl).then(r => r.blob());
-      const uploadResponse = await userApi.getOriginalImageUploadUrl(imageBlob.size);
-      
-      // Upload image to S3
-      await fetch(uploadResponse.uploadUrl, {
-        method: 'PUT',
-        body: imageBlob,
-        headers: {
-          'Content-Type': imageBlob.type,
-        },
-      });
-
-      // Create thumbnail using the cross texture
-      const crossTexture = createCrossTexture({
-        uploadedImage: state.uploadedImage,
-        mmPerPixel: state.mmPerPixel,
-        imageCenterXy: state.imageCenterXy,
-        sideProcessing: state.sideProcessing,
-        canvasTextureImg: canvasTextureImg,
-      });
-
-      // Convert Three.js texture to data URL for thumbnail
-      const canvas = crossTexture.image as HTMLCanvasElement;
-      const thumbnailDataUrl = canvas.toDataURL("image/png", 0.9);
-      
-      // Upload thumbnail to S3
-      const thumbnailBlob = await fetch(thumbnailDataUrl).then(r => r.blob());
-      const thumbnailUploadResponse = await userApi.getOriginalImageUploadUrl(thumbnailBlob.size);
-      
-      await fetch(thumbnailUploadResponse.uploadUrl, {
-        method: 'PUT',
-        body: thumbnailBlob,
-        headers: {
-          'Content-Type': thumbnailBlob.type,
-        },
-      });
-
-      // Save artwork to database
-      await userApi.newArtwork({
-        title,
-        artwork: {
-          originalImageId: uploadResponse.imageId,
-          imageCenterXy: state.imageCenterXy,
-          sideProcessing: state.sideProcessing,
-          canvasBackgroundColor: state.canvasBackgroundColor,
-        },
-        thumbnailId: thumbnailUploadResponse.imageId,
-      });
-
-    } catch (error) {
-      console.error("Error saving artwork:", error);
-      throw error;
-    }
-  }, [state, canvasTextureImg, loadCanvasTexture]);
+    // 복잡한 API 호출 로직이 useArtworks 훅으로 캡슐화됨
+    saveArtwork({
+      title,
+      imageDataUrl: state.imageDataUrl,
+      uploadedImage: state.uploadedImage,
+      mmPerPixel: state.mmPerPixel,
+      imageCenterXy: state.imageCenterXy,
+      sideProcessing: state.sideProcessing,
+      canvasTextureImg: canvasTextureImg,
+    });
+  }, [state, canvasTextureImg, loadCanvasTexture, saveArtwork]);
 
   useEffect(
     function preloadCanvasTexture() {
@@ -486,6 +437,7 @@ export default function StudioPage() {
         handleOrder,
         handleClearWork,
         handleSaveToArtworks,
+        isSaving,
       }}
     >
       <CanvasViewsContext.Provider
@@ -530,10 +482,9 @@ export default function StudioPage() {
 }
 
 function ActionButtons() {
-  const { state, handleOrder, handleSaveToArtworks } = useStudioContext();
+  const { state, handleOrder, handleSaveToArtworks, isSaving } = useStudioContext();
   const [saveDialogOpen, setSaveDialogOpen] = reactUseState(false);
   const [artworkTitle, setArtworkTitle] = reactUseState("");
-  const [isSaving, setIsSaving] = reactUseState(false);
 
   const handleSaveClick = async () => {
     if (!artworkTitle.trim()) {
@@ -541,7 +492,6 @@ function ActionButtons() {
     }
 
     try {
-      setIsSaving(true);
       await handleSaveToArtworks(artworkTitle.trim());
       setSaveDialogOpen(false);
       setArtworkTitle("");
@@ -549,8 +499,6 @@ function ActionButtons() {
     } catch (error) {
       console.error("Failed to save artwork:", error);
       // Show error message
-    } finally {
-      setIsSaving(false);
     }
   };
 

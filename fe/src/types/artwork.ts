@@ -24,7 +24,7 @@ const TEXTURE_STORAGE_KEY = 'namvas_texture';
 export const saveArtworkToLocalStorage = (artwork: ArtworkDefinition): void => {
   try {
     localStorage.setItem(ARTWORK_STORAGE_KEY, JSON.stringify(artwork));
-  } catch (e) {
+  } catch {
     // If quota exceeded, clear storage and try again
     clearStorageIfNeeded();
     try {
@@ -54,7 +54,7 @@ export const getArtworkFromLocalStorage = (): ArtworkDefinition | null => {
 export const saveTextureToLocalStorage = (textureDataUrl: string): void => {
   try {
     localStorage.setItem(TEXTURE_STORAGE_KEY, textureDataUrl);
-  } catch (e) {
+  } catch {
     // If quota exceeded, clear storage and try again
     clearStorageIfNeeded();
     try {

@@ -7,7 +7,7 @@ type ToolModeContextType = {
   setMode: (mode: ToolMode) => void;
 };
 
-const ToolModeContext = createContext<ToolModeContextType | null>(null);
+const ToolModeContext = createContext<ToolModeContextType>(null!);
 
 export function ToolModeProvider({ children }: { children: ReactNode }) {
   const [currentMode, setCurrentMode] = useState<ToolMode>("edit");
@@ -24,9 +24,5 @@ export function ToolModeProvider({ children }: { children: ReactNode }) {
 }
 
 export function useToolMode() {
-  const context = useContext(ToolModeContext);
-  if (!context) {
-    throw new Error("useToolMode must be used within ToolModeProvider");
-  }
-  return context;
+  return useContext(ToolModeContext);
 }

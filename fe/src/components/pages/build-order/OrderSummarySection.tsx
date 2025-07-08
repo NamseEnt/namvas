@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ShoppingCart, X, Plus, Minus, Loader2 } from "lucide-react";
+import { PRICES } from "@/constants";
 import type { Artwork } from "../../../../../shared/types";
 
 type OrderItem = {
@@ -25,7 +26,7 @@ type OrderSummarySectionProps = {
   handlePayment: () => void;
 };
 
-const CANVAS_PRICE = 10000;
+// 가격 상수는 @/constants에서 import하여 사용
 
 export function OrderSummarySection({ 
   orderItems, 
@@ -81,7 +82,7 @@ export function OrderSummarySection({
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>캔버스 ({totalItems}개)</span>
-                  <span>{(CANVAS_PRICE * totalItems).toLocaleString()}원</span>
+                  <span>{(PRICES.CANVAS * totalItems).toLocaleString()}원</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>플라스틱 스탠드 ({plasticStandCount}개)</span>
@@ -164,7 +165,7 @@ function OrderItemCard({
           
           <div className="text-right">
             <p className="text-sm font-medium">
-              {(CANVAS_PRICE * item.quantity).toLocaleString()}원
+              {(PRICES.CANVAS * item.quantity).toLocaleString()}원
             </p>
             <Button
               variant="ghost"
@@ -238,7 +239,7 @@ function PlasticStandSection({
         </Button>
         
         <div className="flex justify-between text-sm text-muted-foreground">
-          <span>단가: 250원</span>
+          <span>단가: {PRICES.PLASTIC_STAND.toLocaleString()}원</span>
           <span>소계: {getPlasticStandPrice().toLocaleString()}원</span>
         </div>
       </div>

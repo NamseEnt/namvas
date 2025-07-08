@@ -9,12 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import CanvasView from "@/components/CanvasView";
 import { X, ArrowLeft, Loader2 } from "lucide-react";
-import { userApi } from "@/lib/api";
+import { PRICES } from "@/constants";
 import { type ArtworkDefinition } from "@/types/artwork";
 import {
   getArtworkFromStorage,
   getTextureFromStorage,
 } from "@/utils/storageManager";
+import { useOrders } from "@/hooks/useOrders";
+
 
 declare global {
   interface Window {
@@ -61,6 +63,9 @@ type OrderPageProps = {
 
 export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
   const navigate = useNavigate();
+  
+  // 주문 관련 기능들
+  const { createOrder, isCreatingOrder } = useOrders();
 
   const [artworkDefinition, setArtworkDefinition] =
     useState<ArtworkDefinition>();
@@ -75,7 +80,6 @@ export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
     plasticStandPrice: number;
     totalPrice: number;
   }>();
-  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
 
   const [orderState, setOrderState] = useState<OrderState>({
     quantity: 1,
@@ -171,12 +175,12 @@ export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
   if (buildOrderData) {
     subtotal = buildOrderData.orderItems.reduce((sum: number, item) => sum + (item.price * item.quantity), 0);
     optionPrice = buildOrderData.plasticStandCount * buildOrderData.plasticStandPrice;
-    shippingFee = 3000;
+    shippingFee = PRICES.SHIPPING;
     totalPrice = buildOrderData.totalPrice + shippingFee;
   } else {
-    basePrice = 10000;
-    plasticStandPrice = 250;
-    shippingFee = 3000;
+    basePrice = PRICES.CANVAS;
+    plasticStandPrice = PRICES.PLASTIC_STAND;
+    shippingFee = PRICES.SHIPPING;
     subtotal = basePrice * orderState.quantity;
     optionPrice = orderState.hasPlasticStand
       ? plasticStandPrice * orderState.quantity
@@ -201,7 +205,6 @@ export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
       return;
     }
 
-    setIsPaymentLoading(true);
 
     try {
       const orderData = buildOrderData ? {
@@ -224,7 +227,7 @@ export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
           price: basePrice!,
         }],
         plasticStandCount: orderState.hasPlasticStand ? orderState.quantity : 0,
-        plasticStandPrice: 250,
+        plasticStandPrice: PRICES.PLASTIC_STAND,
         totalPrice: totalPrice - shippingFee,
         recipient: {
           name: orderState.recipientName,
@@ -244,27 +247,29 @@ export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
         chainId: import.meta.env.VITE_NAVER_PAY_CHAIN_ID,
         openType: 'popup',
         onAuthorize: async (data) => {
-          setIsPaymentLoading(false);
-          
           if (data.resultCode === 'Success' && data.paymentId) {
+            // 네이버페이 결제 성공 후 주문 생성
             try {
-              const confirmResponse = await userApi.confirmPayment(data.paymentId);
-              
-              if (confirmResponse.status === 'success') {
-                localStorage.removeItem('tempOrderData');
-                navigate({
-                  to: '/order-complete',
-                  search: {
-                    orderId: confirmResponse.orderId,
-                    amount: totalPrice.toString(),
-                  },
-                });
-              } else {
-                alert('결제 확인에 실패했습니다. 고객센터로 문의해주세요.');
-              }
+              const orderResponse = await createOrder({
+                orderItems: orderData.orderItems,
+                plasticStandCount: orderData.plasticStandCount,
+                plasticStandPrice: orderData.plasticStandPrice,
+                totalPrice: orderData.totalPrice,
+                naverPaymentId: data.paymentId,
+                recipient: orderData.recipient,
+              });
+
+              localStorage.removeItem('tempOrderData');
+              navigate({
+                to: '/order-complete',
+                search: {
+                  orderId: orderResponse.orderId,
+                  amount: totalPrice.toString(),
+                },
+              });
             } catch (error) {
-              console.error('Payment confirmation failed:', error);
-              alert('결제 확인 중 오류가 발생했습니다.');
+              console.error('Order creation failed:', error);
+              alert('주문 생성 중 오류가 발생했습니다. 고객센터로 문의해주세요.');
             }
           } else {
             alert(`결제가 취소되거나 실패했습니다: ${data.resultMessage || '알 수 없는 오류'}`);
@@ -285,7 +290,6 @@ export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
     } catch (error) {
       console.error('Order creation failed:', error);
       alert('주문 생성 중 오류가 발생했습니다.');
-      setIsPaymentLoading(false);
     }
   };
 
@@ -596,10 +600,10 @@ export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
               className="w-full h-14 text-lg"
               size="lg"
               onClick={handlePayment}
-              disabled={isPaymentLoading}
+              disabled={isCreatingOrder}
               style={{ backgroundColor: "#1EC800", color: "white" }}
             >
-              {isPaymentLoading ? (
+              {isCreatingOrder ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   결제 중...

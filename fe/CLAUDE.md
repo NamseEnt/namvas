@@ -200,7 +200,7 @@ const ComponentNameContext = createContext<{
   updateState: (updates: Partial<ComponentState>) => void;
   handler1: () => void;
   handler2: (param: string) => void;
-}>(null as any);
+}>(null!);
 
 const useComponentNameContext = () => useContext(ComponentNameContext);
 ```
@@ -222,7 +222,7 @@ const ComponentNameContext = createContext<{
   setField1: (value: string) => void;
   field2: boolean;
   setField2: (value: boolean) => void;
-}>(null as any);
+}>(null!);
 
 // ❌ Don't add undefined checks (internal use only)
 const useComponentNameContext = () => {
@@ -280,7 +280,7 @@ function SubComponent1() {
 1. **Single state object**: Use one state object instead of multiple useState calls
 2. **Partial updates**: Use `Partial<StateType>` for updateState to allow partial updates
 3. **Inline types**: Define state type separately, context type inline
-4. **null as any**: Initialize with `null as any` (no undefined checks needed)
+4. **null!**: Initialize with `null!` (no undefined checks needed)
 5. **Simple hooks**: Return `useContext()` directly
 6. **Local scope**: Use only within the component file
 7. **No props**: Remove all props from sub-components
@@ -338,7 +338,7 @@ export function useAuth() {
 // ✅ Correct - Component using custom hook
 export function MyComponent() {
   const { logout, isLoggingOut } = useAuth();
-  
+
   return (
     <button onClick={() => logout()} disabled={isLoggingOut}>
       {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
@@ -351,7 +351,7 @@ export function MyComponent() {
   const logoutMutation = useMutation({
     mutationFn: userApi.logout,
   });
-  
+
   return <button onClick={() => logoutMutation.mutate()}>로그아웃</button>;
 }
 ```
@@ -375,7 +375,13 @@ export function MyComponent() {
 
 ```tsx
 // ✅ Correct - Common component (src/components/common/PageHeader.tsx)
-export function PageHeader({ title, actions }: { title: string; actions?: React.ReactNode }) {
+export function PageHeader({
+  title,
+  actions,
+}: {
+  title: string;
+  actions?: React.ReactNode;
+}) {
   return (
     <header className="border-b bg-card">
       <div className="container mx-auto px-4 py-4">
@@ -392,10 +398,7 @@ export function PageHeader({ title, actions }: { title: string; actions?: React.
 export function MyPage() {
   return (
     <div>
-      <PageHeader 
-        title="내 페이지" 
-        actions={<Button>액션</Button>} 
-      />
+      <PageHeader title="내 페이지" actions={<Button>액션</Button>} />
       {/* page content */}
     </div>
   );
@@ -486,7 +489,7 @@ setState((prev) => ({ ...prev, avatar: null }));
 ### Exceptions: When to Use `null`
 
 1. **React refs**: `useRef<T>(null)` - React convention
-2. **Component Internal Context**: `createContext<T>(null as any)` - As per our Context Pattern
+2. **Component Internal Context**: `createContext<T>(null!)` - As per our Context Pattern
 3. **Third-party library requirements**: When external APIs specifically require `null`
 4. **DOM APIs**: When working with DOM methods that return `null`
 

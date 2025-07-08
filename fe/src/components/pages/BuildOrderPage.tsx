@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { useBuildOrder } from "@/hooks/useBuildOrder";
 import { ArtworksSection } from "@/components/pages/build-order/ArtworksSection";
 import { OrderSummarySection } from "@/components/pages/build-order/OrderSummarySection";
-import { PageHeader } from "@/components/pages/build-order/PageHeader";
-import { PageFooter } from "@/components/pages/build-order/PageFooter";
+import { PageHeader } from "@/components/common/PageHeader";
+import { PageFooter } from "@/components/common/PageFooter";
 import type { Artwork } from "../../../../shared/types";
 
 export function BuildOrderPage() {

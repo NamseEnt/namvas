@@ -28,7 +28,7 @@ class OPFSStorage {
       const file = await fileHandle.getFile();
       const text = await file.text();
       return JSON.parse(text) as ArtworkDefinition;
-    } catch (error) {
+    } catch {
       // File doesn't exist
       return undefined;
     }
@@ -50,7 +50,7 @@ class OPFSStorage {
       const fileHandle = await root.getFileHandle("texture.txt");
       const file = await fileHandle.getFile();
       return await file.text();
-    } catch (error) {
+    } catch {
       // File doesn't exist
       return undefined;
     }
@@ -70,7 +70,7 @@ class OPFSStorage {
       const fileHandle = await root.getFileHandle("image.txt");
       const file = await fileHandle.getFile();
       return await file.text();
-    } catch (error) {
+    } catch {
       // File doesn't exist
       return undefined;
     }
@@ -93,7 +93,7 @@ class OPFSStorage {
       const file = await fileHandle.getFile();
       const text = await file.text();
       return JSON.parse(text) as ArtworkMetadata;
-    } catch (error) {
+    } catch {
       // File doesn't exist
       return undefined;
     }
@@ -113,7 +113,7 @@ class OPFSStorage {
     for (const filename of filesToRemove) {
       try {
         await root.removeEntry(filename);
-      } catch (e) {
+      } catch {
         // File doesn't exist, ignore
       }
     }

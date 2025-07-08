@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+// 예외: 정적 약관 콘텐츠이므로 라우트 파일에서 직접 구현
 export const Route = createFileRoute("/terms")({
   component: TermsPage,
 });
 
-export default function TermsPage() {
+function TermsPage() {
   return <TermsContent />;
 }
 
