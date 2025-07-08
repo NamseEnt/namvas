@@ -106,7 +106,9 @@ export type OrderDoc = {
     | "in_production"
     | "shipping"
     | "delivered"
-    | "order_canceled";
+    | "payment_cancelling"
+    | "payment_canceled"
+    | "payment_cancel_rejected";
   logs: Array<{
     type:
       | "order_arrived"
@@ -117,7 +119,9 @@ export type OrderDoc = {
       | "shipment_registered"
       | "package_picked_up"
       | "package_delivered"
-      | "order_cancel_requested";
+      | "order_cancel_requested"
+      | "payment_canceled"
+      | "payment_cancel_rejected";
     timestamp: string;
     message: string;
   }>;
@@ -126,6 +130,10 @@ export type OrderDoc = {
 export type OrdersOfUserIndex = Index<UserDoc, OrderDoc>;
 
 export type PaymentVerifingOrderList = {
+  $v: number;
+  orderId: Sk<string>;
+};
+export type PaymentCancellingOrderList = {
   $v: number;
   orderId: Sk<string>;
 };

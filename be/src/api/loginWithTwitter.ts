@@ -49,7 +49,18 @@ export const loginWithTwitter: Apis["loginWithTwitter"] = async (
     return { ok: false, reason: "TWITTER_API_ERROR" };
   }
 
-  const userData = await userResponse.json();
+  let userData;
+  try {
+    userData = await userResponse.json();
+  } catch (err) {
+    console.error("Twitter user data parsing failed:", {
+      error: err,
+      status: userResponse.status,
+      statusText: userResponse.statusText,
+    });
+    return { ok: false, reason: "TWITTER_API_ERROR" };
+  }
+
   const { id: twitterId } = userData.data;
 
   const { userId } = await createUserIfNotExists({ twitterId });

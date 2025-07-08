@@ -2,6 +2,26 @@ import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { config } from "./config";
 import { isLocalDev } from "./isLocalDev";
 
+export type QueueMessageSpec = {
+  processPayment: {
+    req: {
+      orderId: string;
+    };
+  };
+  cancelOrder: {
+    req: {
+      orderId: string;
+    };
+  };
+};
+
+export const sqsHandlers: SqsHandlers = {
+  processPayment: async (params) =>
+    (await import("./sqs-handlers/processPayment")).processPayment(params),
+  cancelOrder: async (params) =>
+    (await import("./sqs-handlers/cancelOrder")).cancelOrder(params),
+};
+
 const sqsClient = new SQSClient(
   isLocalDev()
     ? {
@@ -32,10 +52,8 @@ export const sqs = {
   },
 };
 
-export type QueueMessageSpec = {
-  processPayment: {
-    req: {
-      orderId: string;
-    };
-  };
+export type SqsHandlers = {
+  [K in keyof QueueMessageSpec]: (
+    params: QueueMessageSpec[K]["req"]
+  ) => Promise<void>;
 };

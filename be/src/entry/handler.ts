@@ -5,59 +5,52 @@ import type {
 } from "aws-lambda";
 import { ApiRequest } from "../types";
 import { apis } from "../apis";
-import { sqsHandlers } from "../sqsHandlers";
-import { QueueMessageSpec } from "../sqs";
+import { schedulerHandlers } from "../scheduler";
+import { QueueMessageSpec, sqsHandlers } from "../sqs";
 
 export async function handler(
-  event: LambdaFunctionURLEvent | SQSEvent
+  event:
+    | LambdaFunctionURLEvent
+    | SQSEvent
+    | { from: "eventBridgeScheduler"; type: string; body: string }
 ): Promise<APIGatewayProxyStructuredResultV2 | void> {
-  // SQS 이벤트인지 확인
-  if ('Records' in event && event.Records?.[0]?.eventSource === 'aws:sqs') {
-    console.log('[Lambda] Processing SQS event');
-    
-    // SQS 메시지들을 처리
-    for (const record of (event as SQSEvent).Records) {
-      try {
+  if ("from" in event && event.from === "eventBridgeScheduler") {
+    const { type, body } = event;
+    const handler = schedulerHandlers[type as keyof typeof schedulerHandlers];
+    if (!handler) {
+      throw new Error(`No handler found for scheduler event type: ${type}`);
+    }
+    await handler(JSON.parse(body));
+    return;
+  }
+  if ("Records" in event && event.Records?.[0]?.eventSource === "aws:sqs") {
+    await Promise.all(
+      (event as SQSEvent).Records.map(async (record) => {
         const message = JSON.parse(record.body);
         const { type, req } = message;
 
         console.log(`Processing SQS message: ${type}`);
 
-        // sqsHandlers에서 해당 핸들러 찾기
         const handler = sqsHandlers[type as keyof QueueMessageSpec];
         if (!handler) {
-          console.error(`No handler found for message type: ${type}`);
-          continue;
+          throw new Error(`No handler found for message type: ${type}`);
         }
 
         await handler(req);
-        
-        console.log(`Successfully processed SQS message: ${type}`);
-      } catch (error) {
-        console.error("Error processing SQS message:", error);
-        // SQS에서 메시지를 재시도하도록 에러를 던짐
-        throw error;
-      }
-    }
-    
-    return; // SQS 처리는 응답이 필요 없음
+      })
+    );
+    return;
   }
 
-  // API 이벤트 처리
   const apiEvent = event as LambdaFunctionURLEvent;
-  // Simplified logging - only log method and path
-  console.log(`[Lambda] ${apiEvent.requestContext.http.method} ${apiEvent.rawPath}`);
 
   try {
-    // Extract API name from path like "/api/loginWithGoogle" -> "loginWithGoogle"
-    // Handle double slashes by filtering empty parts
-    const pathParts = apiEvent.rawPath.split("/").filter(part => part !== "");
-    // console.log("Path parts:", pathParts);
-    
-    const apiName = pathParts.includes("api") 
-      ? pathParts[pathParts.indexOf("api") + 1] 
+    const pathParts = apiEvent.rawPath.split("/").filter((part) => part !== "");
+
+    const apiName = pathParts.includes("api")
+      ? pathParts[pathParts.indexOf("api") + 1]
       : pathParts[0];
-    
+
     // console.log("Extracted API name:", apiName);
     const apiParams = apiEvent.body;
 
@@ -75,10 +68,19 @@ export async function handler(
 
     const api = apis[apiName as keyof typeof apis];
     if (!api) {
-      console.log("API not found:", apiName, "Available APIs:", Object.keys(apis));
+      console.log(
+        "API not found:",
+        apiName,
+        "Available APIs:",
+        Object.keys(apis)
+      );
       return {
         statusCode: 404,
-        body: JSON.stringify({ error: "Not found", apiName, availableApis: Object.keys(apis) }),
+        body: JSON.stringify({
+          error: "Not found",
+          apiName,
+          availableApis: Object.keys(apis),
+        }),
       };
     }
     if (!apiParams) {
@@ -88,12 +90,11 @@ export async function handler(
         body: JSON.stringify({ error: "Bad request" }),
       };
     }
-    
+
     const parsedParams = JSON.parse(apiParams);
     console.log(`[Lambda] Calling ${apiName}`);
-    
+
     const apiResult = await api(parsedParams, apiRequest);
-    // console.log("API result:", apiResult);
 
     return {
       statusCode: 200,
@@ -107,10 +108,10 @@ export async function handler(
     console.error("Handler error:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ 
-        error: "Internal server error", 
+      body: JSON.stringify({
+        error: "Internal server error",
         message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       }),
     };
   }
@@ -122,15 +123,19 @@ function calculateLambdaOutCookies(
 ): string[] {
   const lambdaOutCookies: string[] = [];
   const isLocalDev = process.env.LOCAL_DEV === "1";
-  
+
   for (const [key, value] of Object.entries(outCookies)) {
     if (inCookies[key] !== value) {
       // For local development, use Lax SameSite
       // For production, use None with Secure
       if (isLocalDev) {
-        lambdaOutCookies.push(`${key}=${value}; SameSite=Lax; Path=/; Max-Age=86400`);
+        lambdaOutCookies.push(
+          `${key}=${value}; SameSite=Lax; Path=/; Max-Age=86400`
+        );
       } else {
-        lambdaOutCookies.push(`${key}=${value}; SameSite=None; Secure; Path=/; Max-Age=86400`);
+        lambdaOutCookies.push(
+          `${key}=${value}; SameSite=None; Secure; Path=/; Max-Age=86400`
+        );
       }
     }
   }

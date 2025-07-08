@@ -1,5 +1,8 @@
 import { handler } from "./handler";
-import type { LambdaFunctionURLEvent } from "aws-lambda";
+import type {
+  APIGatewayProxyStructuredResultV2,
+  LambdaFunctionURLEvent,
+} from "aws-lambda";
 
 const PORT = process.env.PORT;
 if (!PORT) {
@@ -16,17 +19,23 @@ async function main() {
       throw new Error(`Failed to get request: ${requestResponse.statusText}`);
     }
 
-    const requestData = await requestResponse.json();
+    const requestData = (await requestResponse.json()) as {
+      url: string;
+      method: string;
+      headers: Record<string, string>;
+      body: string;
+    };
 
     const url = new URL(requestData.url);
-    
+
     // Parse cookies from request headers
     const cookies: string[] = [];
-    const cookieHeader = requestData.headers.cookie || requestData.headers.Cookie;
+    const cookieHeader =
+      requestData.headers.cookie || requestData.headers.Cookie;
     if (cookieHeader) {
-      cookies.push(...cookieHeader.split(';').map(c => c.trim()));
+      cookies.push(...cookieHeader.split(";").map((c) => c.trim()));
     }
-    
+
     const event: LambdaFunctionURLEvent = {
       version: "2.0",
       routeKey: "$default",
@@ -57,7 +66,7 @@ async function main() {
       isBase64Encoded: false,
     };
 
-    const result = await handler(event);
+    const result = (await handler(event)) as APIGatewayProxyStructuredResultV2;
 
     const response = {
       status: result.statusCode || 200,

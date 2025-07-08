@@ -29,7 +29,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "INVALID_CODE" | "GOOGLE_API_ERROR";
+          reason: "GOOGLE_API_ERROR";
         };
   };
   loginWithTwitter: {
@@ -43,7 +43,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "INVALID_CODE" | "TWITTER_API_ERROR";
+          reason: "TWITTER_API_ERROR";
         };
   };
   getOriginalImageUploadUrl: {
@@ -103,7 +103,7 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "NOT_LOGGED_IN" | "EMPTY_ORDER_ITEMS" | "PRICE_MISMATCH";
+          reason: "NOT_LOGGED_IN" | "EMPTY_ORDER_ITEMS";
         };
   };
   listMyOrders: {
@@ -224,7 +224,7 @@ export type ApiSpec = {
   listMyArtworks: {
     req: {
       nextToken?: string;
-      pageSize?: number;
+      pageSize: number;
     };
     res:
       | {

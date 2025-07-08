@@ -106,44 +106,62 @@ const lambdaRole = new aws.iam.Role("lambda-role", {
 // IAM policy for Lambda to access DynamoDB and SQS
 const lambdaPolicy = new aws.iam.RolePolicy("lambda-policy", {
   role: lambdaRole.id,
-  policy: pulumi.all([dynamoTable.arn, mainQueue.arn, mainDlq.arn]).apply(([tableArn, queueArn, dlqArn]) =>
-    JSON.stringify({
-      Version: "2012-10-17",
-      Statement: [
-        {
-          Effect: "Allow",
-          Action: [
-            "logs:CreateLogGroup",
-            "logs:CreateLogStream",
-            "logs:PutLogEvents",
-          ],
-          Resource: "arn:aws:logs:*:*:*",
+  policy: pulumi
+    .all([dynamoTable.arn, mainQueue.arn, mainDlq.arn])
+    .apply(([tableArn, queueArn, dlqArn]) =>
+      JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Effect: "Allow",
+            Action: [
+              "logs:CreateLogGroup",
+              "logs:CreateLogStream",
+              "logs:PutLogEvents",
+            ],
+            Resource: "arn:aws:logs:*:*:*",
+          },
+          {
+            Effect: "Allow",
+            Action: [
+              "dynamodb:GetItem",
+              "dynamodb:PutItem",
+              "dynamodb:UpdateItem",
+              "dynamodb:DeleteItem",
+              "dynamodb:Query",
+              "dynamodb:Scan",
+            ],
+            Resource: [tableArn, `${tableArn}/index/*`],
+          },
+          {
+            Effect: "Allow",
+            Action: [
+              "sqs:SendMessage",
+              "sqs:ReceiveMessage",
+              "sqs:DeleteMessage",
+              "sqs:GetQueueAttributes",
+            ],
+            Resource: [queueArn, dlqArn],
+          },
+        ],
+      })
+    ),
+});
+
+// EventBridge Scheduler IAM Role
+const schedulerRole = new aws.iam.Role("scheduler-role", {
+  assumeRolePolicy: JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Action: "sts:AssumeRole",
+        Effect: "Allow",
+        Principal: {
+          Service: "scheduler.amazonaws.com",
         },
-        {
-          Effect: "Allow",
-          Action: [
-            "dynamodb:GetItem",
-            "dynamodb:PutItem",
-            "dynamodb:UpdateItem",
-            "dynamodb:DeleteItem",
-            "dynamodb:Query",
-            "dynamodb:Scan",
-          ],
-          Resource: [tableArn, `${tableArn}/index/*`],
-        },
-        {
-          Effect: "Allow",
-          Action: [
-            "sqs:SendMessage",
-            "sqs:ReceiveMessage",
-            "sqs:DeleteMessage",
-            "sqs:GetQueueAttributes",
-          ],
-          Resource: [queueArn, dlqArn],
-        },
-      ],
-    })
-  ),
+      },
+    ],
+  }),
 });
 
 // LLRT Layer
@@ -171,11 +189,18 @@ const lambdaFunction = new aws.lambda.Function(
         QUEUE_URL: mainQueue.url,
         NODE_ENV: "production",
         LAMBDA: "true",
-        GOOGLE_CLIENT_ID: "825743979695-5pe39r26j325f4omi4d5tieb9c55tv9m.apps.googleusercontent.com",
-        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || config.getSecret("googleClientSecret") || "",
+        GOOGLE_CLIENT_ID:
+          "825743979695-5pe39r26j325f4omi4d5tieb9c55tv9m.apps.googleusercontent.com",
+        GOOGLE_CLIENT_SECRET:
+          process.env.GOOGLE_CLIENT_SECRET ||
+          config.getSecret("googleClientSecret") ||
+          "",
         GOOGLE_REDIRECT_URI: "https://namvas.com/auth/callback",
         TWITTER_CLIENT_ID: "VS02S0huS1lUbk1YVmJnQUt1akg6MTpjaQ",
-        TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET || config.getSecret("twitterClientSecret") || "",
+        TWITTER_CLIENT_SECRET:
+          process.env.TWITTER_CLIENT_SECRET ||
+          config.getSecret("twitterClientSecret") ||
+          "",
         TWITTER_REDIRECT_URI: "https://namvas.com/auth/callback",
       },
     },
@@ -212,6 +237,54 @@ const lambdaFunctionUrl = new aws.lambda.FunctionUrl("backend-lambda-url", {
     maxAge: 86400,
   },
 });
+
+// EventBridge Scheduler Policy
+const schedulerPolicy = new aws.iam.RolePolicy("scheduler-policy", {
+  role: schedulerRole.id,
+  policy: pulumi.all([lambdaFunction.arn]).apply(([lambdaArn]) =>
+    JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Effect: "Allow",
+          Action: ["lambda:InvokeFunction"],
+          Resource: lambdaArn,
+        },
+      ],
+    })
+  ),
+});
+
+// EventBridge Scheduler Group
+const schedulerGroup = new aws.scheduler.ScheduleGroup(
+  "payment-scheduler-group",
+  {
+    name: "payment-scheduler-group",
+  }
+);
+
+// EventBridge Scheduler
+const verifyPaymentsScheduler = new aws.scheduler.Schedule(
+  "verify-payments-scheduler",
+  {
+    name: "verify-payments-scheduler",
+    groupName: schedulerGroup.name,
+    scheduleExpression: "rate(10 seconds)",
+    target: {
+      arn: lambdaFunction.arn,
+      roleArn: schedulerRole.arn,
+      input: JSON.stringify({
+        from: "eventBridgeScheduler",
+        type: "verifyPayments",
+        body: JSON.stringify({}),
+      }),
+    },
+    flexibleTimeWindow: {
+      mode: "OFF",
+    },
+  },
+  { dependsOn: [schedulerPolicy] }
+);
 
 // SSL Certificate (if domain is provided)
 let sslCertificate: aws.acm.Certificate | undefined;
@@ -296,9 +369,11 @@ const cloudFrontDistribution = new aws.cloudfront.Distribution(
 // Route53 records (if domain is configured and in same account)
 if (domainName) {
   // Get the hosted zone
-  const hostedZone = pulumi.output(aws.route53.getZone({
-    name: domainName,
-  }));
+  const hostedZone = pulumi.output(
+    aws.route53.getZone({
+      name: domainName,
+    })
+  );
 
   // Create A record for root domain
   new aws.route53.Record("domain-a-record", {

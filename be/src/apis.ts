@@ -46,8 +46,6 @@ export const apis: Apis = {
     (await import("./api/newArtwork")).newArtwork(params, req),
   listMyArtworks: async (params, req) =>
     (await import("./api/listMyArtworks")).listMyArtworks(params, req),
-  listArtworksOfUser: async (params, req) =>
-    (await import("./api/listArtworksOfUser")).listArtworksOfUser(params, req),
   updateArtwork: async (params, req) =>
     (await import("./api/updateArtwork")).updateArtwork(params, req),
   deleteArtwork: async (params, req) =>

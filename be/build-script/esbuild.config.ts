@@ -55,14 +55,17 @@ export const testOptions: BuildOptions = {
   outdir: "dist",
   minify: false,
   define: {
-    "process.env.NODE_ENV": '"test"'
+    "process.env.NODE_ENV": '"test"',
   },
 };
 
 // Local development build configuration
 export const localOptions: BuildOptions = {
   ...commonOptions,
-  entryPoints: ["src/entry/local-entry.ts"],
+  entryPoints: [
+    "src/entry/local-entry.ts",
+    "src/entry/local-scheduler-entry.ts",
+  ],
   outfile: "dist/local-entry.js",
   minify: true,
 };

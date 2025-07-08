@@ -11,31 +11,34 @@ describe("createOrder", () => {
     ddb.getSessionDoc = () => Promise.resolve(undefined);
 
     const req: ApiRequest = { cookies: {}, headers: {} };
-    const result = await apis.createOrder({
-      orderItems: [{ 
-        artwork: {
-          title: "Test Artwork",
-          originalImageId: "image123",
-          dpi: 300,
-          imageCenterXy: { x: 0.5, y: 0.5 },
-          sideProcessing: { type: "none" }
+    const result = await apis.createOrder(
+      {
+        rows: [
+          {
+            item: {
+              type: "artwork",
+              title: "Test Artwork",
+              originalImageId: "image123",
+              dpi: 300,
+              imageCenterXy: { x: 0.5, y: 0.5 },
+              sideProcessing: { type: "none" },
+            },
+            count: 1,
+            price: 10000,
+          },
+        ],
+        naverPaymentId: "naver_pay_123",
+        recipient: {
+          name: "홍길동",
+          phone: "010-1234-5678",
+          postalCode: "12345",
+          address: "서울시 강남구",
+          addressDetail: "101호",
+          memo: "문앞에 놔주세요",
         },
-        quantity: 1, 
-        price: 10000 
-      }],
-      plasticStandCount: 0,
-      plasticStandPrice: 0,
-      totalPrice: 10000,
-      naverPaymentId: "naver_pay_123",
-      recipient: {
-        name: "홍길동",
-        phone: "010-1234-5678",
-        postalCode: "12345",
-        address: "서울시 강남구",
-        addressDetail: "101호",
-        memo: "문앞에 놔주세요"
-      }
-    }, req);
+      },
+      req
+    );
 
     expect(result).toEqual({ ok: false, reason: "NOT_LOGGED_IN" });
   });
@@ -48,60 +51,23 @@ describe("createOrder", () => {
       cookies: { sessionId: "session123" },
       headers: {},
     };
-    const result = await apis.createOrder({
-      orderItems: [],
-      plasticStandCount: 0,
-      plasticStandPrice: 0,
-      totalPrice: 0,
-      naverPaymentId: "naver_pay_123",
-      recipient: {
-        name: "홍길동",
-        phone: "010-1234-5678",
-        postalCode: "12345",
-        address: "서울시 강남구",
-        addressDetail: "101호",
-        memo: "문앞에 놔주세요"
-      }
-    }, req);
+    const result = await apis.createOrder(
+      {
+        rows: [],
+        naverPaymentId: "naver_pay_123",
+        recipient: {
+          name: "홍길동",
+          phone: "010-1234-5678",
+          postalCode: "12345",
+          address: "서울시 강남구",
+          addressDetail: "101호",
+          memo: "문앞에 놔주세요",
+        },
+      },
+      req
+    );
 
     expect(result).toEqual({ ok: false, reason: "EMPTY_ORDER_ITEMS" });
-  });
-
-  test("should return PRICE_MISMATCH when price mismatch", async () => {
-    ddb.getSessionDoc = () =>
-      Promise.resolve({ userId: "user123", id: "session123", $v: 1 });
-
-    const req: ApiRequest = {
-      cookies: { sessionId: "session123" },
-      headers: {},
-    };
-    const result = await apis.createOrder({
-      orderItems: [{ 
-        artwork: {
-          title: "Test Artwork",
-          originalImageId: "image123",
-          dpi: 300,
-          imageCenterXy: { x: 0.5, y: 0.5 },
-          sideProcessing: { type: "none" }
-        },
-        quantity: 1, 
-        price: 10000 
-      }],
-      plasticStandCount: 0,
-      plasticStandPrice: 0,
-      totalPrice: 15000, // 잘못된 가격
-      naverPaymentId: "naver_pay_123",
-      recipient: {
-        name: "홍길동",
-        phone: "010-1234-5678",
-        postalCode: "12345",
-        address: "서울시 강남구",
-        addressDetail: "101호",
-        memo: "문앞에 놔주세요"
-      }
-    }, req);
-
-    expect(result).toEqual({ ok: false, reason: "PRICE_MISMATCH" });
   });
 
   test("should create order successfully (no artwork not found test needed)", async () => {
@@ -113,31 +79,34 @@ describe("createOrder", () => {
       cookies: { sessionId: "session123" },
       headers: {},
     };
-    const result = await apis.createOrder({
-      orderItems: [{ 
-        artwork: {
-          title: "Test Artwork",
-          originalImageId: "image123",
-          dpi: 300,
-          imageCenterXy: { x: 0.5, y: 0.5 },
-          sideProcessing: { type: "none" }
+    const result = await apis.createOrder(
+      {
+        rows: [
+          {
+            item: {
+              type: "artwork",
+              title: "Test Artwork",
+              originalImageId: "image123",
+              dpi: 300,
+              imageCenterXy: { x: 0.5, y: 0.5 },
+              sideProcessing: { type: "none" },
+            },
+            count: 1,
+            price: 10000,
+          },
+        ],
+        naverPaymentId: "naver_pay_123",
+        recipient: {
+          name: "홍길동",
+          phone: "010-1234-5678",
+          postalCode: "12345",
+          address: "서울시 강남구",
+          addressDetail: "101호",
+          memo: "문앞에 놔주세요",
         },
-        quantity: 1, 
-        price: 10000 
-      }],
-      plasticStandCount: 0,
-      plasticStandPrice: 0,
-      totalPrice: 10000,
-      naverPaymentId: "naver_pay_123",
-      recipient: {
-        name: "홍길동",
-        phone: "010-1234-5678",
-        postalCode: "12345",
-        address: "서울시 강남구",
-        addressDetail: "101호",
-        memo: "문앞에 놔주세요"
-      }
-    }, req);
+      },
+      req
+    );
 
     expect(result.ok).toBe(true);
   });
@@ -145,7 +114,7 @@ describe("createOrder", () => {
   test("should create order successfully", async () => {
     ddb.getSessionDoc = () =>
       Promise.resolve({ userId: "user123", id: "session123", $v: 1 });
-    
+
     let txCalled = false;
     ddb.tx = () => {
       txCalled = true;
@@ -156,31 +125,34 @@ describe("createOrder", () => {
       cookies: { sessionId: "session123" },
       headers: {},
     };
-    const result = await apis.createOrder({
-      orderItems: [{ 
-        artwork: {
-          title: "Test Artwork",
-          originalImageId: "image123",
-          dpi: 300,
-          imageCenterXy: { x: 0.5, y: 0.5 },
-          sideProcessing: { type: "none" }
+    const result = await apis.createOrder(
+      {
+        rows: [
+          {
+            item: {
+              type: "artwork",
+              title: "Test Artwork",
+              originalImageId: "image123",
+              dpi: 300,
+              imageCenterXy: { x: 0.5, y: 0.5 },
+              sideProcessing: { type: "none" },
+            },
+            count: 2,
+            price: 10000,
+          },
+        ],
+        naverPaymentId: "naver_pay_123",
+        recipient: {
+          name: "홍길동",
+          phone: "010-1234-5678",
+          postalCode: "12345",
+          address: "서울시 강남구",
+          addressDetail: "101호",
+          memo: "문앞에 놔주세요",
         },
-        quantity: 2, 
-        price: 10000 
-      }],
-      plasticStandCount: 1,
-      plasticStandPrice: 5000,
-      totalPrice: 25000, // 2 * 10000 + 1 * 5000
-      naverPaymentId: "naver_pay_123",
-      recipient: {
-        name: "홍길동",
-        phone: "010-1234-5678",
-        postalCode: "12345",
-        address: "서울시 강남구",
-        addressDetail: "101호",
-        memo: "문앞에 놔주세요"
-      }
-    }, req);
+      },
+      req
+    );
 
     expect(result.ok).toBe(true);
     if (result.ok) {

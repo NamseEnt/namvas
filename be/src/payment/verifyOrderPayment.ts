@@ -67,7 +67,7 @@ export async function verifyOrderPayment({ orderId }: { orderId: string }) {
       }
       break;
     case Code.InvalidMerchant: {
-      throw new Error(`unreachable - Invalid merchant: ${code}`);
+      throw new Error(`unreachable - ${code}`);
     }
     case Code.Fail:
     case Code.TimeExpired:

@@ -11,10 +11,11 @@ function generateTransactionBuilderMethods(schema: ParsedSchema): string {
     // Check if this is a List type
     if (docDef.isList) {
       // For List types, pk is fixed and sk is required
-      methods.push(`  create${typeName}(${baseName}: Omit<Schema.${docName}, '$v'>) {
+      const listItemName = baseName + 'item';
+      methods.push(`  create${typeName}(${listItemName}: Omit<Schema.${docName}, '$v'>) {
     this.operations.push({ 
       _type: 'create-${baseName.toLowerCase()}' as const, 
-      data: { ...${baseName}, $v: 1 }
+      data: { ...${listItemName}, $v: 1 }
     });
     return this;
   }`);
@@ -62,24 +63,25 @@ function generateTransactionBuilderMethods(schema: ParsedSchema): string {
       }
       
       const skField = skFields[0];
-      const paramName = `${baseName}${capitalizeFirst(skField.name)}`;
+      const listItemName = baseName + 'item';
+      const paramName = `${listItemName}${capitalizeFirst(skField.name)}`;
       
-      methods.push(`  update${typeName}(${baseName}OrUpdater: Schema.${docName} | ((${baseName}: Schema.${docName}) => Schema.${docName}), ${paramName}?: ${getTypeScriptType(skField.type)}) {
-    if (typeof ${baseName}OrUpdater === 'function') {
+      methods.push(`  update${typeName}(${listItemName}OrUpdater: Schema.${docName} | ((${listItemName}: Schema.${docName}) => Schema.${docName}), ${paramName}?: ${getTypeScriptType(skField.type)}) {
+    if (typeof ${listItemName}OrUpdater === 'function') {
       if (!${paramName}) {
         throw new Error('${paramName} is required for function-based updates');
       }
       this.operations.push({
         _type: 'update-${baseName.toLowerCase()}-with-function' as const,
-        updater: ${baseName}OrUpdater,
+        updater: ${listItemName}OrUpdater,
         ${skField.name}: ${paramName}
       });
       return this;
     } else {
       this.operations.push({
         _type: 'update-${baseName.toLowerCase()}' as const,
-        data: { ...${baseName}OrUpdater, $v: ${baseName}OrUpdater.$v + 1 },
-        expectedVersion: ${baseName}OrUpdater.$v
+        data: { ...${listItemName}OrUpdater, $v: ${listItemName}OrUpdater.$v + 1 },
+        expectedVersion: ${listItemName}OrUpdater.$v
       });
       return this;
     }
@@ -528,7 +530,7 @@ function generateQueryFunction(indexName: string, indexDef: IndexDefinition, own
   // Extract the item document name without "Doc" suffix for the result type
   const itemTypeName = itemDoc.name.replace(/Doc$/, '');
   
-  return `  async ${camelCaseName}({${ownerKeyValues}, nextToken, limit}: {${ownerKeyParams}, nextToken?: string, limit?: number}): Promise<{items: Schema.${itemDoc.name}[], nextToken?: string}> {
+  return `  async ${camelCaseName}({${ownerKeyValues}, nextToken, limit}: {${ownerKeyParams}, nextToken?: string, limit: number}): Promise<{items: Schema.${itemDoc.name}[], nextToken?: string}> {
     const result = await client.query({
       TableName: config.DYNAMODB_TABLE_NAME,
       KeyConditionExpression: \`$p = :pk\`,
@@ -1112,24 +1114,26 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
       const listName = docName; // e.g., 'PaymentVerifingOrderList'
       const getFuncParams = `{${skField.name}: op.${skField.name}}`;
       
+      const listItemName = baseName + 'item';
+      
       cases.push(`          case 'update-${baseName.toLowerCase()}-with-function':
-            const current${capitalizeFirst(baseName)} = await this.get${typeName}(${getFuncParams});
-            if (!current${capitalizeFirst(baseName)}) {
-              throw new Error(\`${capitalizeFirst(baseName)} not found for function-based update: \${op.${skField.name}}\`);
+            const current${capitalizeFirst(listItemName)} = await this.get${typeName}(${getFuncParams});
+            if (!current${capitalizeFirst(listItemName)}) {
+              throw new Error(\`${capitalizeFirst(listItemName)} not found for function-based update: \${op.${skField.name}}\`);
             }
-            const updated${capitalizeFirst(baseName)}FromFunction = op.updater(current${capitalizeFirst(baseName)});
+            const updated${capitalizeFirst(listItemName)}FromFunction = op.updater(current${capitalizeFirst(listItemName)});
             transactItems.push({
               Put: {
                 TableName: config.DYNAMODB_TABLE_NAME,
                 Item: {
                   $p: '${listName}',
-                  $s: \`${skField.name}=\${updated${capitalizeFirst(baseName)}FromFunction.${skField.name}}\`,
-                  ...updated${capitalizeFirst(baseName)}FromFunction,
-                  $v: updated${capitalizeFirst(baseName)}FromFunction.$v + 1
+                  $s: \`${skField.name}=\${updated${capitalizeFirst(listItemName)}FromFunction.${skField.name}}\`,
+                  ...updated${capitalizeFirst(listItemName)}FromFunction,
+                  $v: updated${capitalizeFirst(listItemName)}FromFunction.$v + 1
                 },
                 ConditionExpression: 'attribute_exists($p) AND attribute_exists($s) AND #v = :expectedVersion',
                 ExpressionAttributeNames: { '#v': '$v' },
-                ExpressionAttributeValues: { ':expectedVersion': current${capitalizeFirst(baseName)}.$v }
+                ExpressionAttributeValues: { ':expectedVersion': current${capitalizeFirst(listItemName)}.$v }
               }
             });
             break;`);
@@ -1363,18 +1367,19 @@ function generateListGetFunction(docName: string, typeName: string, skField: Fie
 function generateListUpdateFunction(docName: string, typeName: string, skField: FieldDefinition): string {
   const listName = docName; // e.g., 'PaymentVerifingOrderList'
   const baseName = docName.replace(/List$/, '').toLowerCase();
+  const listItemName = baseName + 'item';
   
-  return `  async update${typeName}(${baseName}: Schema.${docName}): Promise<void> {
+  return `  async update${typeName}(${listItemName}: Schema.${docName}): Promise<void> {
     await client.put({
       TableName: config.DYNAMODB_TABLE_NAME,
       Item: {
         $p: '${listName}',
-        $s: \`${skField.name}=\${${baseName}.${skField.name}}\`,
-        ...${baseName}
+        $s: \`${skField.name}=\${${listItemName}.${skField.name}}\`,
+        ...${listItemName}
       },
       ConditionExpression: 'attribute_exists($p) AND attribute_exists($s) AND #v = :expectedVersion',
       ExpressionAttributeNames: { '#v': '$v' },
-      ExpressionAttributeValues: { ':expectedVersion': ${baseName}.$v }
+      ExpressionAttributeValues: { ':expectedVersion': ${listItemName}.$v }
     });
   }`;
 }
@@ -1398,7 +1403,7 @@ function generateListQueryFunction(docName: string, typeName: string): string {
   const listName = docName; // e.g., 'PaymentVerifingOrderList'
   const functionName = `query${typeName}`;
   
-  return `  async ${functionName}({nextToken, limit}: {nextToken?: string, limit?: number} = {}): Promise<{items: Schema.${docName}[], nextToken?: string}> {
+  return `  async ${functionName}({nextToken, limit}: {nextToken?: string, limit: number}): Promise<{items: Schema.${docName}[], nextToken?: string}> {
     const result = await client.query({
       TableName: config.DYNAMODB_TABLE_NAME,
       KeyConditionExpression: \`$p = :pk\`,
@@ -1427,11 +1432,13 @@ function generateListQueryFunction(docName: string, typeName: string): string {
 
 function generateListTransactionHelperFunctions(docName: string, typeName: string, skField: FieldDefinition): string {
   const listName = docName; // e.g., 'PaymentVerifingOrderList'
-  const itemKeyString = `${skField.name}=\${${docName}.${skField.name}}`;
+  const baseName = docName.replace(/List$/, '').toLowerCase();
+  const listItemName = baseName + 'item';
+  const itemKeyString = `${skField.name}=\${${listItemName}.${skField.name}}`;
   const skParam = `${skField.name}: ${getTypeScriptType(skField.type)}`;
   
   return `  // Transaction helper functions for ${typeName}
-  create${typeName}Item(${docName}: Schema.${docName}): DbTransactionItem[] {
+  create${typeName}Item(${listItemName}: Schema.${docName}): DbTransactionItem[] {
     const items: DbTransactionItem[] = [
       {
         type: 'create',
@@ -1439,7 +1446,7 @@ function generateListTransactionHelperFunctions(docName: string, typeName: strin
         item: {
           $p: '${listName}',
           $s: \`${itemKeyString}\`,
-          ...${docName}
+          ...${listItemName}
         }
       }
     ];

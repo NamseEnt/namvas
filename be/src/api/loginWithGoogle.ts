@@ -40,7 +40,7 @@ export const loginWithGoogle: Apis["loginWithGoogle"] = async (
         redirect_uri: googleRedirectUri,
       },
     });
-    return { ok: false, reason: "INVALID_CODE" };
+    return { ok: false, reason: "GOOGLE_API_ERROR" };
   }
 
   const tokenData = await tokenResponse.json();

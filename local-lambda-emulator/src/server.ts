@@ -37,8 +37,11 @@ async function setupBuild() {
   buildContext = await buildLocal(true);
 }
 
-async function executeLLRT() {
-  const entryFile = join(BE_PATH, "dist", "local-entry.js");
+async function executeLLRT(
+  entry: "local-entry" | "local-scheduler-entry",
+  argv2?: string
+) {
+  const entryFile = join(BE_PATH, "dist", `${entry}.js`);
 
   if (!existsSync(entryFile)) {
     throw new Error(`Entry file not found: ${entryFile}`);
@@ -52,8 +55,8 @@ async function executeLLRT() {
     envVars = Object.fromEntries(
       envContent
         .split("\n")
-        .filter(line => line && !line.startsWith("#"))
-        .map(line => line.split("=").map(s => s.trim()))
+        .filter((line) => line && !line.startsWith("#"))
+        .map((line) => line.split("=").map((s) => s.trim()))
         .filter(([key, value]) => key && value)
     );
   }
@@ -65,8 +68,10 @@ async function executeLLRT() {
     LOCAL_DEV: "1",
   };
 
-  const executable = existsSync(LLRT_PATH) ? LLRT_PATH : "node";
-  const proc = spawn([executable, entryFile], {
+  if (!existsSync(LLRT_PATH)) {
+    throw new Error(`LLRT binary not found at ${LLRT_PATH}`);
+  }
+  const proc = spawn([LLRT_PATH, entryFile, argv2 ?? ""], {
     env,
     stdout: "pipe",
     stderr: "pipe",
@@ -75,7 +80,7 @@ async function executeLLRT() {
   // Capture and display stdout (console.log outputs)
   const stdoutReader = proc.stdout.getReader();
   const stderrReader = proc.stderr.getReader();
-  
+
   // Read stdout in background
   (async () => {
     try {
@@ -132,14 +137,21 @@ serve({
         return new Response("No pending request", { status: 404 });
       }
 
-      const responseData = await req.json();
-      
+      const responseData = (await req.json()) as {
+        headers: Record<string, string>;
+        cookies: string[];
+        body: string;
+        status: number;
+      };
+
       // Handle cookies from Lambda response
       const responseHeaders = { ...responseData.headers };
       if (responseData.cookies && responseData.cookies.length > 0) {
-        responseHeaders['Set-Cookie'] = responseData.cookies;
+        responseHeaders["Set-Cookie"] = responseData.cookies
+          .map((cookie) => `${cookie.split("=")[0]}=${cookie.split("=")[1]}`)
+          .join("; ");
       }
-      
+
       const response = new Response(responseData.body, {
         status: responseData.status,
         headers: responseHeaders,
@@ -151,7 +163,7 @@ serve({
       // Process next request in queue
       if (requestQueue.length > 0) {
         currentRequest = requestQueue.shift()!;
-        executeLLRT().catch((error) => {
+        executeLLRT("local-entry").catch((error) => {
           console.error("LLRT execution error:", error);
           if (currentRequest) {
             currentRequest.resolve(
@@ -171,7 +183,7 @@ serve({
 
       if (!currentRequest) {
         currentRequest = pending;
-        executeLLRT().catch((error) => {
+        executeLLRT("local-entry").catch((error) => {
           console.error("LLRT execution error:", error);
           if (currentRequest) {
             currentRequest.resolve(
@@ -200,17 +212,22 @@ serve({
   },
 });
 
-console.log(`Local Lambda Emulator running on http://localhost:${PORT}`);
-
-try {
-  await checkLLRT();
-} catch (error) {
-  console.error("Failed to initialize:", error.message);
-  process.exit(1);
+function startScheduler() {
+  setInterval(() => {
+    executeLLRT(
+      "local-scheduler-entry",
+      JSON.stringify({ type: "verifyPayments", body: JSON.stringify({}) })
+    ).catch((error) => {
+      console.error("LLRT execution error:", error);
+    });
+  }, 10 * 1000);
 }
 
-// Setup build and start watching
+console.log(`Local Lambda Emulator running on http://localhost:${PORT}`);
+
+await checkLLRT();
 await setupBuild();
+startScheduler();
 
 // Cleanup on exit
 process.on("SIGINT", async () => {
