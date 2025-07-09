@@ -959,6 +959,13 @@ function generateCreateCases(schema: ParsedSchema): string {
         // Document with ownership relation
         const ownerField = ownership.ownerField;
         
+        // Find the index for this ownership relation
+        const indexForOwnership = Array.from(schema.indexes.values()).find(index => 
+          index.ownerDocument === ownership.ownerDocument && 
+          index.itemDocument === ownership.ownedDocument
+        );
+        const indexName = indexForOwnership ? indexForOwnership.name : `${ownership.ownedDocument.replace('Doc', '')}sOf${ownership.ownerDocument.replace('Doc', '')}Index`;
+        
         cases.push(`          case 'create-${baseName}':
             const ${baseName} = { ...op.data, ${ownerField}: op.owner.id };
             // Main ${baseName} document
@@ -979,8 +986,8 @@ function generateCreateCases(schema: ParsedSchema): string {
               Put: {
                 TableName: config.DYNAMODB_TABLE_NAME,
                 Item: {
-                  $p: \`${ownership.ownerDocument}/id=\${op.owner.id}\`,
-                  $s: \`${docName}#\${${baseName}.${pkFields[0].name}}\`,
+                  $p: \`${indexName}/id=\${op.owner.id}\`,
+                  $s: \`${pkFields.map(f => `${f.name}=\${${baseName}.${f.name}}`).join('/')}\`,
                   ...${baseName}
                 }
               }
@@ -1050,6 +1057,13 @@ function generateUpdateCases(schema: ParsedSchema): string {
         // Document with ownership relation - need to update both main and index
         const ownerField = ownership.ownerField;
         
+        // Find the index for this ownership relation
+        const indexForOwnership = Array.from(schema.indexes.values()).find(index => 
+          index.ownerDocument === ownership.ownerDocument && 
+          index.itemDocument === ownership.ownedDocument
+        );
+        const indexName = indexForOwnership ? indexForOwnership.name : `${ownership.ownedDocument.replace('Doc', '')}sOf${ownership.ownerDocument.replace('Doc', '')}Index`;
+        
         cases.push(`          case 'update-${baseName}':
             const updated${capitalizeFirst(baseName)} = op.data;
             // Update main ${baseName} document
@@ -1071,8 +1085,8 @@ function generateUpdateCases(schema: ParsedSchema): string {
               Put: {
                 TableName: config.DYNAMODB_TABLE_NAME,
                 Item: {
-                  $p: \`${ownership.ownerDocument}/id=\${updated${capitalizeFirst(baseName)}.${ownerField}}\`,
-                  $s: \`${docName}#\${updated${capitalizeFirst(baseName)}.${pkFields[0].name}}\`,
+                  $p: \`${indexName}/id=\${updated${capitalizeFirst(baseName)}.${ownerField}}\`,
+                  $s: \`${pkFields.map(f => `${f.name}=\${updated${capitalizeFirst(baseName)}.${f.name}}`).join('/')}\`,
                   ...updated${capitalizeFirst(baseName)}
                 },
                 ConditionExpression: 'attribute_exists(#p)',
@@ -1160,6 +1174,13 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
         // Document with ownership relation
         const ownerField = ownership.ownerField;
         
+        // Find the index for this ownership relation
+        const indexForOwnership = Array.from(schema.indexes.values()).find(index => 
+          index.ownerDocument === ownership.ownerDocument && 
+          index.itemDocument === ownership.ownedDocument
+        );
+        const indexName = indexForOwnership ? indexForOwnership.name : `${ownership.ownedDocument.replace('Doc', '')}sOf${ownership.ownerDocument.replace('Doc', '')}Index`;
+        
         cases.push(`          case 'update-${baseName}-with-function':
             const current${capitalizeFirst(baseName)} = await this.get${typeName}(${getFuncParams});
             if (!current${capitalizeFirst(baseName)}) {
@@ -1186,8 +1207,8 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
               Put: {
                 TableName: config.DYNAMODB_TABLE_NAME,
                 Item: {
-                  $p: \`${ownership.ownerDocument}/id=\${updated${capitalizeFirst(baseName)}FromFunction.${ownerField}}\`,
-                  $s: \`${docName}#\${updated${capitalizeFirst(baseName)}FromFunction.${pkFields[0].name}}\`,
+                  $p: \`${indexName}/id=\${updated${capitalizeFirst(baseName)}FromFunction.${ownerField}}\`,
+                  $s: \`${pkFields.map(f => `${f.name}=\${updated${capitalizeFirst(baseName)}FromFunction.${f.name}}`).join('/')}\`,
                   ...updated${capitalizeFirst(baseName)}FromFunction,
                   $v: updated${capitalizeFirst(baseName)}FromFunction.$v + 1
                 },
@@ -1263,6 +1284,13 @@ function generateDeleteCases(schema: ParsedSchema): string {
         // Document with ownership relation
         const ownerField = ownership.ownerField;
         
+        // Find the index for this ownership relation
+        const indexForOwnership = Array.from(schema.indexes.values()).find(index => 
+          index.ownerDocument === ownership.ownerDocument && 
+          index.itemDocument === ownership.ownedDocument
+        );
+        const indexName = indexForOwnership ? indexForOwnership.name : `${ownership.ownedDocument.replace('Doc', '')}sOf${ownership.ownerDocument.replace('Doc', '')}Index`;
+        
         cases.push(`          case 'delete-${baseName}':
             // Delete main document (no error if not exists)
             transactItems.push({
@@ -1280,8 +1308,8 @@ function generateDeleteCases(schema: ParsedSchema): string {
                 Delete: {
                   TableName: config.DYNAMODB_TABLE_NAME,
                   Key: {
-                    $p: \`${ownership.ownerDocument}/id=\${op.${ownerField}}\`,
-                    $s: \`${docName}#\${op.${pkFields[0].name}}\`
+                    $p: \`${indexName}/id=\${op.${ownerField}}\`,
+                    $s: \`${pkFields.map(f => `${f.name}=\${op.${f.name}}`).join('/')}\`
                   }
                 }
               });
