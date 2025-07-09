@@ -52,6 +52,8 @@ export const apis: Apis = {
     (await import("./api/deleteArtwork")).deleteArtwork(params, req),
   duplicateArtwork: async (params, req) =>
     (await import("./api/duplicateArtwork")).duplicateArtwork(params, req),
+  loginDev: async (params, req) =>
+    (await import("./api/loginDev")).loginDev(params, req),
 };
 
 export type Apis = {

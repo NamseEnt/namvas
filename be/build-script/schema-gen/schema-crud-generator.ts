@@ -405,8 +405,8 @@ function generateUpdateFunction(docName: string, typeName: string, pkFields: any
         $s: '_',
         ...${baseName}
       },
-      ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-      ExpressionAttributeNames: { '#v': '$v' },
+      ConditionExpression: 'attribute_exists(#p) AND #v = :expectedVersion',
+      ExpressionAttributeNames: { '#p': '$p', '#v': '$v' },
       ExpressionAttributeValues: { ':expectedVersion': ${baseName}.$v }
     });`;
   
@@ -426,7 +426,8 @@ function generateUpdateFunction(docName: string, typeName: string, pkFields: any
         $s: \`${sortKeyTemplate}\`,
         ...${baseName}
       },
-      ConditionExpression: 'attribute_exists($p)'
+      ConditionExpression: 'attribute_exists(#p)',
+      ExpressionAttributeNames: { '#p': '$p' }
     });`;
     }).join('');
     
@@ -943,7 +944,8 @@ function generateCreateCases(schema: ParsedSchema): string {
                   $s: \`${skField.name}=\${op.data.${skField.name}}\`,
                   ...op.data
                 },
-                ConditionExpression: 'attribute_not_exists($p) AND attribute_not_exists($s)'
+                ConditionExpression: 'attribute_not_exists(#p) AND attribute_not_exists(#s)',
+                ExpressionAttributeNames: { '#p': '$p', '#s': '$s' }
               }
             });
             break;`);
@@ -968,7 +970,8 @@ function generateCreateCases(schema: ParsedSchema): string {
                   $s: '_',
                   ...${baseName}
                 },
-                ConditionExpression: 'attribute_not_exists($p)'
+                ConditionExpression: 'attribute_not_exists(#p)',
+                ExpressionAttributeNames: { '#p': '$p' }
               }
             });
             // Index entry
@@ -994,7 +997,8 @@ function generateCreateCases(schema: ParsedSchema): string {
                   $s: '_',
                   ...op.data
                 },
-                ConditionExpression: 'attribute_not_exists($p)'
+                ConditionExpression: 'attribute_not_exists(#p)',
+                ExpressionAttributeNames: { '#p': '$p' }
               }
             });
             break;`);
@@ -1030,8 +1034,8 @@ function generateUpdateCases(schema: ParsedSchema): string {
                   $s: \`${skField.name}=\${op.data.${skField.name}}\`,
                   ...op.data
                 },
-                ConditionExpression: 'attribute_exists($p) AND attribute_exists($s) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
+                ConditionExpression: 'attribute_exists(#p) AND attribute_exists(#s) AND #v = :expectedVersion',
+                ExpressionAttributeNames: { '#p': '$p', '#s': '$s', '#v': '$v' },
                 ExpressionAttributeValues: { ':expectedVersion': op.expectedVersion }
               }
             });
@@ -1057,8 +1061,8 @@ function generateUpdateCases(schema: ParsedSchema): string {
                   $s: '_',
                   ...updated${capitalizeFirst(baseName)}
                 },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
+                ConditionExpression: 'attribute_exists(#p) AND #v = :expectedVersion',
+                ExpressionAttributeNames: { '#p': '$p', '#v': '$v' },
                 ExpressionAttributeValues: { ':expectedVersion': op.expectedVersion }
               }
             });
@@ -1071,7 +1075,8 @@ function generateUpdateCases(schema: ParsedSchema): string {
                   $s: \`${docName}#\${updated${capitalizeFirst(baseName)}.${pkFields[0].name}}\`,
                   ...updated${capitalizeFirst(baseName)}
                 },
-                ConditionExpression: 'attribute_exists($p)'
+                ConditionExpression: 'attribute_exists(#p)',
+                ExpressionAttributeNames: { '#p': '$p' }
               }
             });
             break;`);
@@ -1086,8 +1091,8 @@ function generateUpdateCases(schema: ParsedSchema): string {
                   $s: '_',
                   ...op.data
                 },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
+                ConditionExpression: 'attribute_exists(#p) AND #v = :expectedVersion',
+                ExpressionAttributeNames: { '#p': '$p', '#v': '$v' },
                 ExpressionAttributeValues: { ':expectedVersion': op.expectedVersion }
               }
             });
@@ -1134,8 +1139,8 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
                   ...updated${capitalizeFirst(listItemName)}FromFunction,
                   $v: updated${capitalizeFirst(listItemName)}FromFunction.$v + 1
                 },
-                ConditionExpression: 'attribute_exists($p) AND attribute_exists($s) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
+                ConditionExpression: 'attribute_exists(#p) AND attribute_exists(#s) AND #v = :expectedVersion',
+                ExpressionAttributeNames: { '#p': '$p', '#s': '$s', '#v': '$v' },
                 ExpressionAttributeValues: { ':expectedVersion': current${capitalizeFirst(listItemName)}.$v }
               }
             });
@@ -1171,8 +1176,8 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
                   ...updated${capitalizeFirst(baseName)}FromFunction,
                   $v: updated${capitalizeFirst(baseName)}FromFunction.$v + 1
                 },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
+                ConditionExpression: 'attribute_exists(#p) AND #v = :expectedVersion',
+                ExpressionAttributeNames: { '#p': '$p', '#v': '$v' },
                 ExpressionAttributeValues: { ':expectedVersion': current${capitalizeFirst(baseName)}.$v }
               }
             });
@@ -1186,7 +1191,8 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
                   ...updated${capitalizeFirst(baseName)}FromFunction,
                   $v: updated${capitalizeFirst(baseName)}FromFunction.$v + 1
                 },
-                ConditionExpression: 'attribute_exists($p)'
+                ConditionExpression: 'attribute_exists(#p)',
+                ExpressionAttributeNames: { '#p': '$p' }
               }
             });
             break;`);
@@ -1207,8 +1213,8 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
                   ...updated${capitalizeFirst(baseName)}FromFunction,
                   $v: updated${capitalizeFirst(baseName)}FromFunction.$v + 1
                 },
-                ConditionExpression: 'attribute_exists($p) AND #v = :expectedVersion',
-                ExpressionAttributeNames: { '#v': '$v' },
+                ConditionExpression: 'attribute_exists(#p) AND #v = :expectedVersion',
+                ExpressionAttributeNames: { '#p': '$p', '#v': '$v' },
                 ExpressionAttributeValues: { ':expectedVersion': current${capitalizeFirst(baseName)}.$v }
               }
             });
@@ -1380,8 +1386,8 @@ function generateListUpdateFunction(docName: string, typeName: string, skField: 
         $s: \`${skField.name}=\${${listItemName}.${skField.name}}\`,
         ...${listItemName}
       },
-      ConditionExpression: 'attribute_exists($p) AND attribute_exists($s) AND #v = :expectedVersion',
-      ExpressionAttributeNames: { '#v': '$v' },
+      ConditionExpression: 'attribute_exists(#p) AND attribute_exists(#s) AND #v = :expectedVersion',
+      ExpressionAttributeNames: { '#p': '$p', '#s': '$s', '#v': '$v' },
       ExpressionAttributeValues: { ':expectedVersion': ${listItemName}.$v }
     });
   }`;
