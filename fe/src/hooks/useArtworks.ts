@@ -151,7 +151,7 @@ export function useArtworks() {
     duplicateArtwork,
     
     // 새로운 저장 기능
-    saveArtwork: saveArtworkMutation.mutate,
+    saveArtwork: saveArtworkMutation.mutateAsync,
     isSaving: saveArtworkMutation.isPending,
     saveError: saveArtworkMutation.error,
   };

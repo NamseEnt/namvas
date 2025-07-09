@@ -11,10 +11,6 @@ import CanvasView from "@/components/CanvasView";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { PRICES } from "@/constants";
 import { type ArtworkDefinition } from "@/types/artwork";
-import {
-  getArtworkFromStorage,
-  getTextureFromStorage,
-} from "@/utils/storageManager";
 import { useOrders } from "@/hooks/useOrders";
 
 
@@ -61,15 +57,15 @@ type OrderPageProps = {
   fromBuildOrder?: string;
 };
 
-export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
+export function OrderPage({ fromBuildOrder }: OrderPageProps) {
   const navigate = useNavigate();
   
   // 주문 관련 기능들
   const { createOrder, isCreatingOrder } = useOrders();
 
-  const [artworkDefinition, setArtworkDefinition] =
+  const [artworkDefinition] =
     useState<ArtworkDefinition>();
-  const [studioTexture, setStudioTexture] = useState<THREE.Texture>();
+  const [studioTexture] = useState<THREE.Texture>();
   const [buildOrderData, setBuildOrderData] = useState<{
     orderItems: Array<{
       artworkId: string;
@@ -126,29 +122,6 @@ export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
 
   useEffect(
     function loadDataFromStorage() {
-      if (fromStudio) {
-        getArtworkFromStorage().then(setArtworkDefinition);
-        
-        getTextureFromStorage().then((textureDataUrl) => {
-          if (textureDataUrl) {
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d')!;
-              canvas.width = img.width;
-              canvas.height = img.height;
-              ctx.drawImage(img, 0, 0);
-              
-              const texture = new THREE.CanvasTexture(canvas);
-              texture.needsUpdate = true;
-              setStudioTexture(texture);
-            };
-            img.src = textureDataUrl;
-          }
-        });
-      }
-      
       if (fromBuildOrder) {
         const tempOrderData = localStorage.getItem('tempOrderData');
         if (tempOrderData) {
@@ -156,7 +129,7 @@ export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
         }
       }
     },
-    [fromStudio, fromBuildOrder]
+    [fromBuildOrder]
   );
 
   useEffect(function focusAddressDetailOnAddressChange() {

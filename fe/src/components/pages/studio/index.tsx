@@ -7,7 +7,6 @@ import {
 } from "react";
 import { LeftPreviewArea } from "./LeftPreviewArea";
 import { type SideProcessing } from "./types";
-import { createCrossTexture } from "./canvas-views/createCrossTexture";
 import {
   ToolModeProvider,
   ModeSelector,
@@ -17,18 +16,9 @@ import {
 } from "./tools";
 import { ResponsiveStudioLayout } from "./ResponsiveStudioLayout";
 import { Button } from "@/components/ui/button";
-import { useNavigate, useSearch } from "@tanstack/react-router";
-import { type ArtworkDefinition } from "@/types/artwork";
-import {
-  saveArtworkToStorage,
-  saveTextureToStorage,
-  clearStorage,
-  saveImageToStorage,
-  getImageFromStorage,
-  saveMetadataToStorage,
-  getMetadataFromStorage,
-} from "@/utils/storageManager";
+import { useNavigate } from "@tanstack/react-router";
 import { useArtworks } from "@/hooks/useArtworks";
+import { toast } from "sonner";
 
 export type StudioState = {
   uploadedImage: HTMLImageElement | undefined;
@@ -73,36 +63,10 @@ export const useCanvasViewsContext = () => useContext(CanvasViewsContext);
 
 export default function StudioPage() {
   const navigate = useNavigate();
-  useSearch({ from: "/studio/" });
   
   // 아트워크 관련 기능들
   const { saveArtwork, isSaving } = useArtworks();
 
-  // Track if we've already restored from storage
-  const [hasRestoredFromStorage, setHasRestoredFromStorage] = useState(false);
-
-  // Get artwork from storage (search params used only as a trigger)
-  const [artworkDefinition, setArtworkDefinition] =
-    useState<ArtworkDefinition>();
-
-  useEffect(
-    function loadArtworkFromStorage() {
-      if (!hasRestoredFromStorage) {
-        // Load image and metadata separately
-        Promise.all([getImageFromStorage(), getMetadataFromStorage()]).then(
-          ([imageDataUrl, metadata]) => {
-            if (imageDataUrl && metadata) {
-              setArtworkDefinition({
-                originalImageDataUrl: imageDataUrl,
-                ...metadata,
-              });
-            }
-          }
-        );
-      }
-    },
-    [hasRestoredFromStorage]
-  );
 
   const [state, setState] = useState<StudioState>({
     uploadedImage: undefined,
@@ -169,16 +133,6 @@ export default function StudioPage() {
             uploadedFileName: file.name, // 파일 이름 저장
           });
 
-          // Save image separately
-          await saveImageToStorage(dataUrl);
-
-          // Save initial metadata
-          await saveMetadataToStorage({
-            mmPerPixel: autoFitMmPerPixel,
-            imageCenterXy: { x: 0, y: 0 },
-            sideProcessing: { type: "clip" },
-            canvasBackgroundColor: "#FFFFFF",
-          });
         };
       };
       reader.readAsDataURL(file);
@@ -210,10 +164,6 @@ export default function StudioPage() {
     }
 
     // Clear OPFS storage
-    await clearStorage();
-
-    // Reset restoration flag to true to prevent re-loading
-    setHasRestoredFromStorage(true);
 
     // Reset all state to initial values
     setState({
@@ -249,37 +199,7 @@ export default function StudioPage() {
     }
 
     try {
-      // Create artwork definition
-      const artworkDefinition: ArtworkDefinition = {
-        originalImageDataUrl: state.imageDataUrl,
-        mmPerPixel: state.mmPerPixel,
-        imageCenterXy: state.imageCenterXy,
-        sideProcessing: state.sideProcessing,
-        canvasBackgroundColor: state.canvasBackgroundColor,
-      };
-
-      // Save artwork to storage
-      await saveArtworkToStorage(artworkDefinition);
-
-      // Create cross texture for preview
-      const crossTexture = createCrossTexture({
-        uploadedImage: state.uploadedImage,
-        mmPerPixel: state.mmPerPixel,
-        imageCenterXy: state.imageCenterXy,
-        sideProcessing: state.sideProcessing,
-        canvasTextureImg: canvasTextureImg,
-      });
-
-      // Convert Three.js texture to data URL
-      const canvas = crossTexture.image as HTMLCanvasElement;
-      const textureDataUrl = canvas.toDataURL("image/png", 0.9);
-
-      // Save texture to storage
-      console.log("[DEBUG] Saving texture to OPFS...");
-      await saveTextureToStorage(textureDataUrl);
-
-      // Navigate to order page (just as a trigger, no data in URL)
-      console.log("[DEBUG] Navigating to order page...");
+      // Navigate to order page directly
       navigate({
         to: "/order",
         search: {
@@ -290,7 +210,7 @@ export default function StudioPage() {
     } catch (error) {
       console.error("Error creating artwork for order:", error);
     }
-  }, [state, canvasTextureImg, loadCanvasTexture, navigate]);
+  }, [navigate, state.imageDataUrl, state.uploadedImage, canvasTextureImg, loadCanvasTexture]);
 
   const handleSaveToArtworks = useCallback(async (title: string) => {
     if (!state.uploadedImage || !state.imageDataUrl) {
@@ -307,7 +227,7 @@ export default function StudioPage() {
     }
 
     // 복잡한 API 호출 로직이 useArtworks 훅으로 캡슐화됨
-    saveArtwork({
+    await saveArtwork({
       title,
       imageDataUrl: state.imageDataUrl,
       uploadedImage: state.uploadedImage,
@@ -365,66 +285,7 @@ export default function StudioPage() {
     [state.uploadedImage, hasPlayedInitialAnimation, updateCanvasViewsState]
   );
 
-  useEffect(
-    function restoreArtworkFromSearch() {
-      if (artworkDefinition && !hasRestoredFromStorage) {
-        // Restore artwork state from storage
-        const img = new Image();
-        img.onload = () => {
-          updateState({
-            uploadedImage: img,
-            imageDataUrl: artworkDefinition.originalImageDataUrl,
-            mmPerPixel: artworkDefinition.mmPerPixel,
-            imageCenterXy: artworkDefinition.imageCenterXy,
-            sideProcessing: artworkDefinition.sideProcessing,
-            canvasBackgroundColor: artworkDefinition.canvasBackgroundColor,
-          });
-          // Mark as restored to prevent re-running
-          setHasRestoredFromStorage(true);
-          // Reset animation flag to allow initial animation to play
-          setHasPlayedInitialAnimation(false);
 
-          // Remove artwork param from URL to prevent re-renders
-          navigate({
-            to: "/studio",
-            search: { artwork: undefined },
-            replace: true,
-          });
-        };
-        img.src = artworkDefinition.originalImageDataUrl;
-      }
-    },
-    [artworkDefinition, hasRestoredFromStorage, navigate, updateState]
-  );
-
-  // Auto-save metadata to OPFS whenever state changes (excluding image)
-  useEffect(
-    function autoSaveMetadataToOPFS() {
-      if (state.uploadedImage && state.imageDataUrl && hasRestoredFromStorage) {
-        const metadata = {
-          mmPerPixel: state.mmPerPixel,
-          imageCenterXy: state.imageCenterXy,
-          sideProcessing: state.sideProcessing,
-          canvasBackgroundColor: state.canvasBackgroundColor,
-        };
-
-        const timeoutId = setTimeout(() => {
-          saveMetadataToStorage(metadata);
-        }, 500); // Debounce 500ms
-
-        return () => clearTimeout(timeoutId);
-      }
-    },
-    [
-      state.mmPerPixel,
-      state.imageCenterXy,
-      state.sideProcessing,
-      state.canvasBackgroundColor,
-      state.uploadedImage,
-      state.imageDataUrl,
-      hasRestoredFromStorage,
-    ]
-  );
 
   return (
     <StudioContext.Provider
@@ -499,11 +360,13 @@ function ActionButtons() {
     const title = fileName.replace(/\.[^/.]+$/, ""); // 확장자 제거
 
     try {
+      console.log("Starting to save artwork...");
       await handleSaveToArtworks(title);
-      // 성공 메시지나 페이지 이동 등 처리
+      console.log("Artwork saved successfully!");
+      toast.success("작품이 저장되었습니다.");
     } catch (error) {
-      console.error("Failed to save artwork:", error);
-      // 에러 메시지 처리
+      console.error("Failed to save artwork in Studio:", error);
+      toast.error("작품 저장에 실패했습니다.");
     }
   };
 
@@ -522,7 +385,7 @@ function ActionButtons() {
         onClick={handleSaveWithFileName}
         disabled={!state.uploadedImage || !state.uploadedFileName}
         size="lg"
-        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 px-6"
+        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 px-6 w-32"
       >
         {isSaving ? "저장 중..." : "저장하기"}
       </Button>

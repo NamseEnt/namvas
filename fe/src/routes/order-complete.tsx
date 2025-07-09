@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { OrderCompletePage } from "@/components/pages/OrderCompletePage";
+import { AuthGuard } from "@/components/common/AuthGuard";
 
 export const Route = createFileRoute("/order-complete")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -8,6 +9,10 @@ export const Route = createFileRoute("/order-complete")({
   }),
   component: function OrderCompleteComponent() {
     const { orderId, amount } = Route.useSearch();
-    return <OrderCompletePage orderId={orderId} amount={amount} />;
+    return (
+      <AuthGuard>
+        <OrderCompletePage orderId={orderId} amount={amount} />
+      </AuthGuard>
+    );
   },
 });

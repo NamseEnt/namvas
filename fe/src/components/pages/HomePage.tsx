@@ -6,8 +6,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useLoginIntent } from "@/contexts/LoginIntentContext";
 
 type HomePageState = {
   isLoginModalOpen: boolean;
@@ -30,6 +31,7 @@ export function HomePage() {
   });
   
   const navigate = useNavigate();
+  const { setIntent } = useLoginIntent();
   
   // 인증 상태와 네비게이션에 필요한 부분만 가져옴
   const {
@@ -47,6 +49,8 @@ export function HomePage() {
     if (isAuthenticated) {
       navigate({ to: '/studio', search: { artwork: undefined } });
     } else {
+      setIntent("for-studio"); // Studio 이동 의도 설정
+      sessionStorage.setItem("login-modal-intent", "for-studio"); // 로그인 모달 출처 마킹
       updateState({ isLoginModalOpen: true });
     }
   };
@@ -62,6 +66,16 @@ export function HomePage() {
   const handleDevLogin = () => {
     loginDev('dev-user');
   };
+
+  // 로그인 성공 시 모달 닫기
+  useEffect(
+    function closeModalOnLogin() {
+      if (isAuthenticated && state.isLoginModalOpen) {
+        updateState({ isLoginModalOpen: false });
+      }
+    },
+    [isAuthenticated, state.isLoginModalOpen]
+  );
 
   return (
     <HomePageContext.Provider

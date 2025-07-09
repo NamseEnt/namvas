@@ -1,9 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { OrderPage } from "@/components/pages/OrderPage";
+import { AuthGuard } from "@/components/common/AuthGuard";
 
 function OrderPageComponent() {
   const { fromStudio, fromBuildOrder } = Route.useSearch();
-  return <OrderPage fromStudio={fromStudio} fromBuildOrder={fromBuildOrder} />;
+  return (
+    <AuthGuard>
+      <OrderPage fromStudio={fromStudio} fromBuildOrder={fromBuildOrder} />
+    </AuthGuard>
+  );
 }
 
 export const Route = createFileRoute("/order")({

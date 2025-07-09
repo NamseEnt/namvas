@@ -50,7 +50,6 @@ export function useAuth() {
     mutationFn: authApi.loginDev,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth'] });
-      navigate({ to: "/" });
     },
     onError: (error) => {
       console.error("Dev login failed:", error);

@@ -7,6 +7,7 @@ export type ArtworkDefinition = {
   imageCenterXy: { x: number; y: number }; // Center coordinates in millimeters
   sideProcessing: SideProcessing; // How to handle sides (clip, color, flip, none)
   canvasBackgroundColor: string; // Background pattern/color
+  uploadedFileName?: string; // Original file name
 };
 
 // Metadata without image data for efficient storage
@@ -15,6 +16,7 @@ export type ArtworkMetadata = {
   imageCenterXy: { x: number; y: number };
   sideProcessing: SideProcessing;
   canvasBackgroundColor: string;
+  uploadedFileName?: string;
 };
 
 const ARTWORK_STORAGE_KEY = 'namvas_artwork';

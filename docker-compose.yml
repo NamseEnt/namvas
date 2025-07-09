@@ -4,6 +4,8 @@ services:
     container_name: mockaws
     ports:
       - "4566:4566"
+    volumes:
+      - ./.mockaws-data:/data
     environment:
       - PORT=4566
       - AWS_ACCESS_KEY_ID=test
