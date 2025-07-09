@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { X } from "lucide-react";
 import { createContext, useContext, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -21,8 +20,6 @@ const HomePageContext = createContext<{
   handleGoogleLogin: () => void;
   handleXLogin: () => void;
   handleDevLogin: () => void;
-  handleLogout: () => void;
-  isLoadingAuth: boolean;
 }>(null!);
 
 const useHomePageContext = () => useContext(HomePageContext);
@@ -36,13 +33,9 @@ export function HomePage() {
   
   // 인증 상태와 네비게이션에 필요한 부분만 가져옴
   const {
-    isLoading: isLoadingAuth,
-    logout,
-    isLoggingOut,
     loginWithGoogle,
     loginWithX,
     loginDev,
-    isDevLogging,
     isAuthenticated
   } = useAuth();
 
@@ -56,10 +49,6 @@ export function HomePage() {
     } else {
       updateState({ isLoginModalOpen: true });
     }
-  };
-
-  const handleLogout = () => {
-    logout();
   };
 
   const handleGoogleLogin = () => {
@@ -83,91 +72,24 @@ export function HomePage() {
         handleGoogleLogin,
         handleXLogin,
         handleDevLogin,
-        handleLogout,
-        isLoadingAuth: isLoadingAuth || isLoggingOut || isDevLogging,
       }}
     >
-      <div className="min-h-screen flex flex-col bg-background">
-        <PageHeader />
-        <MainContent />
-        <PageFooter />
-        <LoginModal />
-      </div>
+      <MainContent />
+      <LoginModal />
     </HomePageContext.Provider>
   );
 }
 
-function PageHeader() {
-  const { handleGoogleLogin, handleXLogin, handleDevLogin, handleLogout, isLoadingAuth } = useHomePageContext();
-  const { user } = useAuth();
-
-  return (
-    <header className="border-b bg-card">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
-              NAMVAS
-            </h1>
-          </div>
-          <div className="flex gap-3">
-            {isLoadingAuth ? (
-              <div className="h-9 w-32 bg-muted rounded animate-pulse" />
-            ) : user ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="text-red-600 border-red-200 hover:bg-red-50"
-              >
-                로그아웃
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGoogleLogin}
-                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                >
-                  Google로 시작하기
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleXLogin}
-                  className="text-sky-600 border-sky-200 hover:bg-sky-50"
-                >
-                  X로 시작하기
-                </Button>
-                {import.meta.env.MODE !== 'production' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDevLogin}
-                    className="text-green-600 border-green-200 hover:bg-green-50"
-                  >
-                    개발 로그인
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
 
 function MainContent() {
   return (
-    <main className="flex-1 flex items-center justify-center px-4 py-12 bg-muted/30">
+    <div className="flex-1 flex items-center justify-center px-4 py-12 bg-muted/30">
       <div className="max-w-2xl mx-auto text-center space-y-8">
         <ProductShowcase />
         <ValueProposition />
         <CTASection />
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -218,38 +140,6 @@ function CTASection() {
   );
 }
 
-function PageFooter() {
-  return (
-    <footer className="border-t bg-card">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-center items-center gap-8">
-          <a
-            href="https://x.com/messages/compose?recipient_id=NAMVAS_X_ID"
-            className="text-muted-foreground hover:text-sky-600 transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <X className="w-5 h-5" />
-          </a>
-          <div className="flex gap-6 text-sm">
-            <a
-              href="/terms"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              서비스 이용약관
-            </a>
-            <a
-              href="/privacy"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              개인정보처리방침
-            </a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
 
 function LoginModal() {
   const { state, updateState, handleGoogleLogin, handleXLogin, handleDevLogin } =

@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start:docker": "docker-compose up",
+    "start:docker": "docker-compose up --build",
     "start:lambda": "cd local-lambda-emulator && bun run dev",
     "start:frontend": "cd fe && npm run dev",
     "dev": "concurrently -k -p \"[{name}]\" -n \"Docker,Lambda,Frontend\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"npm:start:docker\" \"npm:start:lambda\" \"npm:start:frontend\"",

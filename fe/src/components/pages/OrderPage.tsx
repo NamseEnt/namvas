@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import CanvasView from "@/components/CanvasView";
-import { X, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { PRICES } from "@/constants";
 import { type ArtworkDefinition } from "@/types/artwork";
 import {
@@ -615,43 +615,7 @@ export function OrderPage({ fromStudio, fromBuildOrder }: OrderPageProps) {
           </div>
         </div>
       </div>
-      <div className="mt-16">
-        <PageFooter />
-      </div>
     </div>
-  );
-}
-
-function PageFooter() {
-  return (
-    <footer className="border-t bg-card">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-center items-center gap-8">
-          <a
-            href="https://x.com/messages/compose?recipient_id=NAMVAS_X_ID"
-            className="text-muted-foreground hover:text-sky-600 transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <X className="w-5 h-5" />
-          </a>
-          <div className="flex gap-6 text-sm">
-            <a
-              href="/terms"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              서비스 이용약관
-            </a>
-            <a
-              href="/privacy"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              개인정보처리방침
-            </a>
-          </div>
-        </div>
-      </div>
-    </footer>
   );
 }
 

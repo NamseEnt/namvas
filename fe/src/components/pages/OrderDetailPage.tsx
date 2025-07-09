@@ -120,7 +120,6 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
       <div className="mb-6">
         <Button variant="ghost" className="mb-4" onClick={handleGoBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -128,7 +127,6 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
         </Button>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">주문 상세정보</h1>
             <p className="text-muted-foreground">주문번호: {order.id}</p>
           </div>
           {getStatusBadge(order.status)}

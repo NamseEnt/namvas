@@ -99,22 +99,13 @@ export function MyPage() {
 
   return (
     <MyPageContext.Provider value={{ state, updateState, handleCancelOrder, navigate }}>
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        <Header />
+      <div className="container mx-auto px-4 py-8">
         <OrderHistorySection />
       </div>
     </MyPageContext.Provider>
   );
 }
 
-function Header() {
-  return (
-    <header className="text-center space-y-2">
-      <h1 className="text-3xl font-bold">마이페이지</h1>
-      <p className="text-muted-foreground">주문내역과 계정 정보를 확인하세요</p>
-    </header>
-  );
-}
 
 function OrderHistorySection() {
   const { state, navigate } = useMyPageContext();

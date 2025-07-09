@@ -67,8 +67,6 @@ export function OrdersPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">주문내역</h1>
-      
       {/* Search and Filter Section */}
       <div className="mb-8 space-y-4">
         <div className="flex flex-wrap gap-4">

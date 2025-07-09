@@ -5,8 +5,6 @@ import { useEffect } from "react";
 import { Trash2, Copy, Plus } from "lucide-react";
 import type { Artwork } from "../../../../shared/types";
 import { useArtworks } from "@/hooks/useArtworks";
-import { PageHeader } from "@/components/common/PageHeader";
-import { PageFooter } from "@/components/common/PageFooter";
 
 export function ArtworksPage() {
   const { artworks, isLoading, loadArtworks, deleteArtwork, duplicateArtwork } = useArtworks();
@@ -24,21 +22,17 @@ export function ArtworksPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <PageHeader />
-      <div className="container mx-auto max-w-5xl px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">내 작품</h1>
-          <p className="text-muted-foreground mt-2">저장된 작품을 관리하고 새로운 주문을 만들어보세요</p>
-        </div>
-        <ArtworksSection 
-          artworks={artworks}
-          isLoading={isLoading}
-          onDeleteArtwork={handleDeleteArtwork}
-          onDuplicateArtwork={handleDuplicateArtwork}
-        />
+    <div className="container mx-auto max-w-5xl px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">내 작품</h1>
+        <p className="text-muted-foreground mt-2">저장된 작품을 관리하고 새로운 주문을 만들어보세요</p>
       </div>
-      <PageFooter />
+      <ArtworksSection 
+        artworks={artworks}
+        isLoading={isLoading}
+        onDeleteArtwork={handleDeleteArtwork}
+        onDuplicateArtwork={handleDuplicateArtwork}
+      />
     </div>
   );
 }

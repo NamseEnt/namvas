@@ -1,16 +1,11 @@
 services:
-  localstack:
-    image: localstack/localstack:latest
-    container_name: localstack-local
+  mockaws:
+    build: https://github.com/namse/mockaws.git
+    container_name: mockaws
     ports:
       - "4566:4566"
     environment:
-      - SERVICES=s3,dynamodb,sqs
-      - DEBUG=0
-      - AWS_DEFAULT_REGION=us-east-1
+      - PORT=4566
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
-      - PERSIST=0
-    volumes:
-      - ./localstack-init:/etc/localstack/init/ready.d
-
+      - AWS_REGION=us-east-1
