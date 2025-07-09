@@ -46,6 +46,17 @@ export function useAuth() {
     },
   });
 
+  const devLoginMutation = useMutation({
+    mutationFn: authApi.loginDev,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth'] });
+      navigate({ to: "/" });
+    },
+    onError: (error) => {
+      console.error("Dev login failed:", error);
+    },
+  });
+
   // Google 로그인 초기화
   const initiateGoogleLogin = useCallback(() => {
     const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -96,6 +107,11 @@ export function useAuth() {
     // 소셜 로그인
     loginWithGoogle: initiateGoogleLogin,
     loginWithX: initiateXLogin,
+    
+    // 개발 로그인
+    loginDev: devLoginMutation.mutate,
+    isDevLogging: devLoginMutation.isPending,
+    devLoginError: devLoginMutation.error,
     
     // 유틸리티
     isAuthenticated: !!userQuery.data,

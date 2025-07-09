@@ -29,10 +29,6 @@ import {
   getMetadataFromStorage,
 } from "@/utils/storageManager";
 import { useArtworks } from "@/hooks/useArtworks";
-import { useState as reactUseState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export type StudioState = {
   uploadedImage: HTMLImageElement | undefined;
@@ -41,6 +37,7 @@ export type StudioState = {
   imageCenterXy: { x: number; y: number }; // in millimeters
   sideProcessing: SideProcessing;
   canvasBackgroundColor: string;
+  uploadedFileName?: string; // 업로드된 파일의 원본 이름
 };
 
 type CanvasViewsState = {
@@ -116,6 +113,7 @@ export default function StudioPage() {
       type: "clip",
     },
     canvasBackgroundColor: "dark-pattern",
+    uploadedFileName: undefined,
   });
 
   const [canvasViewsState, setCanvasViewsState] = useState<CanvasViewsState>({
@@ -168,6 +166,7 @@ export default function StudioPage() {
             uploadedImage: img,
             imageDataUrl: dataUrl,
             mmPerPixel: autoFitMmPerPixel,
+            uploadedFileName: file.name, // 파일 이름 저장
           });
 
           // Save image separately
@@ -226,6 +225,7 @@ export default function StudioPage() {
         type: "clip",
       },
       canvasBackgroundColor: "#FFFFFF",
+      uploadedFileName: undefined,
     });
   }, []);
 
@@ -482,80 +482,49 @@ export default function StudioPage() {
 }
 
 function ActionButtons() {
-  const { state, handleOrder, handleSaveToArtworks, isSaving } = useStudioContext();
-  const [saveDialogOpen, setSaveDialogOpen] = reactUseState(false);
-  const [artworkTitle, setArtworkTitle] = reactUseState("");
+  const { state, handleSaveToArtworks, isSaving } = useStudioContext();
+  const navigate = useNavigate();
 
-  const handleSaveClick = async () => {
-    if (!artworkTitle.trim()) {
+  const handleGoToArtworks = () => {
+    navigate({ to: "/artworks" });
+  };
+
+  const handleSaveWithFileName = async () => {
+    if (!state.uploadedFileName) {
       return;
     }
 
+    // 파일 이름에서 확장자 제거하여 작품 제목으로 사용
+    const fileName = state.uploadedFileName;
+    const title = fileName.replace(/\.[^/.]+$/, ""); // 확장자 제거
+
     try {
-      await handleSaveToArtworks(artworkTitle.trim());
-      setSaveDialogOpen(false);
-      setArtworkTitle("");
-      // Show success message or redirect to artworks page
+      await handleSaveToArtworks(title);
+      // 성공 메시지나 페이지 이동 등 처리
     } catch (error) {
       console.error("Failed to save artwork:", error);
-      // Show error message
+      // 에러 메시지 처리
     }
   };
 
   return (
     <div className="flex gap-3">
-      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-        <DialogTrigger asChild>
-          <Button
-            disabled={!state.uploadedImage}
-            variant="outline"
-            size="lg"
-            className="px-6"
-          >
-            내 작품에 저장
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>작품 저장하기</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title">작품 제목</Label>
-              <Input
-                id="title"
-                value={artworkTitle}
-                onChange={(e) => setArtworkTitle(e.target.value)}
-                placeholder="작품 제목을 입력하세요"
-                disabled={isSaving}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setSaveDialogOpen(false)}
-                disabled={isSaving}
-              >
-                취소
-              </Button>
-              <Button
-                onClick={handleSaveClick}
-                disabled={!artworkTitle.trim() || isSaving}
-              >
-                {isSaving ? "저장 중..." : "저장"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <Button
+        onClick={handleGoToArtworks}
+        variant="outline"
+        size="lg"
+        className="px-6"
+      >
+        내 작품으로 가기
+      </Button>
       
       <Button
-        onClick={handleOrder}
-        disabled={!state.uploadedImage}
-        className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 px-6"
+        onClick={handleSaveWithFileName}
+        disabled={!state.uploadedImage || !state.uploadedFileName}
         size="lg"
+        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 px-6"
       >
-        주문하기
+        {isSaving ? "저장 중..." : "저장하기"}
       </Button>
     </div>
   );

@@ -20,6 +20,7 @@ const HomePageContext = createContext<{
   handleCreateCanvas: () => void;
   handleGoogleLogin: () => void;
   handleXLogin: () => void;
+  handleDevLogin: () => void;
   handleLogout: () => void;
   isLoadingAuth: boolean;
 }>(null!);
@@ -40,6 +41,8 @@ export function HomePage() {
     isLoggingOut,
     loginWithGoogle,
     loginWithX,
+    loginDev,
+    isDevLogging,
     isAuthenticated
   } = useAuth();
 
@@ -67,6 +70,10 @@ export function HomePage() {
     loginWithX();
   };
 
+  const handleDevLogin = () => {
+    loginDev('dev-user');
+  };
+
   return (
     <HomePageContext.Provider
       value={{
@@ -75,8 +82,9 @@ export function HomePage() {
         handleCreateCanvas,
         handleGoogleLogin,
         handleXLogin,
+        handleDevLogin,
         handleLogout,
-        isLoadingAuth: isLoadingAuth || isLoggingOut,
+        isLoadingAuth: isLoadingAuth || isLoggingOut || isDevLogging,
       }}
     >
       <div className="min-h-screen flex flex-col bg-background">
@@ -90,7 +98,7 @@ export function HomePage() {
 }
 
 function PageHeader() {
-  const { handleGoogleLogin, handleXLogin, handleLogout, isLoadingAuth } = useHomePageContext();
+  const { handleGoogleLogin, handleXLogin, handleDevLogin, handleLogout, isLoadingAuth } = useHomePageContext();
   const { user } = useAuth();
 
   return (
@@ -132,6 +140,16 @@ function PageHeader() {
                 >
                   X로 시작하기
                 </Button>
+                {import.meta.env.MODE !== 'production' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDevLogin}
+                    className="text-green-600 border-green-200 hover:bg-green-50"
+                  >
+                    개발 로그인
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -234,7 +252,7 @@ function PageFooter() {
 }
 
 function LoginModal() {
-  const { state, updateState, handleGoogleLogin, handleXLogin } =
+  const { state, updateState, handleGoogleLogin, handleXLogin, handleDevLogin } =
     useHomePageContext();
 
   return (
@@ -261,6 +279,14 @@ function LoginModal() {
           >
             X로 시작하기
           </Button>
+          {import.meta.env.MODE !== 'production' && (
+            <Button
+              onClick={handleDevLogin}
+              className="w-full h-12 text-base font-medium bg-green-600 text-white hover:bg-green-700"
+            >
+              개발 로그인
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
