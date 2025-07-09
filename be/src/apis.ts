@@ -1,31 +1,13 @@
-// IMPORTANT: Any API implementation exceeding 20 lines must be moved to a separate file in the api/ directory
+// IMPORTANT: Any API implementation must be implemented in a separate file in the api/ directory
 // NOTE: Use dynamic imports for all API modules to improve performance and reduce bundle size
 import { ApiSpec } from "shared";
-import { getSession } from "./session";
 import { ApiRequest } from "./types";
-import { ddb } from "./__generated/db";
 
 export const apis: Apis = {
-  getMe: async ({}, req) => {
-    const session = await getSession(req);
-    if (!session) {
-      return { ok: false, reason: "NOT_LOGGED_IN" };
-    }
-    const user = await ddb.getUserDoc({ id: session.userId });
-    if (!user) {
-      return { ok: false, reason: "NOT_LOGGED_IN" };
-    }
-    return { ok: true, tosAgreed: user.tosAgreed };
-  },
-  logOut: async ({}, req) => {
-    const session = await getSession(req);
-    if (!session) {
-      return { ok: true };
-    }
-    await ddb.deleteSessionDoc({ id: session.id });
-    delete req.cookies.sessionId;
-    return { ok: true };
-  },
+  getMe: async (params, req) =>
+    (await import("./api/getMe")).getMe(params, req),
+  logOut: async (params, req) =>
+    (await import("./api/logOut")).logOut(params, req),
   // Use dynamic imports for better performance and code splitting
   loginWithGoogle: async (params, req) =>
     (await import("./api/loginWithGoogle")).loginWithGoogle(params, req),
