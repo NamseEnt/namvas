@@ -19,12 +19,13 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { useArtworks } from "@/hooks/useArtworks";
 import { toast } from "sonner";
+// import { canvasProductSizeM } from "@/components/common/CanvasView/constants";
 
 export type StudioState = {
   uploadedImage: HTMLImageElement | undefined;
   imageDataUrl: string | undefined;
-  mmPerPixel: number; // millimeters per pixel ratio
-  imageCenterXy: { x: number; y: number }; // in millimeters
+  dpi: number; // dots per inch
+  imageCenterXyInch: { x: number; y: number }; // in inches
   sideProcessing: SideProcessing;
   canvasBackgroundColor: string;
   uploadedFileName?: string; // 업로드된 파일의 원본 이름
@@ -38,7 +39,7 @@ const StudioContext = createContext<{
   state: StudioState;
   updateState: (updates: Partial<StudioState>) => void;
   handleImageUpload: (file: File) => void;
-  handleMmPerPixelChange: (mmPerPixel: number) => void;
+  handleDpiChange: (dpi: number) => void;
   handlePositionChange: (position: { x: number; y: number }) => void;
   handleOrder: () => void;
   handleClearWork: () => void;
@@ -63,16 +64,15 @@ export const useCanvasViewsContext = () => useContext(CanvasViewsContext);
 
 export default function StudioPage() {
   const navigate = useNavigate();
-  
+
   // 아트워크 관련 기능들
   const { saveArtwork, isSaving } = useArtworks();
-
 
   const [state, setState] = useState<StudioState>({
     uploadedImage: undefined,
     imageDataUrl: undefined,
-    mmPerPixel: 1, // will be auto-calculated on image upload
-    imageCenterXy: { x: 0, y: 0 }, // in millimeters
+    dpi: 300, // will be auto-calculated on image upload
+    imageCenterXyInch: { x: 0, y: 0 }, // in inches
     sideProcessing: {
       type: "clip",
     },
@@ -118,21 +118,13 @@ export default function StudioPage() {
         const img = new Image();
         img.src = dataUrl;
         img.onload = async () => {
-          // Auto-fit image so largest dimension fits 4x6 inch canvas
-          const canvasWidth = 101.6; // mm (4 inches)
-          const canvasHeight = 152.4; // mm (6 inches)
-          const maxDimension = Math.max(canvasWidth, canvasHeight);
-
-          const imageMaxDimension = Math.max(img.width, img.height);
-          const autoFitMmPerPixel = maxDimension / imageMaxDimension;
-
           updateState({
             uploadedImage: img,
             imageDataUrl: dataUrl,
-            mmPerPixel: autoFitMmPerPixel,
+            dpi: 300,
+            imageCenterXyInch: { x: 0, y: 0 }, // Center the image on canvas
             uploadedFileName: file.name, // 파일 이름 저장
           });
-
         };
       };
       reader.readAsDataURL(file);
@@ -140,10 +132,10 @@ export default function StudioPage() {
     [updateState]
   );
 
-  const handleMmPerPixelChange = useCallback(
-    (mmPerPixel: number) => {
+  const handleDpiChange = useCallback(
+    (dpi: number) => {
       updateState({
-        mmPerPixel: mmPerPixel,
+        dpi: dpi,
       });
     },
     [updateState]
@@ -151,7 +143,7 @@ export default function StudioPage() {
 
   const handlePositionChange = useCallback(
     (position: { x: number; y: number }) => {
-      updateState({ imageCenterXy: position });
+      updateState({ imageCenterXyInch: position });
     },
     [updateState]
   );
@@ -169,12 +161,12 @@ export default function StudioPage() {
     setState({
       uploadedImage: undefined,
       imageDataUrl: undefined,
-      mmPerPixel: 1,
-      imageCenterXy: { x: 0, y: 0 },
+      dpi: 300,
+      imageCenterXyInch: { x: 0, y: 0 },
       sideProcessing: {
         type: "clip",
       },
-      canvasBackgroundColor: "#FFFFFF",
+      canvasBackgroundColor: "dark-pattern",
       uploadedFileName: undefined,
     });
   }, []);
@@ -210,33 +202,43 @@ export default function StudioPage() {
     } catch (error) {
       console.error("Error creating artwork for order:", error);
     }
-  }, [navigate, state.imageDataUrl, state.uploadedImage, canvasTextureImg, loadCanvasTexture]);
+  }, [
+    navigate,
+    state.imageDataUrl,
+    state.uploadedImage,
+    canvasTextureImg,
+    loadCanvasTexture,
+  ]);
 
-  const handleSaveToArtworks = useCallback(async (title: string) => {
-    if (!state.uploadedImage || !state.imageDataUrl) {
-      throw new Error("No image to save");
-    }
+  const handleSaveToArtworks = useCallback(
+    async (title: string) => {
+      if (!state.uploadedImage || !state.imageDataUrl) {
+        throw new Error("No image to save");
+      }
 
-    // Ensure canvas texture is loaded
-    if (!canvasTextureImg) {
-      loadCanvasTexture();
-      const img = new Image();
-      img.onload = () => setCanvasTextureImg(img);
-      img.src = "./canvas-texture.jpg";
-      throw new Error("Canvas texture not loaded yet");
-    }
+      // Ensure canvas texture is loaded
+      if (!canvasTextureImg) {
+        loadCanvasTexture();
+        const img = new Image();
+        img.onload = () => setCanvasTextureImg(img);
+        img.src = "./canvas-texture.jpg";
+        throw new Error("Canvas texture not loaded yet");
+      }
 
-    // 복잡한 API 호출 로직이 useArtworks 훅으로 캡슐화됨
-    await saveArtwork({
-      title,
-      imageDataUrl: state.imageDataUrl,
-      uploadedImage: state.uploadedImage,
-      mmPerPixel: state.mmPerPixel,
-      imageCenterXy: state.imageCenterXy,
-      sideProcessing: state.sideProcessing,
-      canvasTextureImg: canvasTextureImg,
-    });
-  }, [state, canvasTextureImg, loadCanvasTexture, saveArtwork]);
+      // 복잡한 API 호출 로직이 useArtworks 훅으로 캡슐화됨
+      await saveArtwork({
+        title,
+        imageDataUrl: state.imageDataUrl,
+        settings: {
+          dpi: state.dpi,
+          imageCenterXyInch: state.imageCenterXyInch,
+          sideProcessing: state.sideProcessing,
+          canvasBackgroundColor: state.canvasBackgroundColor,
+        },
+      });
+    },
+    [state, saveArtwork, canvasTextureImg, loadCanvasTexture]
+  );
 
   useEffect(
     function preloadCanvasTexture() {
@@ -285,15 +287,13 @@ export default function StudioPage() {
     [state.uploadedImage, hasPlayedInitialAnimation, updateCanvasViewsState]
   );
 
-
-
   return (
     <StudioContext.Provider
       value={{
         state,
         updateState: updateState,
         handleImageUpload,
-        handleMmPerPixelChange,
+        handleDpiChange,
         handlePositionChange,
         handleOrder,
         handleClearWork,
@@ -319,9 +319,7 @@ export default function StudioPage() {
                   />
                 }
                 modeSelector={<ModeSelector />}
-                checkoutButton={
-                  <ActionButtons />
-                }
+                checkoutButton={<ActionButtons />}
                 resetButton={
                   state.uploadedImage && (
                     <Button
@@ -360,9 +358,7 @@ function ActionButtons() {
     const title = fileName.replace(/\.[^/.]+$/, ""); // 확장자 제거
 
     try {
-      console.log("Starting to save artwork...");
       await handleSaveToArtworks(title);
-      console.log("Artwork saved successfully!");
       toast.success("작품이 저장되었습니다.");
     } catch (error) {
       console.error("Failed to save artwork in Studio:", error);
@@ -380,7 +376,7 @@ function ActionButtons() {
       >
         내 작품으로 가기
       </Button>
-      
+
       <Button
         onClick={handleSaveWithFileName}
         disabled={!state.uploadedImage || !state.uploadedFileName}

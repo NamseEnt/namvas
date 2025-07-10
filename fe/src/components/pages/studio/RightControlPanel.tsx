@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useStudioContext } from "./index";
+import { useStudioContext } from "./StudioPage";
 import { sideProcessingTypes } from "./types";
 
 export function RightControlPanel() {
@@ -7,40 +7,29 @@ export function RightControlPanel() {
     state,
     updateState,
     handleImageUpload,
-    handleMmPerPixelChange,
+    handleDpiChange,
     handlePositionChange,
   } = useStudioContext();
 
-  // Calculate DPI based on current image display size
-  const calculateDPI = () => {
+  // Calculate display size based on current DPI
+  const calculateDisplaySize = () => {
     if (!state.uploadedImage) {
       return null;
     }
 
     const img = state.uploadedImage;
-    const mmPerPixel = state.mmPerPixel;
 
-    // displaySize(mm) = imageSize(pixels) * mmPerPixel(mm/pixel)
-    const displayWidthMm = img.width * mmPerPixel;
-    const displayHeightMm = img.height * mmPerPixel;
-
-    // Convert mm to inches (1 inch = 25.4 mm)
-    const displayWidthInches = displayWidthMm / 25.4;
-    const displayHeightInches = displayHeightMm / 25.4;
-
-    // Calculate DPI
-    const dpiX = img.width / displayWidthInches;
-    const dpiY = img.height / displayHeightInches;
+    // displaySize(inches) = imageSize(pixels) / dpi
+    const displayWidthInches = img.width / state.dpi;
+    const displayHeightInches = img.height / state.dpi;
 
     return {
-      dpiX: Math.round(dpiX),
-      dpiY: Math.round(dpiY),
-      displayWidthMm: displayWidthMm.toFixed(1),
-      displayHeightMm: displayHeightMm.toFixed(1),
+      displayWidthInches: displayWidthInches.toFixed(2),
+      displayHeightInches: displayHeightInches.toFixed(2),
     };
   };
 
-  const dpiInfo = calculateDPI();
+  const displayInfo = calculateDisplaySize();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,23 +56,22 @@ export function RightControlPanel() {
       {/* 크기 조절 */}
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">
-          해상도: {Math.round(25.4 / state.mmPerPixel)} DPI
+          해상도: {Math.round(state.dpi)} DPI
         </label>
         <input
           type="range"
           min="50"
           max="600"
           step="1"
-          value={Math.round(25.4 / state.mmPerPixel)}
-          onChange={(e) =>
-            handleMmPerPixelChange(25.4 / parseFloat(e.target.value))
-          }
+          value={Math.round(state.dpi)}
+          onChange={(e) => handleDpiChange(parseFloat(e.target.value))}
           className="w-full"
         />
-        {dpiInfo && (
+        {displayInfo && (
           <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
             <div>
-              표시 크기: {dpiInfo.displayWidthMm} × {dpiInfo.displayHeightMm} mm
+              표시 크기: {displayInfo.displayWidthInches}" ×{" "}
+              {displayInfo.displayHeightInches}"
             </div>
           </div>
         )}
@@ -95,17 +83,17 @@ export function RightControlPanel() {
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-xs text-gray-500">
-              X: {state.imageCenterXy.x.toFixed(1)}mm
+              X: {state.imageCenterXyInch.x.toFixed(2)}"
             </label>
             <input
               type="range"
-              min="-50.8"
-              max="50.8"
-              step="0.1"
-              value={state.imageCenterXy.x}
+              min="-2"
+              max="2"
+              step="0.01"
+              value={state.imageCenterXyInch.x}
               onChange={(e) =>
                 handlePositionChange({
-                  ...state.imageCenterXy,
+                  ...state.imageCenterXyInch,
                   x: parseFloat(e.target.value),
                 })
               }
@@ -114,17 +102,17 @@ export function RightControlPanel() {
           </div>
           <div>
             <label className="text-xs text-gray-500">
-              Y: {state.imageCenterXy.y.toFixed(1)}mm
+              Y: {state.imageCenterXyInch.y.toFixed(2)}"
             </label>
             <input
               type="range"
-              min="-76.2"
-              max="76.2"
-              step="0.1"
-              value={state.imageCenterXy.y}
+              min="-3"
+              max="3"
+              step="0.01"
+              value={state.imageCenterXyInch.y}
               onChange={(e) =>
                 handlePositionChange({
-                  ...state.imageCenterXy,
+                  ...state.imageCenterXyInch,
                   y: parseFloat(e.target.value),
                 })
               }

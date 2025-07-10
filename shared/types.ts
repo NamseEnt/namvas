@@ -73,9 +73,8 @@ export type Artwork = {
   title: string;
   originalImageId: string;
   dpi: number;
-  imageCenterXy: { x: number; y: number };
+  imageCenterXyInch: { x: number; y: number };
   sideProcessing: SideProcessing;
-  thumbnailId: string;
   createdAt: string;
   canvasBackgroundColor: string;
 };
@@ -98,7 +97,6 @@ export type SavedArtwork = {
   artwork: Artwork & {
     canvasBackgroundColor: string;
   };
-  thumbnailS3Key: string;
 };
 
 export enum IdentityProvider {

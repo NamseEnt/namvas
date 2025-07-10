@@ -1,17 +1,13 @@
 import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { userApi } from "@/lib/api";
-import type { Artwork, SideProcessing } from "../../../shared/types";
-import { createCrossTexture } from "@/components/pages/studio/canvas-views/createCrossTexture";
+import type { Artwork } from "../../../shared/types";
+import type { CanvasRenderSettings } from "@/components/common/CanvasView/CanvasView";
 
 type SaveArtworkData = {
   title: string;
   imageDataUrl: string;
-  uploadedImage: HTMLImageElement;
-  mmPerPixel: number;
-  imageCenterXy: { x: number; y: number };
-  sideProcessing: SideProcessing;
-  canvasTextureImg: HTMLImageElement;
+  settings: CanvasRenderSettings;
 };
 
 export function useArtworks() {
@@ -29,13 +25,20 @@ export function useArtworks() {
         pageSize: 20,
         nextToken: pageToken,
       });
-      
+
       if (pageToken) {
-        setArtworks(prev => [...prev, ...response.artworks.filter(artwork => 'title' in artwork) as Artwork[]]);
+        setArtworks((prev) => [
+          ...prev,
+          ...(response.artworks.filter(
+            (artwork) => "title" in artwork
+          ) as Artwork[]),
+        ]);
       } else {
-        setArtworks(response.artworks.filter(artwork => 'title' in artwork) as Artwork[]);
+        setArtworks(
+          response.artworks.filter((artwork) => "title" in artwork) as Artwork[]
+        );
       }
-      
+
       setNextToken(response.nextToken);
       setHasMore(!!response.nextToken);
     } catch (err) {
@@ -49,84 +52,63 @@ export function useArtworks() {
   const deleteArtwork = useCallback(async (artworkId: string) => {
     try {
       await userApi.deleteArtwork(artworkId);
-      setArtworks(prev => prev.filter(artwork => artwork.id !== artworkId));
+      setArtworks((prev) => prev.filter((artwork) => artwork.id !== artworkId));
     } catch (err) {
       console.error("Failed to delete artwork:", err);
       throw err;
     }
   }, []);
 
-  const duplicateArtwork = useCallback(async (artworkId: string, title: string) => {
-    try {
-      await userApi.duplicateArtwork(artworkId, title);
-      await loadArtworks(); // Reload to get the new artwork
-    } catch (err) {
-      console.error("Failed to duplicate artwork:", err);
-      throw err;
-    }
-  }, [loadArtworks]);
+  const duplicateArtwork = useCallback(
+    async (artworkId: string, title: string) => {
+      try {
+        await userApi.duplicateArtwork(artworkId, title);
+        await loadArtworks(); // Reload to get the new artwork
+      } catch (err) {
+        console.error("Failed to duplicate artwork:", err);
+        throw err;
+      }
+    },
+    [loadArtworks]
+  );
 
   const loadMore = useCallback(async () => {
-    if (!hasMore || isLoading) {return;}
+    if (!hasMore || isLoading) {
+      return;
+    }
     await loadArtworks(nextToken);
   }, [hasMore, isLoading, nextToken, loadArtworks]);
 
   // 아트워크 저장 기능
   const saveArtworkMutation = useMutation({
     mutationFn: async (data: SaveArtworkData) => {
-      const {
-        title,
-        imageDataUrl,
-        uploadedImage,
-        mmPerPixel,
-        imageCenterXy,
-        sideProcessing,
-        canvasTextureImg
-      } = data;
+      const { title, imageDataUrl, settings } = data;
 
       // 1. 원본 이미지 업로드
-      const imageBlob = await fetch(imageDataUrl).then(r => r.blob());
-      const uploadResponse = await userApi.getOriginalImageUploadUrl(imageBlob.size);
-      
+      const imageBlob = await fetch(imageDataUrl).then((r) => r.blob());
+      const uploadResponse = await userApi.getOriginalImageUploadUrl(
+        imageBlob.size
+      );
+
       await fetch(uploadResponse.uploadUrl, {
-        method: 'PUT',
+        method: "PUT",
         body: imageBlob,
         headers: {
-          'Content-Type': imageBlob.type,
+          "Content-Type": imageBlob.type,
         },
       });
 
-      // 2. 썸네일 생성 및 업로드
-      const crossTexture = createCrossTexture({
-        uploadedImage,
-        mmPerPixel,
-        imageCenterXy,
-        sideProcessing,
-        canvasTextureImg,
-      });
-
-      const canvas = crossTexture.image as HTMLCanvasElement;
-      const thumbnailDataUrl = canvas.toDataURL("image/png", 0.9);
-      
-      const thumbnailBlob = await fetch(thumbnailDataUrl).then(r => r.blob());
-      const thumbnailUploadResponse = await userApi.getOriginalImageUploadUrl(thumbnailBlob.size);
-      
-      await fetch(thumbnailUploadResponse.uploadUrl, {
-        method: 'PUT',
-        body: thumbnailBlob,
-        headers: {
-          'Content-Type': thumbnailBlob.type,
-        },
-      });
-
-      // 3. 아트워크 메타데이터 저장
+      // 2. 아트워크 메타데이터 저장
       return await userApi.newArtwork({
         title,
         artwork: {
           originalImageId: uploadResponse.imageId,
-          imageCenterXy,
-          dpi: 300,
-          sideProcessing,
+          imageCenterXy: {
+            x: settings.imageCenterXyInch.x * 25.4, // inch to mm
+            y: settings.imageCenterXyInch.y * 25.4,
+          },
+          dpi: settings.dpi,
+          sideProcessing: settings.sideProcessing,
         },
       });
     },
@@ -149,7 +131,7 @@ export function useArtworks() {
     loadMore,
     deleteArtwork,
     duplicateArtwork,
-    
+
     // 새로운 저장 기능
     saveArtwork: saveArtworkMutation.mutateAsync,
     isSaving: saveArtworkMutation.isPending,

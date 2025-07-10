@@ -1,18 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import * as THREE from "three";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import CanvasView from "@/components/CanvasView";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { PRICES } from "@/constants";
 import { type ArtworkDefinition } from "@/types/artwork";
 import { useOrders } from "@/hooks/useOrders";
-
 
 declare global {
   interface Window {
@@ -31,10 +28,10 @@ declare global {
     Naver: {
       Pay: {
         create: (options: {
-          mode: 'development' | 'production';
+          mode: "development" | "production";
           clientId: string;
           chainId: string;
-          openType?: 'popup' | 'iframe';
+          openType?: "popup" | "iframe";
           onAuthorize: (data: {
             resultCode: string;
             resultMessage: string;
@@ -59,13 +56,11 @@ type OrderPageProps = {
 
 export function OrderPage({ fromBuildOrder }: OrderPageProps) {
   const navigate = useNavigate();
-  
+
   // 주문 관련 기능들
   const { createOrder, isCreatingOrder } = useOrders();
 
-  const [artworkDefinition] =
-    useState<ArtworkDefinition>();
-  const [studioTexture] = useState<THREE.Texture>();
+  const [artworkDefinition] = useState<ArtworkDefinition>();
   const [buildOrderData, setBuildOrderData] = useState<{
     orderItems: Array<{
       artworkId: string;
@@ -123,7 +118,7 @@ export function OrderPage({ fromBuildOrder }: OrderPageProps) {
   useEffect(
     function loadDataFromStorage() {
       if (fromBuildOrder) {
-        const tempOrderData = localStorage.getItem('tempOrderData');
+        const tempOrderData = localStorage.getItem("tempOrderData");
         if (tempOrderData) {
           setBuildOrderData(JSON.parse(tempOrderData));
         }
@@ -132,22 +127,36 @@ export function OrderPage({ fromBuildOrder }: OrderPageProps) {
     [fromBuildOrder]
   );
 
-  useEffect(function focusAddressDetailOnAddressChange() {
-    if (orderState.address && orderState.postalCode) {
-      const addressDetailInput = document.getElementById("address-detail") as HTMLInputElement;
-      if (addressDetailInput) {
-        requestAnimationFrame(() => {
-          addressDetailInput.focus();
-        });
+  useEffect(
+    function focusAddressDetailOnAddressChange() {
+      if (orderState.address && orderState.postalCode) {
+        const addressDetailInput = document.getElementById(
+          "address-detail"
+        ) as HTMLInputElement;
+        if (addressDetailInput) {
+          requestAnimationFrame(() => {
+            addressDetailInput.focus();
+          });
+        }
       }
-    }
-  }, [orderState.address, orderState.postalCode]);
+    },
+    [orderState.address, orderState.postalCode]
+  );
 
-  let basePrice, plasticStandPrice, shippingFee, subtotal, optionPrice, totalPrice;
-  
+  let basePrice,
+    plasticStandPrice,
+    shippingFee,
+    subtotal,
+    optionPrice,
+    totalPrice;
+
   if (buildOrderData) {
-    subtotal = buildOrderData.orderItems.reduce((sum: number, item) => sum + (item.price * item.quantity), 0);
-    optionPrice = buildOrderData.plasticStandCount * buildOrderData.plasticStandPrice;
+    subtotal = buildOrderData.orderItems.reduce(
+      (sum: number, item) => sum + item.price * item.quantity,
+      0
+    );
+    optionPrice =
+      buildOrderData.plasticStandCount * buildOrderData.plasticStandPrice;
     shippingFee = PRICES.SHIPPING;
     totalPrice = buildOrderData.totalPrice + shippingFee;
   } else {
@@ -168,59 +177,68 @@ export function OrderPage({ fromBuildOrder }: OrderPageProps) {
       return;
     }
 
-    if (!orderState.recipientName || !orderState.recipientPhone || !orderState.address) {
-      alert('배송지 정보를 모두 입력해주세요.');
+    if (
+      !orderState.recipientName ||
+      !orderState.recipientPhone ||
+      !orderState.address
+    ) {
+      alert("배송지 정보를 모두 입력해주세요.");
       return;
     }
 
     if (!window.Naver || !window.Naver.Pay) {
-      alert('네이버페이 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      alert("네이버페이 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
       return;
     }
 
-
     try {
-      const orderData = buildOrderData ? {
-        orderItems: buildOrderData.orderItems,
-        plasticStandCount: buildOrderData.plasticStandCount,
-        plasticStandPrice: buildOrderData.plasticStandPrice,
-        totalPrice: buildOrderData.totalPrice,
-        recipient: {
-          name: orderState.recipientName,
-          phone: orderState.recipientPhone,
-          postalCode: orderState.postalCode,
-          address: orderState.address,
-          addressDetail: orderState.addressDetail,
-          memo: orderState.deliveryMemo,
-        }
-      } : {
-        orderItems: [{
-          artworkId: 'temp-id',
-          quantity: orderState.quantity,
-          price: basePrice!,
-        }],
-        plasticStandCount: orderState.hasPlasticStand ? orderState.quantity : 0,
-        plasticStandPrice: PRICES.PLASTIC_STAND,
-        totalPrice: totalPrice - shippingFee,
-        recipient: {
-          name: orderState.recipientName,
-          phone: orderState.recipientPhone,
-          postalCode: orderState.postalCode,
-          address: orderState.address,
-          addressDetail: orderState.addressDetail,
-          memo: orderState.deliveryMemo,
-        }
-      };
+      const orderData = buildOrderData
+        ? {
+            orderItems: buildOrderData.orderItems,
+            plasticStandCount: buildOrderData.plasticStandCount,
+            plasticStandPrice: buildOrderData.plasticStandPrice,
+            totalPrice: buildOrderData.totalPrice,
+            recipient: {
+              name: orderState.recipientName,
+              phone: orderState.recipientPhone,
+              postalCode: orderState.postalCode,
+              address: orderState.address,
+              addressDetail: orderState.addressDetail,
+              memo: orderState.deliveryMemo,
+            },
+          }
+        : {
+            orderItems: [
+              {
+                artworkId: "temp-id",
+                quantity: orderState.quantity,
+                price: basePrice!,
+              },
+            ],
+            plasticStandCount: orderState.hasPlasticStand
+              ? orderState.quantity
+              : 0,
+            plasticStandPrice: PRICES.PLASTIC_STAND,
+            totalPrice: totalPrice - shippingFee,
+            recipient: {
+              name: orderState.recipientName,
+              phone: orderState.recipientPhone,
+              postalCode: orderState.postalCode,
+              address: orderState.address,
+              addressDetail: orderState.addressDetail,
+              memo: orderState.deliveryMemo,
+            },
+          };
 
-      console.log('Order data prepared:', orderData);
+      console.log("Order data prepared:", orderData);
 
       const oPay = window.Naver.Pay.create({
-        mode: 'development',
+        mode: "development",
         clientId: import.meta.env.VITE_NAVER_PAY_CLIENT_ID,
         chainId: import.meta.env.VITE_NAVER_PAY_CHAIN_ID,
-        openType: 'popup',
+        openType: "popup",
         onAuthorize: async (data) => {
-          if (data.resultCode === 'Success' && data.paymentId) {
+          if (data.resultCode === "Success" && data.paymentId) {
             // 네이버페이 결제 성공 후 주문 생성
             try {
               const orderResponse = await createOrder({
@@ -232,37 +250,40 @@ export function OrderPage({ fromBuildOrder }: OrderPageProps) {
                 recipient: orderData.recipient,
               });
 
-              localStorage.removeItem('tempOrderData');
+              localStorage.removeItem("tempOrderData");
               navigate({
-                to: '/order-complete',
+                to: "/order-complete",
                 search: {
                   orderId: orderResponse.orderId,
                   amount: totalPrice.toString(),
                 },
               });
             } catch (error) {
-              console.error('Order creation failed:', error);
-              alert('주문 생성 중 오류가 발생했습니다. 고객센터로 문의해주세요.');
+              console.error("Order creation failed:", error);
+              alert(
+                "주문 생성 중 오류가 발생했습니다. 고객센터로 문의해주세요."
+              );
             }
           } else {
-            alert(`결제가 취소되거나 실패했습니다: ${data.resultMessage || '알 수 없는 오류'}`);
+            alert(
+              `결제가 취소되거나 실패했습니다: ${data.resultMessage || "알 수 없는 오류"}`
+            );
           }
-        }
+        },
       });
 
-      const productName = buildOrderData 
-        ? `${buildOrderData.orderItems[0]?.artworkId || '커스텀 캔버스'} 외 ${buildOrderData.orderItems.length - 1}건`
-        : '커스텀 캔버스';
+      const productName = buildOrderData
+        ? `${buildOrderData.orderItems[0]?.artworkId || "커스텀 캔버스"} 외 ${buildOrderData.orderItems.length - 1}건`
+        : "커스텀 캔버스";
 
       oPay.open({
         productName,
         totalPayAmount: totalPrice,
-        returnUrl: `${window.location.origin}/order-complete`
+        returnUrl: `${window.location.origin}/order-complete`,
       });
-      
     } catch (error) {
-      console.error('Order creation failed:', error);
-      alert('주문 생성 중 오류가 발생했습니다.');
+      console.error("Order creation failed:", error);
+      alert("주문 생성 중 오류가 발생했습니다.");
     }
   };
 
@@ -323,7 +344,7 @@ export function OrderPage({ fromBuildOrder }: OrderPageProps) {
             <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 flex justify-center">
-                  <div className="flex gap-4">
+                  {/* TODO <div className="flex gap-4">
                     <CanvasView
                       angle="front"
                       texture={studioTexture}
@@ -339,7 +360,7 @@ export function OrderPage({ fromBuildOrder }: OrderPageProps) {
                       texture={studioTexture}
                       className="h-56 w-42"
                     />
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="space-y-4">
@@ -523,12 +544,21 @@ export function OrderPage({ fromBuildOrder }: OrderPageProps) {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>상품 금액 {buildOrderData ? `(${buildOrderData.orderItems.reduce((sum: number, item) => sum + item.quantity, 0)}개)` : `(${orderState.quantity}개)`}</span>
+                    <span>
+                      상품 금액{" "}
+                      {buildOrderData
+                        ? `(${buildOrderData.orderItems.reduce((sum: number, item) => sum + item.quantity, 0)}개)`
+                        : `(${orderState.quantity}개)`}
+                    </span>
                     <span>{subtotal.toLocaleString()}원</span>
                   </div>
                   {optionPrice > 0 && (
                     <div className="flex justify-between">
-                      <span>{buildOrderData ? `플라스틱 스탠드 (${buildOrderData.plasticStandCount}개)` : '옵션 금액'}</span>
+                      <span>
+                        {buildOrderData
+                          ? `플라스틱 스탠드 (${buildOrderData.plasticStandCount}개)`
+                          : "옵션 금액"}
+                      </span>
                       <span>{optionPrice.toLocaleString()}원</span>
                     </div>
                   )}
@@ -548,14 +578,18 @@ export function OrderPage({ fromBuildOrder }: OrderPageProps) {
               </CardContent>
             </Card>
 
-            <Card className={`border-amber-200 bg-amber-50 transition-all duration-200 ${isBlinking ? 'animate-pulse border-red-500 bg-red-50' : ''}`}>
+            <Card
+              className={`border-amber-200 bg-amber-50 transition-all duration-200 ${isBlinking ? "animate-pulse border-red-500 bg-red-50" : ""}`}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start space-x-3">
                   <Checkbox
                     id="agree-custom-product"
                     checked={orderState.agreeCustomProduct}
                     onCheckedChange={(checked) =>
-                      updateOrderState({ agreeCustomProduct: checked as boolean })
+                      updateOrderState({
+                        agreeCustomProduct: checked as boolean,
+                      })
                     }
                     className="mt-1"
                   />
@@ -563,7 +597,11 @@ export function OrderPage({ fromBuildOrder }: OrderPageProps) {
                     htmlFor="agree-custom-product"
                     className="text-sm leading-relaxed cursor-pointer flex-1"
                   >
-                    <span className="text-red-600 font-semibold">[필수]</span> 제공한 이미지로 맞춤 제작되어 다른 소비자에게 재판매가 곤란한 맞춤주문제작 상품임을 확인하였습니다. 청약철회(교환/환불)은 상품 제작 전 혹은 하자가 있는 상품을 수령했을 때만 가능합니다.
+                    <span className="text-red-600 font-semibold">[필수]</span>{" "}
+                    제공한 이미지로 맞춤 제작되어 다른 소비자에게 재판매가
+                    곤란한 맞춤주문제작 상품임을 확인하였습니다.
+                    청약철회(교환/환불)은 상품 제작 전 혹은 하자가 있는 상품을
+                    수령했을 때만 가능합니다.
                   </Label>
                 </div>
               </CardContent>
@@ -582,7 +620,7 @@ export function OrderPage({ fromBuildOrder }: OrderPageProps) {
                   결제 중...
                 </>
               ) : (
-                '네이버페이로 결제'
+                "네이버페이로 결제"
               )}
             </Button>
           </div>

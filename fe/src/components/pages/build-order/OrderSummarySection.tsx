@@ -130,7 +130,7 @@ function OrderItemCard({
     <div className="flex gap-3 p-3 border rounded-lg">
       <div className="w-16 h-12 bg-muted rounded overflow-hidden flex-shrink-0">
         <img
-          src={`https://your-s3-bucket.s3.amazonaws.com/${item.artwork.thumbnailId}`}
+          src={`https://your-s3-bucket.s3.amazonaws.com/${item.artwork.originalImageId}`}
           alt={item.artwork.title}
           className="w-full h-full object-cover"
         />

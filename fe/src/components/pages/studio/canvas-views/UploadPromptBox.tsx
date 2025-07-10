@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useStudioContext } from "..";
+import { useStudioContext } from "../StudioPage";
 
 export function UploadPromptBox() {
   const { handleImageUpload } = useStudioContext();

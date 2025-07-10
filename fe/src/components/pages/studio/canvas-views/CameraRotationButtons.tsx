@@ -1,4 +1,4 @@
-import { useCanvasViewsContext } from "..";
+import { useCanvasViewsContext } from "../StudioPage";
 import { CAMERA_ROTATION_LIMITS } from "../types";
 import { useRef } from "react";
 
@@ -23,10 +23,10 @@ export function CameraRotationButtons() {
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
+
       // easeOutCubic 함수로 부드러운 애니메이션
       const easeProgress = 1 - Math.pow(1 - progress, 3);
-      
+
       const currentX = startX + deltaX * easeProgress;
       const currentY = startY + deltaY * easeProgress;
 
@@ -82,7 +82,7 @@ export function CameraRotationButtons() {
             title="왼쪽으로 돌리기"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M4 12l8-8v6h8v4h-8v6l-8-8z"/>
+              <path d="M4 12l8-8v6h8v4h-8v6l-8-8z" />
             </svg>
           </button>
         </div>
@@ -97,7 +97,7 @@ export function CameraRotationButtons() {
             title="오른쪽으로 돌리기"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20 12l-8 8v-6H4v-4h8V4l8 8z"/>
+              <path d="M20 12l-8 8v-6H4v-4h8V4l8 8z" />
             </svg>
           </button>
         </div>
@@ -112,7 +112,7 @@ export function CameraRotationButtons() {
             title="위로 돌리기"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 4l8 8h-6v8h-4v-8H4l8-8z"/>
+              <path d="M12 4l8 8h-6v8h-4v-8H4l8-8z" />
             </svg>
           </button>
         </div>
@@ -127,7 +127,7 @@ export function CameraRotationButtons() {
             title="아래로 돌리기"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 20l-8-8h6V4h4v8h6l-8 8z"/>
+              <path d="M12 20l-8-8h6V4h4v8h6l-8 8z" />
             </svg>
           </button>
         </div>
@@ -142,7 +142,7 @@ export function CameraRotationButtons() {
             title="정면으로 초기화"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="12" r="3"/>
+              <circle cx="12" cy="12" r="3" />
             </svg>
           </button>
         </div>

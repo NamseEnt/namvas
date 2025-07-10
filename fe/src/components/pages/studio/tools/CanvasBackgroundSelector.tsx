@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useStudioContext } from "..";
+import { useStudioContext } from "../StudioPage";
 import { backgroundOptions } from "../constants/backgroundOptions";
 
 export function CanvasBackgroundSelector() {

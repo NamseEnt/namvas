@@ -49,7 +49,7 @@ export function useOrders() {
               title: item.artworkId, // buildOrder에서는 artworkId를 title로 사용
               originalImageId: item.artworkId, // 임시로 artworkId 사용
               dpi: 300, // 기본값
-              imageCenterXy: { x: 0.5, y: 0.5 }, // 기본값
+              imageCenterXy: { x: 0, y: 0 }, // 기본값
               sideProcessing: { type: 'clip' as const }, // 기본값
             },
             count: item.quantity,

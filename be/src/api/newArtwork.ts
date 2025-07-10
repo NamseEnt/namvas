@@ -12,6 +12,8 @@ export const newArtwork: Apis["newArtwork"] = async (
     return { ok: false, reason: "NOT_LOGGED_IN" };
   }
 
+  console.log("[DEBUG] newArtwork - session.userId:", session.userId);
+
   const artworkId = generateId();
 
   await ddb.tx((tx) =>
@@ -28,6 +30,8 @@ export const newArtwork: Apis["newArtwork"] = async (
       { id: session.userId }
     )
   );
+
+  console.log("[DEBUG] newArtwork - created artworkId:", artworkId);
 
   return { ok: true, artworkId };
 };

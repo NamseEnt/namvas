@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useCanvasViewsContext } from "..";
+import { useCanvasViewsContext } from "../StudioPage";
 
 export function ViewAngleButtons() {
   const { updateState } = useCanvasViewsContext();

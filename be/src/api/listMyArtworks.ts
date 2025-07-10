@@ -11,12 +11,16 @@ export const listMyArtworks: Apis["listMyArtworks"] = async (
     return { ok: false, reason: "NOT_LOGGED_IN" };
   }
 
+  console.log("[DEBUG] listMyArtworks - session.userId:", session.userId);
+
   const { items: artworks, nextToken: resultNextToken } =
     await ddb.queryArtworksOfUser({
       id: session.userId,
       nextToken,
       limit: pageSize,
     });
+
+  console.log("[DEBUG] listMyArtworks - found artworks:", artworks.length);
 
   return {
     ok: true,

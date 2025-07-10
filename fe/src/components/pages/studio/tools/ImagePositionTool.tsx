@@ -1,4 +1,4 @@
-import { useStudioContext } from "..";
+import { useStudioContext } from "../StudioPage";
 
 export function ImagePositionTool() {
   const { state, handlePositionChange } = useStudioContext();
@@ -13,18 +13,18 @@ export function ImagePositionTool() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-gray-500 block mb-1">
-            X: {state.imageCenterXy.x.toFixed(1)}mm
+            X: {(state.imageCenterXyInch.x * 25.4).toFixed(1)}mm
           </label>
           <input
             type="range"
             min="-50.8"
             max="50.8"
             step="0.1"
-            value={state.imageCenterXy.x}
+            value={state.imageCenterXyInch.x * 25.4}
             onChange={(e) =>
               handlePositionChange({
-                ...state.imageCenterXy,
-                x: parseFloat(e.target.value),
+                ...state.imageCenterXyInch,
+                x: parseFloat(e.target.value) / 25.4, // Convert mm to inch
               })
             }
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
@@ -32,18 +32,18 @@ export function ImagePositionTool() {
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">
-            Y: {state.imageCenterXy.y.toFixed(1)}mm
+            Y: {(state.imageCenterXyInch.y * 25.4).toFixed(1)}mm
           </label>
           <input
             type="range"
             min="-76.2"
             max="76.2"
             step="0.1"
-            value={state.imageCenterXy.y}
+            value={state.imageCenterXyInch.y * 25.4}
             onChange={(e) =>
               handlePositionChange({
-                ...state.imageCenterXy,
-                y: parseFloat(e.target.value),
+                ...state.imageCenterXyInch,
+                y: parseFloat(e.target.value) / 25.4, // Convert mm to inch
               })
             }
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"

@@ -14,7 +14,6 @@ async function apiRequest<T extends ApiEndpoint>(
   endpoint: T,
   data: ApiRequest<T>
 ): Promise<ApiSuccessResponse<T>> {
-  console.log("VITE_API_URL", import.meta.env);
   const response = await fetch(`${API_BASE_URL}/api/${endpoint}`, {
     method: "POST",
     credentials: "include",

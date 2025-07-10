@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useStudioContext } from "..";
+import { useStudioContext } from "../StudioPage";
 import { Button } from "@/components/ui/button";
 
 export function ImageUploadTool() {
@@ -20,7 +20,7 @@ export function ImageUploadTool() {
   return (
     <div className="space-y-3">
       <h4 className="text-sm font-medium text-gray-700">이미지 업로드</h4>
-      
+
       {!state.imageDataUrl ? (
         <div className="space-y-2">
           <Button
@@ -53,7 +53,7 @@ export function ImageUploadTool() {
           </Button>
         </div>
       )}
-      
+
       <input
         ref={fileInputRef}
         type="file"

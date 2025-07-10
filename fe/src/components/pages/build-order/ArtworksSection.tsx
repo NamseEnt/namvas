@@ -64,7 +64,7 @@ function ArtworkCard({ artwork, onAddToOrder }: { artwork: Artwork; onAddToOrder
     <Card className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
       <div className="aspect-[4/3] bg-muted overflow-hidden">
         <img
-          src={`https://your-s3-bucket.s3.amazonaws.com/${artwork.thumbnailId}`}
+          src={`https://your-s3-bucket.s3.amazonaws.com/${artwork.originalImageId}`}
           alt={artwork.title}
           className="w-full h-full object-cover"
         />

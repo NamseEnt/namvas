@@ -3,6 +3,18 @@
 echo "Creating S3 bucket..."
 awslocal s3 mb s3://namvas-local || echo "Bucket may already exist"
 
+echo "Setting up S3 bucket CORS configuration..."
+awslocal s3api put-bucket-cors --bucket namvas-local --cors-configuration '{
+  "CORSRules": [
+    {
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["GET", "POST", "PUT", "DELETE"],
+      "AllowedOrigins": ["*"],
+      "ExposeHeaders": ["ETag"]
+    }
+  ]
+}'
+
 echo "Creating DynamoDB table..."
 awslocal dynamodb create-table \
   --table-name main \

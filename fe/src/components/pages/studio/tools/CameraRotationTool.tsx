@@ -1,4 +1,4 @@
-import { useCanvasViewsContext } from "..";
+import { useCanvasViewsContext } from "../StudioPage";
 import { CAMERA_ROTATION_LIMITS } from "../types";
 
 export function CameraRotationTool() {

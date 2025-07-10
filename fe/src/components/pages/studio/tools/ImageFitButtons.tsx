@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useStudioContext } from "..";
+import { useStudioContext } from "../StudioPage";
 
 type FitType = "top" | "bottom" | "left" | "right";
 type FitScope = "front" | "side";
@@ -12,81 +12,81 @@ export function ImageFitButtons() {
     return null;
   }
 
-  const calculateFitMmPerPixel = (fitType: FitType, fitScope: FitScope) => {
+  const calculateFitDpi = (fitType: FitType, fitScope: FitScope) => {
     const img = studioState.uploadedImage;
     if (!img) {
-      return 1;
+      return 300;
     }
 
     // Image dimensions in pixels
     const imageWidth = img.width;
     const imageHeight = img.height;
 
-    // Image center coordinates in mm
-    const centerX = studioState.imageCenterXy.x;
-    const centerY = studioState.imageCenterXy.y;
+    // Image center coordinates in inches
+    const centerXInch = studioState.imageCenterXyInch.x;
+    const centerYInch = studioState.imageCenterXyInch.y;
 
-    // Canvas dimensions in mm
-    const frontWidth = 101.6; // mm (4 inches)
-    const frontHeight = 152.4; // mm (6 inches)
-    const sideThickness = 6; // mm
+    // Canvas dimensions in inches
+    const frontWidthInch = 4; // 4 inches
+    const frontHeightInch = 6; // 6 inches
+    const sideThicknessInch = 0.236; // ~6mm in inches
 
-    let canvasWidth: number, canvasHeight: number;
+    let canvasWidthInch: number, canvasHeightInch: number;
 
     if (fitScope === "front") {
-      canvasWidth = frontWidth;
-      canvasHeight = frontHeight;
+      canvasWidthInch = frontWidthInch;
+      canvasHeightInch = frontHeightInch;
     } else {
-      canvasWidth = frontWidth + sideThickness * 2;
-      canvasHeight = frontHeight + sideThickness * 2;
+      canvasWidthInch = frontWidthInch + sideThicknessInch * 2;
+      canvasHeightInch = frontHeightInch + sideThicknessInch * 2;
     }
 
-    let mmPerPixel: number;
+    let dpi: number;
 
     switch (fitType) {
       case "left":
         // Left fit: image left edge touches canvas left edge
-        // centerX - (imageWidth/2) * mmPerPixel = -canvasWidth/2
-        // mmPerPixel = (centerX + canvasWidth/2) / (imageWidth/2)
-        mmPerPixel = (centerX + canvasWidth / 2) / (imageWidth / 2);
+        // centerXInch - (imageWidth/2) / dpi = -canvasWidthInch/2
+        // dpi = (imageWidth/2) / (centerXInch + canvasWidthInch/2)
+        dpi = imageWidth / 2 / (centerXInch + canvasWidthInch / 2);
         break;
 
       case "right":
         // Right fit: image right edge touches canvas right edge
-        // centerX + (imageWidth/2) * mmPerPixel = canvasWidth/2
-        // mmPerPixel = (canvasWidth/2 - centerX) / (imageWidth/2)
-        mmPerPixel = (canvasWidth / 2 - centerX) / (imageWidth / 2);
+        // centerXInch + (imageWidth/2) / dpi = canvasWidthInch/2
+        // dpi = (imageWidth/2) / (canvasWidthInch/2 - centerXInch)
+        dpi = imageWidth / 2 / (canvasWidthInch / 2 - centerXInch);
         break;
 
       case "top":
         // Top fit: image top edge touches canvas top edge
-        // centerY + (imageHeight/2) * mmPerPixel = canvasHeight/2
-        // mmPerPixel = (canvasHeight/2 - centerY) / (imageHeight/2)
-        mmPerPixel = (canvasHeight / 2 - centerY) / (imageHeight / 2);
+        // centerYInch + (imageHeight/2) / dpi = canvasHeightInch/2
+        // dpi = (imageHeight/2) / (canvasHeightInch/2 - centerYInch)
+        dpi = imageHeight / 2 / (canvasHeightInch / 2 - centerYInch);
         break;
 
       case "bottom":
         // Bottom fit: image bottom edge touches canvas bottom edge
-        // centerY - (imageHeight/2) * mmPerPixel = -canvasHeight/2
-        // mmPerPixel = (centerY + canvasHeight/2) / (imageHeight/2)
-        mmPerPixel = (centerY + canvasHeight / 2) / (imageHeight / 2);
+        // centerYInch - (imageHeight/2) / dpi = -canvasHeightInch/2
+        // dpi = (imageHeight/2) / (centerYInch + canvasHeightInch/2)
+        dpi = imageHeight / 2 / (centerYInch + canvasHeightInch / 2);
         break;
 
       default:
-        return 1;
+        return 300;
     }
 
-    return Math.max(0.001, mmPerPixel); // Prevent negative or zero values
+    return Math.max(50, dpi); // Prevent negative or zero values
   };
 
   const handleFitClick = (fitType: FitType, fitScope: FitScope) => {
-    const newMmPerPixel = calculateFitMmPerPixel(fitType, fitScope);
+    const newDpi = calculateFitDpi(fitType, fitScope);
 
-    if (newMmPerPixel <= 0) {
+    if (newDpi <= 0) {
       return;
     }
 
-    updateStudioState({ mmPerPixel: newMmPerPixel });
+    updateStudioState({ dpi: newDpi });
   };
 
   const fitButtons = [

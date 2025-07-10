@@ -10,6 +10,11 @@ const frontendBucket = new aws.s3.BucketV2("frontend-bucket", {
   bucket: "namvas-frontend",
 });
 
+// Create S3 bucket for image storage
+const imageBucket = new aws.s3.BucketV2("image-bucket", {
+  bucketPrefix: "namvas-images-",
+});
+
 // Configure S3 bucket for static website hosting
 const frontendBucketWebsite = new aws.s3.BucketWebsiteConfigurationV2(
   "frontend-bucket-website",
@@ -103,12 +108,12 @@ const lambdaRole = new aws.iam.Role("lambda-role", {
   }),
 });
 
-// IAM policy for Lambda to access DynamoDB and SQS
+// IAM policy for Lambda to access DynamoDB, SQS, and S3
 const lambdaPolicy = new aws.iam.RolePolicy("lambda-policy", {
   role: lambdaRole.id,
   policy: pulumi
-    .all([dynamoTable.arn, mainQueue.arn, mainDlq.arn])
-    .apply(([tableArn, queueArn, dlqArn]) =>
+    .all([dynamoTable.arn, mainQueue.arn, mainDlq.arn, imageBucket.arn])
+    .apply(([tableArn, queueArn, dlqArn, imageBucketArn]) =>
       JSON.stringify({
         Version: "2012-10-17",
         Statement: [
@@ -142,6 +147,17 @@ const lambdaPolicy = new aws.iam.RolePolicy("lambda-policy", {
               "sqs:GetQueueAttributes",
             ],
             Resource: [queueArn, dlqArn],
+          },
+          {
+            Effect: "Allow",
+            Action: [
+              "s3:GetObject",
+              "s3:PutObject",
+              "s3:DeleteObject",
+              "s3:GetObjectAcl",
+              "s3:PutObjectAcl",
+            ],
+            Resource: `${imageBucketArn}/*`,
           },
         ],
       })
@@ -187,6 +203,7 @@ const lambdaFunction = new aws.lambda.Function(
       variables: {
         DYNAMODB_TABLE_NAME: dynamoTable.name,
         QUEUE_URL: mainQueue.url,
+        S3_BUCKET_NAME: imageBucket.bucket,
         NODE_ENV: "production",
         LAMBDA: "true",
         GOOGLE_CLIENT_ID:
@@ -393,6 +410,7 @@ if (domainName) {
 // Exports
 export const frontendBucketName = frontendBucket.id;
 export const frontendBucketWebsiteUrl = frontendBucketWebsite.websiteEndpoint;
+export const imageBucketName = imageBucket.id;
 export const dynamoTableName = dynamoTable.name;
 export const lambdaFunctionName = lambdaFunction.name;
 export const lambdaFunctionUrlEndpoint = lambdaFunctionUrl.functionUrl;

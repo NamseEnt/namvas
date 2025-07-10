@@ -1,38 +1,27 @@
-import { useStudioContext } from "..";
+import { useStudioContext } from "../StudioPage";
 
 export function ImageSizeTool() {
-  const { state, handleMmPerPixelChange } = useStudioContext();
+  const { state, handleDpiChange } = useStudioContext();
 
-  // Calculate DPI based on current image display size
-  const calculateDPI = () => {
+  // Calculate display size based on current DPI
+  const calculateDisplaySize = () => {
     if (!state.uploadedImage) {
       return null;
     }
 
     const img = state.uploadedImage;
-    const mmPerPixel = state.mmPerPixel;
 
-    // displaySize(mm) = imageSize(pixels) * mmPerPixel(mm/pixel)
-    const displayWidthMm = img.width * mmPerPixel;
-    const displayHeightMm = img.height * mmPerPixel;
-
-    // Convert mm to inches (1 inch = 25.4 mm)
-    const displayWidthInches = displayWidthMm / 25.4;
-    const displayHeightInches = displayHeightMm / 25.4;
-
-    // Calculate DPI
-    const dpiX = img.width / displayWidthInches;
-    const dpiY = img.height / displayHeightInches;
+    // displaySize(inches) = imageSize(pixels) / dpi
+    const displayWidthInches = img.width / state.dpi;
+    const displayHeightInches = img.height / state.dpi;
 
     return {
-      dpiX: Math.round(dpiX),
-      dpiY: Math.round(dpiY),
-      displayWidthMm: displayWidthMm.toFixed(1),
-      displayHeightMm: displayHeightMm.toFixed(1),
+      displayWidthInches: displayWidthInches.toFixed(2),
+      displayHeightInches: displayHeightInches.toFixed(2),
     };
   };
 
-  const dpiInfo = calculateDPI();
+  const displayInfo = calculateDisplaySize();
 
   if (!state.uploadedImage) {
     return null;
@@ -41,7 +30,7 @@ export function ImageSizeTool() {
   return (
     <div className="space-y-3">
       <h4 className="text-sm font-medium text-gray-700">
-        해상도: {Math.round(25.4 / state.mmPerPixel)} DPI
+        해상도: {Math.round(state.dpi)} DPI
       </h4>
       <div>
         <input
@@ -49,16 +38,15 @@ export function ImageSizeTool() {
           min="50"
           max="600"
           step="1"
-          value={Math.round(25.4 / state.mmPerPixel)}
-          onChange={(e) =>
-            handleMmPerPixelChange(25.4 / parseFloat(e.target.value))
-          }
+          value={Math.round(state.dpi)}
+          onChange={(e) => handleDpiChange(parseFloat(e.target.value))}
           className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
         />
-        {dpiInfo && (
+        {displayInfo && (
           <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
             <div>
-              표시 크기: {dpiInfo.displayWidthMm} × {dpiInfo.displayHeightMm} mm
+              표시 크기: {displayInfo.displayWidthInches}" ×{" "}
+              {displayInfo.displayHeightInches}"
             </div>
           </div>
         )}

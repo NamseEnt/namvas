@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useStudioContext } from "..";
+import { useStudioContext } from "../StudioPage";
 import { sideProcessingTypes } from "../types";
 
 export function SideProcessingTool() {
@@ -16,9 +16,7 @@ export function SideProcessingTool() {
         {sideProcessingTypes.map((type) => (
           <Button
             key={type}
-            variant={
-              state.sideProcessing.type === type ? "default" : "outline"
-            }
+            variant={state.sideProcessing.type === type ? "default" : "outline"}
             size="sm"
             onClick={() =>
               updateState({

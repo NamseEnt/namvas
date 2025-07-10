@@ -3,8 +3,8 @@ import { clearStorageIfNeeded } from "@/utils/imageCompression";
 
 export type ArtworkDefinition = {
   originalImageDataUrl: string; // Original image as dataURL
-  mmPerPixel: number; // Size ratio - millimeters per pixel
-  imageCenterXy: { x: number; y: number }; // Center coordinates in millimeters
+  dpi: number; // Resolution - dots per inch
+  imageCenterXyInch: { x: number; y: number }; // Center coordinates in inches
   sideProcessing: SideProcessing; // How to handle sides (clip, color, flip, none)
   canvasBackgroundColor: string; // Background pattern/color
   uploadedFileName?: string; // Original file name
@@ -12,8 +12,8 @@ export type ArtworkDefinition = {
 
 // Metadata without image data for efficient storage
 export type ArtworkMetadata = {
-  mmPerPixel: number;
-  imageCenterXy: { x: number; y: number };
+  dpi: number;
+  imageCenterXyInch: { x: number; y: number };
   sideProcessing: SideProcessing;
   canvasBackgroundColor: string;
   uploadedFileName?: string;
