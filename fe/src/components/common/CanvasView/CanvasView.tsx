@@ -2,28 +2,92 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import * as THREE from "three";
 import { Canvas, useThree } from "@react-three/fiber";
 import { canvasProductSizeM } from "./constants";
-import { calculateCameraDistance, createCanvasTexture } from "./utils";
+import { calculateCameraDistance, createCanvasTexture, calculateZoomedUV, type UVTransform } from "./utils";
 import { type Artwork } from "../../../../../shared/types";
 
 export function CanvasView({
   rotation,
   src,
   settings,
+  uvTransform = { zoom: 1, panX: 0, panY: 0 },
+  onUVTransformChange,
 }: {
   rotation: { x: number; y: number };
   src: CanvasViewSrc | undefined;
   settings: CanvasRenderSettings;
+  uvTransform?: UVTransform;
+  onUVTransformChange?: (transform: UVTransform) => void;
 }) {
   const cameraDistance = calculateCameraDistance(rotation);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // 마우스 인터랙션 상태
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+
+  // 마우스 이벤트 핸들러
+  const handleMouseDown = (event: React.MouseEvent) => {
+    setIsDragging(true);
+    setLastMousePos({ x: event.clientX, y: event.clientY });
+    event.preventDefault();
+  };
+
+  const handleMouseMove = (event: React.MouseEvent) => {
+    if (!isDragging || !onUVTransformChange) {
+      return;
+    }
+
+    const deltaX = event.clientX - lastMousePos.x;
+    const deltaY = event.clientY - lastMousePos.y;
+    setLastMousePos({ x: event.clientX, y: event.clientY });
+
+    // 마우스 이동을 UV 좌표계로 변환 (감도 조정)
+    const sensitivity = 0.001;
+    const panDeltaX = -deltaX * sensitivity / uvTransform.zoom;
+    const panDeltaY = deltaY * sensitivity / uvTransform.zoom;
+
+    onUVTransformChange({
+      ...uvTransform,
+      panX: uvTransform.panX + panDeltaX,
+      panY: uvTransform.panY + panDeltaY,
+    });
+
+    event.preventDefault();
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (event: React.WheelEvent) => {
+    if (!onUVTransformChange) {
+      return;
+    }
+
+    const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.max(0.1, Math.min(10, uvTransform.zoom * zoomFactor));
+
+    onUVTransformChange({
+      ...uvTransform,
+      zoom: newZoom,
+    });
+
+    event.preventDefault();
+  };
 
   return (
     <Canvas
+      ref={canvasRef}
       camera={{
         position: [0, 0, cameraDistance],
         fov: 35,
       }}
       style={{ width: "100%", height: "100%" }}
       gl={{ alpha: true, antialias: true }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onWheel={handleWheel}
     >
       <CameraController cameraDistance={cameraDistance} />
       <ambientLight intensity={1.0} />
@@ -31,7 +95,7 @@ export function CanvasView({
       <directionalLight position={[0, 0, 1]} intensity={1.0} />
       <directionalLight position={[2, 1, 0]} intensity={0.8} color="#fffacd" />
       <directionalLight position={[1, 2, 0]} intensity={0.6} color="#f0f8ff" />
-      <CanvasFrame rotation={rotation} src={src} settings={settings} />
+      <CanvasFrame rotation={rotation} src={src} settings={settings} uvTransform={uvTransform} />
     </Canvas>
   );
 }
@@ -56,10 +120,12 @@ function CanvasFrame({
   rotation,
   src,
   settings,
+  uvTransform,
 }: {
   rotation: { x: number; y: number };
   src: CanvasViewSrc | undefined;
   settings: CanvasRenderSettings;
+  uvTransform: UVTransform;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [crossTexture, setCrossTexture] = useState<THREE.Texture>();
@@ -77,7 +143,7 @@ function CanvasFrame({
           console.error("❌ CanvasView createCanvasTexture error:", error);
         });
     },
-    [src?.type, src?.type === "image" ? src.image : src?.type === "url" ? src.url : undefined, settings.dpi, settings.imageCenterXyInch?.x, settings.imageCenterXyInch?.y, settings.sideProcessing?.type, settings.canvasBackgroundColor]
+    [src, settings]
   );
 
   useEffect(
@@ -96,15 +162,17 @@ function CanvasFrame({
 
   return (
     <group ref={meshRef} position={[0, 0, 0]}>
-      <CustomCanvasGeometry crossTexture={crossTexture} />
+      <CustomCanvasGeometry crossTexture={crossTexture} uvTransform={uvTransform} />
     </group>
   );
 }
 
 function CustomCanvasGeometry({
   crossTexture,
+  uvTransform,
 }: {
   crossTexture: THREE.Texture;
+  uvTransform: UVTransform;
 }) {
   // utils.ts와 동일한 계산 방식 사용
   const pixelScale = 4000;
@@ -114,20 +182,24 @@ function CustomCanvasGeometry({
   const totalWidth = frontWidth + sideThickness * 2;
   const totalHeight = frontHeight + sideThickness * 2;
 
-  const frontLeft = sideThickness / totalWidth;
-  const frontRight = (sideThickness + frontWidth) / totalWidth;
-  const frontTop = sideThickness / totalHeight;
-  const frontBottom = (sideThickness + frontHeight) / totalHeight;
+  const baseFrontLeft = sideThickness / totalWidth;
+  const baseFrontRight = (sideThickness + frontWidth) / totalWidth;
+  const baseFrontTop = sideThickness / totalHeight;
+  const baseFrontBottom = (sideThickness + frontHeight) / totalHeight;
 
+  // UV 변환 적용
+  const frontUV = calculateZoomedUV(
+    baseFrontLeft, baseFrontRight, baseFrontTop, baseFrontBottom, uvTransform
+  );
 
   const leftLeft = 0;
-  const leftRight = frontLeft;
-  const rightLeft = frontRight;
+  const leftRight = baseFrontLeft;
+  const rightLeft = baseFrontRight;
   const rightRight = 1;
 
   const topTop = 0;
-  const topBottom = frontTop;
-  const bottomTop = frontBottom;
+  const topBottom = baseFrontTop;
+  const bottomTop = baseFrontBottom;
   const bottomBottom = 1;
 
   const frontGeometry = useMemo(() => {
@@ -138,18 +210,18 @@ function CustomCanvasGeometry({
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
     const uvArray = uvAttribute.array as Float32Array;
 
-    uvArray[0] = frontLeft;
-    uvArray[1] = frontBottom;
-    uvArray[2] = frontRight;
-    uvArray[3] = frontBottom;
-    uvArray[4] = frontLeft;
-    uvArray[5] = frontTop;
-    uvArray[6] = frontRight;
-    uvArray[7] = frontTop;
+    uvArray[0] = frontUV.left;
+    uvArray[1] = frontUV.bottom;
+    uvArray[2] = frontUV.right;
+    uvArray[3] = frontUV.bottom;
+    uvArray[4] = frontUV.left;
+    uvArray[5] = frontUV.top;
+    uvArray[6] = frontUV.right;
+    uvArray[7] = frontUV.top;
 
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [frontLeft, frontRight, frontTop, frontBottom]);
+  }, [frontUV.left, frontUV.right, frontUV.top, frontUV.bottom]);
 
   const rightGeometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
@@ -158,14 +230,14 @@ function CustomCanvasGeometry({
     );
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
 
-    uvAttribute.setXY(0, rightLeft, frontBottom);
-    uvAttribute.setXY(1, rightRight, frontBottom);
-    uvAttribute.setXY(2, rightLeft, frontTop);
-    uvAttribute.setXY(3, rightRight, frontTop);
+    uvAttribute.setXY(0, rightLeft, baseFrontBottom);
+    uvAttribute.setXY(1, rightRight, baseFrontBottom);
+    uvAttribute.setXY(2, rightLeft, baseFrontTop);
+    uvAttribute.setXY(3, rightRight, baseFrontTop);
 
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [rightLeft, rightRight, frontTop, frontBottom]);
+  }, [rightLeft, rightRight, baseFrontTop, baseFrontBottom]);
 
   const leftGeometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
@@ -174,14 +246,14 @@ function CustomCanvasGeometry({
     );
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
 
-    uvAttribute.setXY(0, leftLeft, frontBottom);
-    uvAttribute.setXY(1, leftRight, frontBottom);
-    uvAttribute.setXY(2, leftLeft, frontTop);
-    uvAttribute.setXY(3, leftRight, frontTop);
+    uvAttribute.setXY(0, leftLeft, baseFrontBottom);
+    uvAttribute.setXY(1, leftRight, baseFrontBottom);
+    uvAttribute.setXY(2, leftLeft, baseFrontTop);
+    uvAttribute.setXY(3, leftRight, baseFrontTop);
 
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [leftLeft, leftRight, frontTop, frontBottom]);
+  }, [leftLeft, leftRight, baseFrontTop, baseFrontBottom]);
 
   const topGeometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
@@ -190,14 +262,14 @@ function CustomCanvasGeometry({
     );
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
 
-    uvAttribute.setXY(0, frontLeft, bottomBottom);
-    uvAttribute.setXY(1, frontRight, bottomBottom);
-    uvAttribute.setXY(2, frontLeft, bottomTop);
-    uvAttribute.setXY(3, frontRight, bottomTop);
+    uvAttribute.setXY(0, baseFrontLeft, bottomBottom);
+    uvAttribute.setXY(1, baseFrontRight, bottomBottom);
+    uvAttribute.setXY(2, baseFrontLeft, bottomTop);
+    uvAttribute.setXY(3, baseFrontRight, bottomTop);
 
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [frontLeft, frontRight, bottomTop, bottomBottom]);
+  }, [baseFrontLeft, baseFrontRight, bottomTop, bottomBottom]);
 
   const bottomGeometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
@@ -206,14 +278,14 @@ function CustomCanvasGeometry({
     );
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
 
-    uvAttribute.setXY(0, frontLeft, topBottom);
-    uvAttribute.setXY(1, frontRight, topBottom);
-    uvAttribute.setXY(2, frontLeft, topTop);
-    uvAttribute.setXY(3, frontRight, topTop);
+    uvAttribute.setXY(0, baseFrontLeft, topBottom);
+    uvAttribute.setXY(1, baseFrontRight, topBottom);
+    uvAttribute.setXY(2, baseFrontLeft, topTop);
+    uvAttribute.setXY(3, baseFrontRight, topTop);
 
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [frontLeft, frontRight, topTop, topBottom]);
+  }, [baseFrontLeft, baseFrontRight, topTop, topBottom]);
 
   return (
     <>

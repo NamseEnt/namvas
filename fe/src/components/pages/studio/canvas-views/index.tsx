@@ -66,7 +66,7 @@ export default function CanvasViews() {
 }
 
 function PerspectiveCollage() {
-  const { state, updateState } = useCanvasViewsContext();
+  const { state, updateState, handleUVTransformChange } = useCanvasViewsContext();
   const { handleImageUpload, state: studioState } = useStudioContext();
   const isDragging = useRef(false);
   const lastMousePosition = useRef({ x: 0, y: 0 });
@@ -179,6 +179,8 @@ function PerspectiveCollage() {
           sideProcessing: studioState.sideProcessing,
           canvasBackgroundColor: studioState.canvasBackgroundColor,
         }}
+        uvTransform={state.uvTransform}
+        onUVTransformChange={handleUVTransformChange}
       />
       <CrossTextureMinimap />
       <CameraRotationButtons />

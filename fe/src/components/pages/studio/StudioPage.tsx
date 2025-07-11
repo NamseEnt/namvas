@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { useArtworks } from "@/hooks/useArtworks";
 import { toast } from "sonner";
+import { type UVTransform } from "@/components/common/CanvasView/utils";
 // import { canvasProductSizeM } from "@/components/common/CanvasView/constants";
 
 export type StudioState = {
@@ -33,6 +34,7 @@ export type StudioState = {
 
 type CanvasViewsState = {
   rotation: { x: number; y: number };
+  uvTransform: UVTransform;
 };
 
 const StudioContext = createContext<{
@@ -58,6 +60,7 @@ export const useStudioContext = () => {
 const CanvasViewsContext = createContext<{
   state: CanvasViewsState;
   updateState: (updates: Partial<CanvasViewsState>) => void;
+  handleUVTransformChange: (transform: UVTransform) => void;
 }>(null!);
 
 export const useCanvasViewsContext = () => useContext(CanvasViewsContext);
@@ -82,6 +85,7 @@ export default function StudioPage() {
 
   const [canvasViewsState, setCanvasViewsState] = useState<CanvasViewsState>({
     rotation: { x: 0, y: 0 }, // Start from front view for animation
+    uvTransform: { zoom: 1, panX: 0, panY: 0 }, // Default UV transform
   });
 
   // Track if initial animation has been played
@@ -109,6 +113,10 @@ export default function StudioPage() {
     },
     []
   );
+
+  const handleUVTransformChange = useCallback((transform: UVTransform) => {
+    setCanvasViewsState((prev) => ({ ...prev, uvTransform: transform }));
+  }, []);
 
   const handleImageUpload = useCallback(
     (file: File) => {
@@ -305,6 +313,7 @@ export default function StudioPage() {
         value={{
           state: canvasViewsState,
           updateState: updateCanvasViewsState,
+          handleUVTransformChange,
         }}
       >
         <div className="h-screen bg-background flex flex-col">

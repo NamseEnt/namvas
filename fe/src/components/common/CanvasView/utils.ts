@@ -30,6 +30,39 @@ export function calculateCameraDistance(rotation: {
   );
 }
 
+// UV 기반 줌/팬 유틸리티 함수들
+export type UVTransform = {
+  zoom: number;
+  panX: number;
+  panY: number;
+};
+
+export function calculateZoomedUV(
+  baseLeft: number,
+  baseRight: number,
+  baseTop: number,
+  baseBottom: number,
+  transform: UVTransform
+): {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+} {
+  const centerU = (baseLeft + baseRight) / 2 + transform.panX;
+  const centerV = (baseTop + baseBottom) / 2 + transform.panY;
+  
+  const halfWidthU = (baseRight - baseLeft) / (2 * transform.zoom);
+  const halfHeightV = (baseBottom - baseTop) / (2 * transform.zoom);
+  
+  return {
+    left: centerU - halfWidthU,
+    right: centerU + halfWidthU,
+    top: centerV - halfHeightV,
+    bottom: centerV + halfHeightV
+  };
+}
+
 const canvasTexturePromise = new Promise<HTMLImageElement>(
   (resolve, reject) => {
     const canvasTextureImg = new Image();
