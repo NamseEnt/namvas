@@ -2,78 +2,39 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import * as THREE from "three";
 import { Canvas, useThree } from "@react-three/fiber";
 import { canvasProductSizeM } from "./constants";
-import { calculateCameraDistance, createCanvasBackgroundTexture, createUserImageTexture, calculateZoomedUV, type UVTransform } from "./utils";
+import { calculateCameraDistance, createCanvasTexture } from "./utils";
 import { type Artwork } from "../../../../../shared/types";
 
 export function CanvasView({
   rotation,
   src,
   settings,
-  uvTransform = { zoom: 1, panX: 0, panY: 0 },
-  onUVTransformChange,
 }: {
   rotation: { x: number; y: number };
   src: CanvasViewSrc | undefined;
   settings: CanvasRenderSettings;
-  uvTransform?: UVTransform;
-  onUVTransformChange?: (transform: UVTransform) => void;
 }) {
   const cameraDistance = calculateCameraDistance(rotation);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
-  // 마우스 인터랙션 상태
-  const [isDragging, setIsDragging] = useState(false);
-  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  // Canvas 크기 감지 및 업데이트
+  useEffect(function detectCanvasSize() {
+    const updateSize = () => {
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const newSize = { 
+          width: rect.width, 
+          height: rect.height 
+        };
+        setCanvasSize(newSize);
+      }
+    };
 
-  // 마우스 이벤트 핸들러
-  const handleMouseDown = (event: React.MouseEvent) => {
-    setIsDragging(true);
-    setLastMousePos({ x: event.clientX, y: event.clientY });
-    event.preventDefault();
-  };
-
-  const handleMouseMove = (event: React.MouseEvent) => {
-    if (!isDragging || !onUVTransformChange) {
-      return;
-    }
-
-    const deltaX = event.clientX - lastMousePos.x;
-    const deltaY = event.clientY - lastMousePos.y;
-    setLastMousePos({ x: event.clientX, y: event.clientY });
-
-    // 마우스 이동을 UV 좌표계로 변환 (감도 조정)
-    const sensitivity = 0.001;
-    const panDeltaX = -deltaX * sensitivity / uvTransform.zoom;
-    const panDeltaY = deltaY * sensitivity / uvTransform.zoom;
-
-    onUVTransformChange({
-      ...uvTransform,
-      panX: uvTransform.panX + panDeltaX,
-      panY: uvTransform.panY + panDeltaY,
-    });
-
-    event.preventDefault();
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleWheel = (event: React.WheelEvent) => {
-    if (!onUVTransformChange) {
-      return;
-    }
-
-    const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(0.1, Math.min(10, uvTransform.zoom * zoomFactor));
-
-    onUVTransformChange({
-      ...uvTransform,
-      zoom: newZoom,
-    });
-
-    event.preventDefault();
-  };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
 
   return (
     <Canvas
@@ -88,12 +49,9 @@ export function CanvasView({
         willChange: "auto", // GPU 레이어 최적화
         transform: "translateZ(0)" // 하드웨어 가속 강제
       }}
+      dpr={Math.min(window.devicePixelRatio || 1, 2)} // 고해상도 디스플레이 지원
       gl={{ alpha: true, antialias: true }}
       frameloop="demand"
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onWheel={handleWheel}
     >
       <CameraController cameraDistance={cameraDistance} />
       <ambientLight intensity={1.0} />
@@ -101,7 +59,7 @@ export function CanvasView({
       <directionalLight position={[0, 0, 1]} intensity={1.0} />
       <directionalLight position={[2, 1, 0]} intensity={0.8} color="#fffacd" />
       <directionalLight position={[1, 2, 0]} intensity={0.6} color="#f0f8ff" />
-      <CanvasFrame rotation={rotation} src={src} settings={settings} uvTransform={uvTransform} />
+      <CanvasFrame rotation={rotation} src={src} settings={settings} canvasSize={canvasSize} />
     </Canvas>
   );
 }
@@ -126,48 +84,60 @@ function CanvasFrame({
   rotation,
   src,
   settings,
-  uvTransform,
+  canvasSize,
 }: {
   rotation: { x: number; y: number };
   src: CanvasViewSrc | undefined;
   settings: CanvasRenderSettings;
-  uvTransform: UVTransform;
+  canvasSize: { width: number; height: number };
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const [canvasBackgroundTexture, setCanvasBackgroundTexture] = useState<THREE.Texture>();
-  const [userImageTexture, setUserImageTexture] = useState<THREE.Texture>();
+  const [crossTexture, setCrossTexture] = useState<THREE.Texture>();
+  
+  // 이전 값 추적
+  const prevRef = useRef<{
+    dpi: number;
+    centerX: number;
+    centerY: number;
+    sideProcessing: string;
+    canvasWidth: number;
+    canvasHeight: number;
+  }>({ dpi: 0, centerX: 0, centerY: 0, sideProcessing: '', canvasWidth: 0, canvasHeight: 0 });
 
-  // 캔버스 배경 텍스처 (DPI 무관, 고정 크기)
+  // 텍스처 생성 (DPI, 위치, 캔버스 크기 변경시 재생성)
+  const sideProcessingKey = JSON.stringify(settings.sideProcessing);
+  
   useEffect(
-    function loadCanvasBackgroundTexture() {
-      createCanvasBackgroundTexture()
-        .then((texture) => {
-          setCanvasBackgroundTexture(texture);
-        })
-        .catch((error) => {
-          console.error("❌ CanvasView createCanvasBackgroundTexture error:", error);
-        });
-    },
-    [] // 한 번만 생성
-  );
-
-  // 사용자 이미지 텍스처 (이미지 변경시만 재생성)
-  useEffect(
-    function loadUserImageTexture() {
+    function loadCanvasTexture() {
+      const current = {
+        dpi: settings.dpi,
+        centerX: settings.imageCenterXyInch?.x || 0,
+        centerY: settings.imageCenterXyInch?.y || 0,
+        sideProcessing: sideProcessingKey,
+        canvasWidth: canvasSize.width,
+        canvasHeight: canvasSize.height
+      };
+      
+      prevRef.current = current;
+      
       if (!src) {
-        setUserImageTexture(undefined);
+        setCrossTexture(undefined);
         return;
       }
       
-      createUserImageTexture(src)
+      createCanvasTexture({
+        src,
+        settings,
+        canvasSize,
+      })
         .then((texture) => {
-          setUserImageTexture(texture);
+          setCrossTexture(texture);
         })
         .catch((error) => {
-          console.error("❌ CanvasView createUserImageTexture error:", error);
+          console.error("❌ CanvasView createCanvasTexture error:", error);
         });
     },
-    [src] // 이미지 변경시만 텍스처 재생성
+    [src, settings.dpi, settings.imageCenterXyInch?.x, settings.imageCenterXyInch?.y, settings.canvasBackgroundColor, sideProcessingKey, canvasSize.width, canvasSize.height]
   );
 
   useEffect(
@@ -177,226 +147,182 @@ function CanvasFrame({
         meshRef.current.rotation.y = (rotation.y * Math.PI) / 180;
       }
     },
-    [rotation, canvasBackgroundTexture, userImageTexture]
+    [rotation, crossTexture]
   );
 
-  if (!canvasBackgroundTexture) {
+  if (!crossTexture) {
     return null;
   }
 
   return (
     <group ref={meshRef} position={[0, 0, 0]}>
       <CustomCanvasGeometry 
-        canvasBackgroundTexture={canvasBackgroundTexture}
-        userImageTexture={userImageTexture}
-        uvTransform={uvTransform} 
-        settings={settings}
+        crossTexture={crossTexture}
       />
     </group>
   );
 }
 
 function CustomCanvasGeometry({
-  canvasBackgroundTexture,
-  userImageTexture,
-  uvTransform,
-  settings,
+  crossTexture,
 }: {
-  canvasBackgroundTexture: THREE.Texture;
-  userImageTexture?: THREE.Texture;
-  uvTransform: UVTransform;
-  settings: CanvasRenderSettings;
+  crossTexture: THREE.Texture;
 }) {
-  const { invalidate } = useThree();
-  // utils.ts와 동일한 계산 방식 사용
-  const pixelScale = 4000;
-  const frontWidth = canvasProductSizeM.widthM * pixelScale;    // 392px
-  const frontHeight = canvasProductSizeM.heightM * pixelScale;  // 592px  
-  const sideThickness = canvasProductSizeM.thicknessM * pixelScale; // 24px
-  const totalWidth = frontWidth + sideThickness * 2;
-  const totalHeight = frontHeight + sideThickness * 2;
+  // 텍스처에서 실제 사용된 픽셀 스케일 역산
+  const canvasTextureCanvas = (crossTexture as THREE.CanvasTexture).source.data as HTMLCanvasElement;
+  const pixelScale = canvasTextureCanvas.width / (canvasProductSizeM.thicknessM * 2 + canvasProductSizeM.widthM);
+  const thicknessPx = canvasProductSizeM.thicknessM * pixelScale;
+  const frontWidthPx = canvasProductSizeM.widthM * pixelScale;
+  const frontHeightPx = canvasProductSizeM.heightM * pixelScale;
+  const totalWidthPx = thicknessPx * 2 + frontWidthPx;
+  const totalHeightPx = thicknessPx * 2 + frontHeightPx;
 
-  const baseFrontLeft = sideThickness / totalWidth;
-  const baseFrontRight = (sideThickness + frontWidth) / totalWidth;
-  const baseFrontTop = sideThickness / totalHeight;
-  const baseFrontBottom = (sideThickness + frontHeight) / totalHeight;
-
-  // DPI와 위치를 UV transform으로 변환
-  const dpiZoom = 600 / settings.dpi; // 600 DPI 기준
-  const canvasWidthInch = canvasProductSizeM.widthM / 0.0254;
-  const canvasHeightInch = canvasProductSizeM.heightM / 0.0254;
-  const panX = settings.imageCenterXyInch.x / canvasWidthInch;
-  const panY = settings.imageCenterXyInch.y / canvasHeightInch;
-  
-  const combinedTransform = {
-    zoom: uvTransform.zoom * dpiZoom,
-    panX: uvTransform.panX + panX,
-    panY: uvTransform.panY + panY,
-  };
-  
-  // UV 변환 적용
-  const frontUV = calculateZoomedUV(
-    baseFrontLeft, baseFrontRight, baseFrontTop, baseFrontBottom, combinedTransform
-  );
+  // 각 면의 UV 좌표 계산
+  const frontLeft = thicknessPx / totalWidthPx;
+  const frontRight = (thicknessPx + frontWidthPx) / totalWidthPx;
+  const frontTop = thicknessPx / totalHeightPx;
+  const frontBottom = (thicknessPx + frontHeightPx) / totalHeightPx;
 
   const leftLeft = 0;
-  const leftRight = baseFrontLeft;
-  const rightLeft = baseFrontRight;
+  const leftRight = frontLeft;
+  const rightLeft = frontRight;
   const rightRight = 1;
 
   const topTop = 0;
-  const topBottom = baseFrontTop;
-  const bottomTop = baseFrontBottom;
+  const topBottom = frontTop;
+  const bottomTop = frontBottom;
   const bottomBottom = 1;
 
-  // 기본 geometry (한 번만 생성)
-  const baseFrontGeometry = useMemo(() => {
-    return new THREE.PlaneGeometry(
+  // 정면 geometry
+  const frontGeometry = useMemo(() => {
+    const geo = new THREE.PlaneGeometry(
       canvasProductSizeM.widthM,
       canvasProductSizeM.heightM
     );
-  }, []);
+    const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
+    
+    uvAttribute.setXY(0, frontLeft, frontBottom);   // 좌하
+    uvAttribute.setXY(1, frontRight, frontBottom);  // 우하
+    uvAttribute.setXY(2, frontLeft, frontTop);      // 좌상
+    uvAttribute.setXY(3, frontRight, frontTop);     // 우상
+    
+    uvAttribute.needsUpdate = true;
+    return geo;
+  }, [frontLeft, frontRight, frontTop, frontBottom]);
 
-  // UV 업데이트 (직접 조작)
-  useEffect(
-    function updateFrontGeometryUV() {
-      if (!baseFrontGeometry) {
-        return;
-      }
-      
-      const uvAttribute = baseFrontGeometry.getAttribute("uv") as THREE.BufferAttribute;
-      const uvArray = uvAttribute.array as Float32Array;
-
-      uvArray[0] = frontUV.left;
-      uvArray[1] = frontUV.bottom;
-      uvArray[2] = frontUV.right;
-      uvArray[3] = frontUV.bottom;
-      uvArray[4] = frontUV.left;
-      uvArray[5] = frontUV.top;
-      uvArray[6] = frontUV.right;
-      uvArray[7] = frontUV.top;
-
-      uvAttribute.needsUpdate = true;
-      invalidate();
-    },
-    [baseFrontGeometry, frontUV.left, frontUV.right, frontUV.top, frontUV.bottom, invalidate, settings.dpi, uvTransform.zoom, uvTransform.panX, uvTransform.panY]
-  );
-
+  // 오른쪽 면 geometry
   const rightGeometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
       canvasProductSizeM.thicknessM,
       canvasProductSizeM.heightM
     );
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
-
-    uvAttribute.setXY(0, rightLeft, baseFrontBottom);
-    uvAttribute.setXY(1, rightRight, baseFrontBottom);
-    uvAttribute.setXY(2, rightLeft, baseFrontTop);
-    uvAttribute.setXY(3, rightRight, baseFrontTop);
-
+    
+    uvAttribute.setXY(0, rightLeft, frontBottom);   // 좌하
+    uvAttribute.setXY(1, rightRight, frontBottom);  // 우하
+    uvAttribute.setXY(2, rightLeft, frontTop);      // 좌상
+    uvAttribute.setXY(3, rightRight, frontTop);     // 우상
+    
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [rightLeft, rightRight, baseFrontTop, baseFrontBottom]);
+  }, [rightLeft, rightRight, frontTop, frontBottom]);
 
+  // 왼쪽 면 geometry
   const leftGeometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
       canvasProductSizeM.thicknessM,
       canvasProductSizeM.heightM
     );
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
-
-    uvAttribute.setXY(0, leftLeft, baseFrontBottom);
-    uvAttribute.setXY(1, leftRight, baseFrontBottom);
-    uvAttribute.setXY(2, leftLeft, baseFrontTop);
-    uvAttribute.setXY(3, leftRight, baseFrontTop);
-
+    
+    uvAttribute.setXY(0, leftLeft, frontBottom);    // 좌하
+    uvAttribute.setXY(1, leftRight, frontBottom);   // 우하
+    uvAttribute.setXY(2, leftLeft, frontTop);       // 좌상
+    uvAttribute.setXY(3, leftRight, frontTop);      // 우상
+    
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [leftLeft, leftRight, baseFrontTop, baseFrontBottom]);
+  }, [leftLeft, leftRight, frontTop, frontBottom]);
 
+  // 위쪽 면 geometry
   const topGeometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
       canvasProductSizeM.widthM,
       canvasProductSizeM.thicknessM
     );
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
-
-    uvAttribute.setXY(0, baseFrontLeft, bottomBottom);
-    uvAttribute.setXY(1, baseFrontRight, bottomBottom);
-    uvAttribute.setXY(2, baseFrontLeft, bottomTop);
-    uvAttribute.setXY(3, baseFrontRight, bottomTop);
-
+    
+    uvAttribute.setXY(0, frontLeft, topBottom);     // 좌하
+    uvAttribute.setXY(1, frontRight, topBottom);    // 우하
+    uvAttribute.setXY(2, frontLeft, topTop);        // 좌상
+    uvAttribute.setXY(3, frontRight, topTop);       // 우상
+    
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [baseFrontLeft, baseFrontRight, bottomTop, bottomBottom]);
+  }, [frontLeft, frontRight, topTop, topBottom]);
 
+  // 아래쪽 면 geometry
   const bottomGeometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
       canvasProductSizeM.widthM,
       canvasProductSizeM.thicknessM
     );
     const uvAttribute = geo.getAttribute("uv") as THREE.BufferAttribute;
-
-    uvAttribute.setXY(0, baseFrontLeft, topBottom);
-    uvAttribute.setXY(1, baseFrontRight, topBottom);
-    uvAttribute.setXY(2, baseFrontLeft, topTop);
-    uvAttribute.setXY(3, baseFrontRight, topTop);
-
+    
+    uvAttribute.setXY(0, frontLeft, bottomBottom);  // 좌하
+    uvAttribute.setXY(1, frontRight, bottomBottom); // 우하
+    uvAttribute.setXY(2, frontLeft, bottomTop);     // 좌상
+    uvAttribute.setXY(3, frontRight, bottomTop);    // 우상
+    
     uvAttribute.needsUpdate = true;
     return geo;
-  }, [baseFrontLeft, baseFrontRight, topBottom, topTop]);
+  }, [frontLeft, frontRight, bottomTop, bottomBottom]);
 
   return (
     <>
-      {/* 캔버스 배경 (모든 면) */}
+      {/* 정면 */}
       <mesh
         position={[0, 0, canvasProductSizeM.thicknessM / 2]}
-        geometry={baseFrontGeometry}
+        geometry={frontGeometry}
       >
-        <meshStandardMaterial map={canvasBackgroundTexture} toneMapped={false} />
+        <meshStandardMaterial map={crossTexture} toneMapped={false} />
       </mesh>
 
+      {/* 오른쪽 면 */}
       <mesh
         position={[canvasProductSizeM.widthM / 2, 0, 0]}
         rotation={[0, Math.PI / 2, 0]}
         geometry={rightGeometry}
       >
-        <meshStandardMaterial map={canvasBackgroundTexture} toneMapped={false} />
+        <meshStandardMaterial map={crossTexture} toneMapped={false} />
       </mesh>
 
+      {/* 왼쪽 면 */}
       <mesh
         position={[-canvasProductSizeM.widthM / 2, 0, 0]}
         rotation={[0, -Math.PI / 2, 0]}
         geometry={leftGeometry}
       >
-        <meshStandardMaterial map={canvasBackgroundTexture} toneMapped={false} />
+        <meshStandardMaterial map={crossTexture} toneMapped={false} />
       </mesh>
 
+      {/* 위쪽 면 */}
       <mesh
         position={[0, canvasProductSizeM.heightM / 2, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         geometry={topGeometry}
       >
-        <meshStandardMaterial map={canvasBackgroundTexture} toneMapped={false} />
+        <meshStandardMaterial map={crossTexture} toneMapped={false} />
       </mesh>
 
+      {/* 아래쪽 면 */}
       <mesh
         position={[0, -canvasProductSizeM.heightM / 2, 0]}
         rotation={[Math.PI / 2, 0, 0]}
         geometry={bottomGeometry}
       >
-        <meshStandardMaterial map={canvasBackgroundTexture} toneMapped={false} />
+        <meshStandardMaterial map={crossTexture} toneMapped={false} />
       </mesh>
-
-      {/* 사용자 이미지 (정면만, DPI 적용) */}
-      {userImageTexture && (
-        <mesh
-          position={[0, 0, canvasProductSizeM.thicknessM / 2 + 0.0001]}
-          geometry={baseFrontGeometry}
-        >
-          <meshStandardMaterial map={userImageTexture} toneMapped={false} transparent={true} />
-        </mesh>
-      )}
     </>
   );
 }

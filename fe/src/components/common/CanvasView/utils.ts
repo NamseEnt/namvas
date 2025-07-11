@@ -30,6 +30,34 @@ export function calculateCameraDistance(rotation: {
   );
 }
 
+// 화면에서 보이는 실제 픽셀 크기를 기반으로 최적의 pixelsPerThreeUnit 계산
+function calculateOptimalPixelsPerThreeUnit(canvasSize: { width: number; height: number }): number {
+  // 정면 뷰에서의 카메라 거리
+  const canvasDiagonal = Math.sqrt(
+    canvasProductSizeM.widthM ** 2 + canvasProductSizeM.heightM ** 2
+  );
+  const cameraDistance = canvasDiagonal * 1.5; // 0.26625m
+  
+  // Three.js 투영 계산 (FOV 35도)
+  const fovRad = (35 * Math.PI) / 180; // 0.6109 라디안
+  const viewHeight = 2 * Math.tan(fovRad / 2) * cameraDistance; // 0.1691 Three.js unit
+  const aspectRatio = canvasSize.width / canvasSize.height;
+  const viewWidth = viewHeight * aspectRatio; // 0.3382 Three.js unit (300/150 = 2 기준)
+  
+  // 캔버스 액자가 화면에서 차지하는 픽셀 계산
+  const canvasPixelHeight = canvasSize.height * (canvasProductSizeM.heightM / viewHeight);
+  const canvasPixelWidth = canvasSize.width * (canvasProductSizeM.widthM / viewWidth);
+  
+  // 1:1 픽셀 매칭을 위한 기본값
+  const basePixelsPerUnit = Math.max(
+    canvasPixelWidth / canvasProductSizeM.widthM,
+    canvasPixelHeight / canvasProductSizeM.heightM
+  );
+  
+  // 2배 품질 적용
+  return basePixelsPerUnit * 2;
+}
+
 // UV 기반 줌/팬 유틸리티 함수들
 export type UVTransform = {
   zoom: number;
@@ -83,6 +111,7 @@ export async function createCanvasBackgroundTexture(): Promise<THREE.Texture> {
   canvas.height = textureHeightPx;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
 
   // Apply canvas texture background
   const texturePattern = ctx.createPattern(canvasTextureImg, "repeat")!;
@@ -98,6 +127,7 @@ export async function createCanvasBackgroundTexture(): Promise<THREE.Texture> {
   texture.generateMipmaps = false;
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = 4; // 적당한 품질로 조정
   return texture;
 }
 
@@ -123,6 +153,7 @@ export async function createUserImageTexture(
   texture.generateMipmaps = false;
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = 4; // 적당한 품질로 조정
   return texture;
 }
 
@@ -149,29 +180,47 @@ export function calculateImageUVTransform({
   return { zoom, panX, panY };
 }
 
-const pixelScale = 8000; // 텍스처 해상도 대폭 증가
-const thicknessPx = canvasProductSizeM.thicknessM * pixelScale;
-const frontWidthPx = canvasProductSizeM.widthM * pixelScale;
-const frontHeightPx = canvasProductSizeM.heightM * pixelScale;
+// 적절한 픽셀 스케일 계산:
+// 총 폭: (98 + 6*2)mm = 110mm = 4.33인치  
+// 300 DPI 기준: 4.33 × 300 = 1299px
+// 적당한 여유를 두되 너무 높지 않게 조정
+const pixelsPerThreeUnit = 2000;
+const thicknessPx = canvasProductSizeM.thicknessM * pixelsPerThreeUnit;
+const frontWidthPx = canvasProductSizeM.widthM * pixelsPerThreeUnit;
+const frontHeightPx = canvasProductSizeM.heightM * pixelsPerThreeUnit;
 const textureWidthPx = thicknessPx * 2 + frontWidthPx;
 const textureHeightPx = thicknessPx * 2 + frontHeightPx;
 
 export async function createCanvasTexture({
   src,
   settings: { dpi, imageCenterXyInch, sideProcessing },
+  canvasSize,
 }: {
   src: CanvasViewSrc | undefined;
   settings: CanvasRenderSettings;
+  canvasSize: { width: number; height: number } | undefined;
 }): Promise<THREE.Texture> {
   const canvasTextureImg = await canvasTexturePromise;
+
+  // 화면에서 보이는 실제 픽셀 크기 기반 텍스처 해상도 계산
+  const dynamicPixelsPerThreeUnit = canvasSize ? 
+    calculateOptimalPixelsPerThreeUnit(canvasSize) : 
+    pixelsPerThreeUnit; // 기본값
+  
+  const dynamicThicknessPx = canvasProductSizeM.thicknessM * dynamicPixelsPerThreeUnit;
+  const dynamicFrontWidthPx = canvasProductSizeM.widthM * dynamicPixelsPerThreeUnit;
+  const dynamicFrontHeightPx = canvasProductSizeM.heightM * dynamicPixelsPerThreeUnit;
+  const dynamicTextureWidthPx = dynamicThicknessPx * 2 + dynamicFrontWidthPx;
+  const dynamicTextureHeightPx = dynamicThicknessPx * 2 + dynamicFrontHeightPx;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d")!;
 
-  canvas.width = textureWidthPx;
-  canvas.height = textureHeightPx;
+  canvas.width = dynamicTextureWidthPx;
+  canvas.height = dynamicTextureHeightPx;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
 
   // Apply canvas texture background
   const texturePattern = ctx.createPattern(canvasTextureImg, "repeat")!;
@@ -182,14 +231,15 @@ export async function createCanvasTexture({
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.restore();
 
-  const frontCenterXPx = textureWidthPx / 2;
-  const frontCenterYPx = textureHeightPx / 2;
+  const frontCenterXPx = dynamicTextureWidthPx / 2;
+  const frontCenterYPx = dynamicTextureHeightPx / 2;
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   texture.generateMipmaps = false;
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = 4; // 적당한 품질로 조정
 
   if (!src) {
     return texture;
@@ -238,7 +288,7 @@ export async function createCanvasTexture({
 
           const centerXPx = imageCenterXyInch.x * dpi;
           const centerYPx = imageCenterXyInch.y * dpi;
-          const canvasScale = pixelScale / dpi;
+          const canvasScale = dynamicPixelsPerThreeUnit / dpi;
 
           // Left side
           ctx.save();
@@ -284,7 +334,7 @@ export async function createCanvasTexture({
   function clipFront(func: () => void) {
     ctx.save();
     ctx.beginPath();
-    ctx.rect(thicknessPx, thicknessPx, frontWidthPx, frontHeightPx);
+    ctx.rect(dynamicThicknessPx, dynamicThicknessPx, dynamicFrontWidthPx, dynamicFrontHeightPx);
     ctx.clip();
     func();
     ctx.restore();
@@ -298,23 +348,23 @@ export async function createCanvasTexture({
       // Advanced mode - precise positioning and scaling
       const centerXPx = imageCenterXyInch.x * dpi;
       const centerYPx = imageCenterXyInch.y * dpi;
-      const canvasScale = (pixelScale * METER_PER_INCH) / dpi;
+      const canvasScale = (dynamicPixelsPerThreeUnit * METER_PER_INCH) / dpi;
 
 
       ctx.translate(centerXPx, centerYPx);
       ctx.scale(canvasScale, canvasScale);
     } else {
       // Simple mode - auto-fit with aspect ratio
-      const frontAspect = frontWidthPx / frontHeightPx;
+      const frontAspect = dynamicFrontWidthPx / dynamicFrontHeightPx;
       const imageAspect = image.width / image.height;
 
       let drawWidthPx, drawHeightPx;
       if (imageAspect > frontAspect) {
-        drawWidthPx = frontWidthPx;
-        drawHeightPx = frontWidthPx / imageAspect;
+        drawWidthPx = dynamicFrontWidthPx;
+        drawHeightPx = dynamicFrontWidthPx / imageAspect;
       } else {
-        drawHeightPx = frontHeightPx;
-        drawWidthPx = frontHeightPx * imageAspect;
+        drawHeightPx = dynamicFrontHeightPx;
+        drawWidthPx = dynamicFrontHeightPx * imageAspect;
       }
 
       ctx.scale(drawWidthPx / image.width, drawHeightPx / image.height);
