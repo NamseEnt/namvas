@@ -27,7 +27,7 @@
 납득 가능한 UX로 이 회전 각도를 조절하라.
 
 */
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useStudioContext, useCanvasViewsContext } from "../StudioPage";
 import { CAMERA_ROTATION_LIMITS } from "../types";
 import { UploadPromptBox } from "./UploadPromptBox";
@@ -35,6 +35,9 @@ import { CrossTextureMinimap } from "./CrossTextureMinimap";
 import { CameraRotationButtons } from "./CameraRotationButtons";
 import { backgroundOptions } from "../constants/backgroundOptions";
 import { CanvasView } from "@/components/common/CanvasView/CanvasView";
+import { FPSMonitor } from "@/components/common/FPSMonitor";
+import { PerformanceProfiler } from "@/components/common/PerformanceProfiler";
+import { DebugInstructions } from "@/components/common/DebugInstructions";
 
 export default function CanvasViews() {
   const { state: studioState } = useStudioContext();
@@ -70,6 +73,13 @@ function PerspectiveCollage() {
   const { handleImageUpload, state: studioState } = useStudioContext();
   const isDragging = useRef(false);
   const lastMousePosition = useRef({ x: 0, y: 0 });
+
+  // src 객체 메모이제이션 (매번 새 객체 생성 방지)
+  const canvasViewSrc = useMemo(() => {
+    return studioState.uploadedImage
+      ? { type: "image" as const, image: studioState.uploadedImage }
+      : undefined;
+  }, [studioState.uploadedImage]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true;
@@ -166,13 +176,12 @@ function PerspectiveCollage() {
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
+      <FPSMonitor />
+      <PerformanceProfiler />
+      <DebugInstructions />
       <CanvasView
         rotation={state.rotation}
-        src={
-          studioState.uploadedImage
-            ? { type: "image", image: studioState.uploadedImage }
-            : undefined
-        }
+        src={canvasViewSrc}
         settings={{
           dpi: studioState.dpi,
           imageCenterXyInch: studioState.imageCenterXyInch,

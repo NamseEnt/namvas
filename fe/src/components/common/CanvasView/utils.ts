@@ -72,7 +72,84 @@ const canvasTexturePromise = new Promise<HTMLImageElement>(
   }
 );
 
-const pixelScale = 4000;
+// 캔버스 배경 텍스처 생성 (한 번만 생성됨)
+export async function createCanvasBackgroundTexture(): Promise<THREE.Texture> {
+  const canvasTextureImg = await canvasTexturePromise;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d")!;
+
+  canvas.width = textureWidthPx;
+  canvas.height = textureHeightPx;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Apply canvas texture background
+  const texturePattern = ctx.createPattern(canvasTextureImg, "repeat")!;
+  ctx.save();
+  ctx.fillStyle = texturePattern;
+  ctx.globalAlpha = 0.15;
+  ctx.filter = "brightness(1.3) blur(0.5px)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  texture.generateMipmaps = false;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  return texture;
+}
+
+// 사용자 이미지 텍스처 생성 (원본 크기 유지)
+export async function createUserImageTexture(
+  src: CanvasViewSrc
+): Promise<THREE.Texture> {
+  const image = await (() => {
+    if (src.type === "image") {
+      return src.image;
+    }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = (src as { type: "url"; url: string }).url;
+    return new Promise<HTMLImageElement>((resolve, reject) => {
+      img.onload = () => resolve(img);
+      img.onerror = (error) => reject(error);
+    });
+  })();
+
+  const texture = new THREE.Texture(image);
+  texture.needsUpdate = true;
+  texture.generateMipmaps = false;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  return texture;
+}
+
+// DPI와 위치를 UV transform으로 변환
+export function calculateImageUVTransform({
+  dpi,
+  imageCenterXyInch,
+  baseDpi = 300,
+}: {
+  dpi: number;
+  imageCenterXyInch: { x: number; y: number };
+  baseDpi?: number;
+}): UVTransform {
+  // DPI가 높을수록 이미지가 작아져야 하므로 zoom은 반비례
+  const zoom = baseDpi / dpi;
+  
+  // 위치는 캔버스 크기 대비 비율로 계산
+  const canvasWidthInch = canvasProductSizeM.widthM / METER_PER_INCH;
+  const canvasHeightInch = canvasProductSizeM.heightM / METER_PER_INCH;
+  
+  const panX = imageCenterXyInch.x / canvasWidthInch;
+  const panY = imageCenterXyInch.y / canvasHeightInch;
+  
+  return { zoom, panX, panY };
+}
+
+const pixelScale = 8000; // 텍스처 해상도 대폭 증가
 const thicknessPx = canvasProductSizeM.thicknessM * pixelScale;
 const frontWidthPx = canvasProductSizeM.widthM * pixelScale;
 const frontHeightPx = canvasProductSizeM.heightM * pixelScale;
@@ -110,6 +187,9 @@ export async function createCanvasTexture({
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
+  texture.generateMipmaps = false;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
 
   if (!src) {
     return texture;
