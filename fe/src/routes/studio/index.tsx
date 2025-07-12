@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import StudioPage from "@/components/pages/studio/StudioPage";
-import { AuthGuard } from "@/components/common/AuthGuard";
+import SimpleStudioPage from "@/components/pages/studio/SimpleStudioPage";
+// import { AuthGuard } from "@/components/common/AuthGuard";
 
 export const Route = createFileRoute("/studio/")({
   component: () => (
-    <AuthGuard>
-      <StudioPage />
-    </AuthGuard>
+    // <AuthGuard>
+      <SimpleStudioPage />
+    // </AuthGuard>
   ),
 });
