@@ -2,18 +2,25 @@ import { useRef, useEffect, useMemo, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
+// 옆면 처리 모드
+enum SideMode {
+  CLIP = "clip",     // 자르기
+  PRESERVE = "preserve", // 살리기
+  FLIP = "flip"      // 뒤집기
+}
+
 type SimpleCanvasViewProps = {
   imageTexture: THREE.Texture | null;
   rotation: { x: number; y: number };
   imageOffset: { x: number; y: number }; // -1 to 1
-  sideProcessingEnabled: boolean; // true: flip, false: clip
+  sideMode: SideMode;
 };
 
 export function SimpleCanvasViewPlanes({
   imageTexture,
   rotation,
   imageOffset,
-  sideProcessingEnabled,
+  sideMode,
 }: SimpleCanvasViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -48,7 +55,7 @@ export function SimpleCanvasViewPlanes({
           rotation={rotation}
           imageTexture={imageTexture}
           imageOffset={imageOffset}
-          sideProcessingEnabled={sideProcessingEnabled}
+          sideMode={sideMode}
         />
       )}
     </Canvas>
@@ -66,12 +73,12 @@ function CanvasFrame({
   rotation,
   imageTexture,
   imageOffset,
-  sideProcessingEnabled,
+  sideMode,
 }: {
   rotation: { x: number; y: number };
   imageTexture: THREE.Texture;
   imageOffset: { x: number; y: number };
-  sideProcessingEnabled: boolean;
+  sideMode: SideMode;
 }) {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -157,7 +164,7 @@ function CanvasFrame({
         position={[-w/2, 0, 0]}
         rotation={[0, -Math.PI/2, 0]}
         size={[t, h]}
-        sideProcessingEnabled={sideProcessingEnabled}
+        sideMode={sideMode}
         texture={texture}
         edge="left"
         uvBounds={{ uvLeft, uvRight, uvBottom, uvTop }}
@@ -168,7 +175,7 @@ function CanvasFrame({
         position={[w/2, 0, 0]}
         rotation={[0, Math.PI/2, 0]}
         size={[t, h]}
-        sideProcessingEnabled={sideProcessingEnabled}
+        sideMode={sideMode}
         texture={texture}
         edge="right"
         uvBounds={{ uvLeft, uvRight, uvBottom, uvTop }}
@@ -179,7 +186,7 @@ function CanvasFrame({
         position={[0, h/2, 0]}
         rotation={[-Math.PI/2, 0, 0]}
         size={[w, t]}
-        sideProcessingEnabled={sideProcessingEnabled}
+        sideMode={sideMode}
         texture={texture}
         edge="top"
         uvBounds={{ uvLeft, uvRight, uvBottom, uvTop }}
@@ -190,7 +197,7 @@ function CanvasFrame({
         position={[0, -h/2, 0]}
         rotation={[Math.PI/2, 0, 0]}
         size={[w, t]}
-        sideProcessingEnabled={sideProcessingEnabled}
+        sideMode={sideMode}
         texture={texture}
         edge="bottom"
         uvBounds={{ uvLeft, uvRight, uvBottom, uvTop }}
@@ -204,7 +211,7 @@ function SideFace({
   position,
   rotation,
   size,
-  sideProcessingEnabled,
+  sideMode,
   texture,
   edge,
   uvBounds,
@@ -212,31 +219,41 @@ function SideFace({
   position: [number, number, number];
   rotation: [number, number, number];
   size: [number, number];
-  sideProcessingEnabled: boolean;
+  sideMode: SideMode;
   texture: THREE.Texture;
   edge: 'left' | 'right' | 'top' | 'bottom';
   uvBounds: { uvLeft: number; uvRight: number; uvBottom: number; uvTop: number };
 }) {
   const [canvasTexture, setCanvasTexture] = useState<THREE.Texture | null>(null);
   
-  // 캔버스 텍스처 로드 (clip 모드용)
+  // 캔버스 텍스처 로드 (살리기 모드용)
   useEffect(() => {
-    if (!sideProcessingEnabled) {
+    if (sideMode === SideMode.PRESERVE) {
       const loader = new THREE.TextureLoader();
-      loader.load('/canvas-texture.jpg', (tex) => {
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        const repeatX = size[0] / 0.02;
-        const repeatY = size[1] / 0.02;
-        tex.repeat.set(repeatX, repeatY);
-        setCanvasTexture(tex);
-      });
+      loader.load(
+        '/canvas-texture.jpg', 
+        (tex) => {
+          tex.wrapS = THREE.RepeatWrapping;
+          tex.wrapT = THREE.RepeatWrapping;
+          const repeatX = size[0] / 0.02;
+          const repeatY = size[1] / 0.02;
+          tex.repeat.set(repeatX, repeatY);
+          setCanvasTexture(tex);
+          console.log('Canvas texture loaded successfully', tex);
+        },
+        undefined,
+        (error) => {
+          console.error('Failed to load canvas texture:', error);
+        }
+      );
+    } else {
+      setCanvasTexture(null);
     }
-  }, [sideProcessingEnabled, size]);
+  }, [sideMode, size]);
 
-  // flip 모드에서 옆면 UV 계산
+  // 자르기 및 뒤집기 모드에서 옆면 UV 계산
   const sideGeometry = useMemo(() => {
-    if (!sideProcessingEnabled) return null;
+    if (sideMode === SideMode.PRESERVE) return null;
     
     const geo = new THREE.PlaneGeometry(size[0], size[1]);
     const { uvLeft, uvRight, uvBottom, uvTop } = uvBounds;
@@ -300,17 +317,70 @@ function SideFace({
     
     geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
     return geo;
-  }, [size, sideProcessingEnabled, edge, uvBounds]);
+  }, [size, sideMode, edge, uvBounds]);
 
-  if (sideProcessingEnabled && sideGeometry) {
-    // flip 모드: 이미지 overflow
+  // 뒤집기 모드에서 옆면 UV 계산 
+  const flipGeometry = useMemo(() => {
+    if (sideMode !== SideMode.FLIP) return null;
+    
+    const geo = new THREE.PlaneGeometry(size[0], size[1]);
+    const { uvLeft, uvRight, uvBottom, uvTop } = uvBounds;
+    
+    let uvs: Float32Array;
+    
+    // 각 면에 따라 이미지를 뒤집어서 UV 매핑
+    switch (edge) {
+      case 'left':
+        // 왼쪽면: X축 반전 (좌우 뒤집기)
+        uvs = new Float32Array([
+          uvRight, uvBottom,  // 좌하 -> 우하를 사용
+          uvLeft, uvBottom,   // 우하 -> 좌하를 사용
+          uvRight, uvTop,     // 좌상 -> 우상을 사용
+          uvLeft, uvTop,      // 우상 -> 좌상을 사용
+        ]);
+        break;
+      case 'right':
+        // 오른쪽면: X축 반전 (좌우 뒤집기)
+        uvs = new Float32Array([
+          uvRight, uvBottom,  // 좌하 -> 우하를 사용
+          uvLeft, uvBottom,   // 우하 -> 좌하를 사용
+          uvRight, uvTop,     // 좌상 -> 우상을 사용
+          uvLeft, uvTop,      // 우상 -> 좌상을 사용
+        ]);
+        break;
+      case 'top':
+        // 상단면: Y축 반전 (상하 뒤집기)
+        uvs = new Float32Array([
+          uvLeft, uvTop,      // 좌하 -> 좌상을 사용
+          uvRight, uvTop,     // 우하 -> 우상을 사용
+          uvLeft, uvBottom,   // 좌상 -> 좌하를 사용
+          uvRight, uvBottom,  // 우상 -> 우하를 사용
+        ]);
+        break;
+      case 'bottom':
+        // 하단면: Y축 반전 (상하 뒤집기)
+        uvs = new Float32Array([
+          uvLeft, uvTop,      // 좌하 -> 좌상을 사용
+          uvRight, uvTop,     // 우하 -> 우상을 사용
+          uvLeft, uvBottom,   // 좌상 -> 좌하를 사용
+          uvRight, uvBottom,  // 우상 -> 우하를 사용
+        ]);
+        break;
+    }
+    
+    geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+    return geo;
+  }, [size, sideMode, edge, uvBounds]);
+
+  if (sideMode === SideMode.CLIP && sideGeometry) {
+    // 자르기 모드: 이미지 overflow
     return (
       <mesh position={position} rotation={rotation} geometry={sideGeometry}>
         <meshStandardMaterial map={texture} />
       </mesh>
     );
-  } else {
-    // clip 모드: 캔버스 텍스처
+  } else if (sideMode === SideMode.PRESERVE) {
+    // 살리기 모드: 캔버스 텍스처
     return (
       <mesh position={position} rotation={rotation}>
         <planeGeometry args={size} />
@@ -318,6 +388,21 @@ function SideFace({
           map={canvasTexture} 
           color={canvasTexture ? undefined : '#f5f5f5'} 
         />
+      </mesh>
+    );
+  } else if (sideMode === SideMode.FLIP && flipGeometry) {
+    // 뒤집기 모드: 이미지를 각 축으로 뒤집어서 표시
+    return (
+      <mesh position={position} rotation={rotation} geometry={flipGeometry}>
+        <meshStandardMaterial map={texture} />
+      </mesh>
+    );
+  } else {
+    // 기본값: 빈 면
+    return (
+      <mesh position={position} rotation={rotation}>
+        <planeGeometry args={size} />
+        <meshStandardMaterial color="#f5f5f5" />
       </mesh>
     );
   }
