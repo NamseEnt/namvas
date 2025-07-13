@@ -128,13 +128,13 @@ export function calculatePreserveModeFaceRects({
     },
     top: {
       x: unfoldedX + sideWidthPx,
-      y: unfoldedY,
+      y: unfoldedY + sideHeightPx + frontHeightPx,
       width: frontWidthPx,
       height: sideHeightPx,
     },
     bottom: {
       x: unfoldedX + sideWidthPx,
-      y: unfoldedY + sideHeightPx + frontHeightPx,
+      y: unfoldedY,
       width: frontWidthPx,
       height: sideHeightPx,
     },
@@ -187,18 +187,6 @@ export function applyPreserveModeUVToGeometry(
   geometry: THREE.PlaneGeometry,
   uvBounds: { uMin: number; uMax: number; vMin: number; vMax: number }
 ) {
-  // 정면과 왼쪽면만 로깅
-  if (geometry.parameters.width === 0.1 && geometry.parameters.height === 0.15) {
-    console.log('=== FRONT ===');
-    console.log('UV bounds:', uvBounds);
-  } else if (geometry.parameters.width === 0.006 && geometry.parameters.height === 0.15) {
-    const isLeft = uvBounds.uMin < 0.5;
-    if (isLeft) {
-      console.log('=== LEFT ===');
-      console.log('UV bounds:', uvBounds);
-    }
-  }
-  
   // PlaneGeometry의 올바른 정점 순서에 따른 UV 매핑
   // Vertex 0: 좌상, Vertex 1: 우상, Vertex 2: 좌하, Vertex 3: 우하
   const uvs = new Float32Array([
