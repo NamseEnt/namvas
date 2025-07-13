@@ -1,0 +1,7 @@
+packages:
+  - 'be'
+  - 'fe'
+  - 'e2e'
+  - 'infra'
+  - 'local-lambda-emulator'
+  - 'shared'
