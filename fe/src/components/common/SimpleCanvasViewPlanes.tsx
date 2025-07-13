@@ -9,6 +9,56 @@ enum SideMode {
   FLIP = "flip"      // 뒤집기
 }
 
+// 타겟을 이미지에 object-fit: cover로 맞추기
+// 타겟(target): 이미지 위에 배치할 대상 - 전개도, 캔버스 정면 등
+export function calculateTargetFitCover({
+  targetWidthM,
+  targetHeightM,
+  imageWidthPx,
+  imageHeightPx,
+}: {
+  targetWidthM: number;    // 타겟의 너비 (미터)
+  targetHeightM: number;   // 타겟의 높이 (미터)
+  imageWidthPx: number;    // 이미지 너비 (픽셀)
+  imageHeightPx: number;   // 이미지 높이 (픽셀)
+}) {
+  // 타겟과 이미지의 비율
+  const targetAspect = targetWidthM / targetHeightM;
+  const imageAspect = imageWidthPx / imageHeightPx;
+  
+  // object-fit: cover - 한 축은 이미지와 동일, 다른 축은 비율에 맞춤
+  let targetWidthPx: number;
+  let targetHeightPx: number;
+  let panAxis: 'horizontal' | 'vertical' | 'none';
+  
+  if (imageAspect > targetAspect) {
+    // 이미지가 더 가로형 → 타겟 높이를 이미지에 맞춤
+    targetHeightPx = imageHeightPx;
+    targetWidthPx = imageHeightPx * targetAspect;
+    panAxis = 'horizontal';
+  } else if (imageAspect < targetAspect) {
+    // 이미지가 더 세로형 → 타겟 너비를 이미지에 맞춤
+    targetWidthPx = imageWidthPx;
+    targetHeightPx = imageWidthPx / targetAspect;
+    panAxis = 'vertical';
+  } else {
+    // 비율이 정확히 같음
+    targetWidthPx = imageWidthPx;
+    targetHeightPx = imageHeightPx;
+    panAxis = 'none';
+  }
+  
+  return {
+    targetWidthPx,
+    targetHeightPx,
+    panAxis,
+    panRangePx: {
+      horizontal: Math.max(0, imageWidthPx - targetWidthPx),
+      vertical: Math.max(0, imageHeightPx - targetHeightPx),
+    }
+  };
+}
+
 // 전개도를 이미지에 object-fit: cover로 맞추기
 export function calculateUnfoldedCanvasOnImage({
   imageWidthPx,
@@ -27,40 +77,19 @@ export function calculateUnfoldedCanvasOnImage({
   const unfoldedWidthM = 2 * sideThicknessM + canvasWidthM;   // 0.112
   const unfoldedHeightM = 2 * sideThicknessM + canvasHeightM; // 0.162
   
-  // 전개도 비율
-  const unfoldedAspect = unfoldedWidthM / unfoldedHeightM;
-  const imageAspect = imageWidthPx / imageHeightPx;
-  
-  // object-fit: cover - 한 축은 이미지와 동일, 다른 축은 비율에 맞춤
-  let unfoldedWidthPx: number;
-  let unfoldedHeightPx: number;
-  let panAxis: 'horizontal' | 'vertical' | 'none';
-  
-  if (imageAspect > unfoldedAspect) {
-    // 이미지가 더 가로형 → 높이를 이미지에 맞춤
-    unfoldedHeightPx = imageHeightPx;
-    unfoldedWidthPx = imageHeightPx * unfoldedAspect;
-    panAxis = 'horizontal';
-  } else if (imageAspect < unfoldedAspect) {
-    // 이미지가 더 세로형 → 너비를 이미지에 맞춤
-    unfoldedWidthPx = imageWidthPx;
-    unfoldedHeightPx = imageWidthPx / unfoldedAspect;
-    panAxis = 'vertical';
-  } else {
-    // 비율이 정확히 같음
-    unfoldedWidthPx = imageWidthPx;
-    unfoldedHeightPx = imageHeightPx;
-    panAxis = 'none';
-  }
+  // calculateTargetFitCover를 사용하여 계산
+  const result = calculateTargetFitCover({
+    targetWidthM: unfoldedWidthM,
+    targetHeightM: unfoldedHeightM,
+    imageWidthPx,
+    imageHeightPx,
+  });
   
   return {
-    unfoldedWidthPx,
-    unfoldedHeightPx,
-    panAxis,
-    panRangePx: {
-      horizontal: Math.max(0, imageWidthPx - unfoldedWidthPx),
-      vertical: Math.max(0, imageHeightPx - unfoldedHeightPx),
-    }
+    unfoldedWidthPx: result.targetWidthPx,
+    unfoldedHeightPx: result.targetHeightPx,
+    panAxis: result.panAxis,
+    panRangePx: result.panRangePx,
   };
 }
 
@@ -157,7 +186,7 @@ export function convertPixelToUV({
   imageHeightPx,
   flipY = false,
 }: {
-  faceRects: ReturnType<typeof calculateFaceRects>;
+  faceRects: Partial<ReturnType<typeof calculateFaceRects>>;
   imageWidthPx: number;
   imageHeightPx: number;
   flipY?: boolean;
@@ -183,11 +212,11 @@ export function convertPixelToUV({
   };
   
   return {
-    front: convertFace(faceRects.front),
-    left: convertFace(faceRects.left),
-    right: convertFace(faceRects.right),
-    top: convertFace(faceRects.top),
-    bottom: convertFace(faceRects.bottom),
+    front: faceRects.front ? convertFace(faceRects.front) : undefined,
+    left: faceRects.left ? convertFace(faceRects.left) : undefined,
+    right: faceRects.right ? convertFace(faceRects.right) : undefined,
+    top: faceRects.top ? convertFace(faceRects.top) : undefined,
+    bottom: faceRects.bottom ? convertFace(faceRects.bottom) : undefined,
   };
 }
 
@@ -252,11 +281,11 @@ export function createPreserveModeGeometries({
   };
   
   // UV 적용
-  applyUVToGeometry(geometries.front, uvCoords.front);
-  applyUVToGeometry(geometries.left, uvCoords.left);
-  applyUVToGeometry(geometries.right, uvCoords.right);
-  applyUVToGeometry(geometries.top, uvCoords.top);
-  applyUVToGeometry(geometries.bottom, uvCoords.bottom);
+  if (uvCoords.front) applyUVToGeometry(geometries.front, uvCoords.front);
+  if (uvCoords.left) applyUVToGeometry(geometries.left, uvCoords.left);
+  if (uvCoords.right) applyUVToGeometry(geometries.right, uvCoords.right);
+  if (uvCoords.top) applyUVToGeometry(geometries.top, uvCoords.top);
+  if (uvCoords.bottom) applyUVToGeometry(geometries.bottom, uvCoords.bottom);
   
   return geometries;
 }
@@ -264,6 +293,226 @@ export function createPreserveModeGeometries({
 // imageOffset (-1 ~ 1)을 panPercent (0 ~ 100)로 변환
 function offsetToPanPercent(offset: number): number {
   return (offset + 1) * 50;
+}
+
+// 자르기 모드: 정면의 픽셀 좌표 계산
+export function calculateClipModeFrontRect({
+  imageWidthPx,
+  imageHeightPx,
+  canvasWidthM,
+  canvasHeightM,
+  panPercent, // 0-100
+}: {
+  imageWidthPx: number;
+  imageHeightPx: number;
+  canvasWidthM: number;
+  canvasHeightM: number;
+  panPercent: number;
+}) {
+  // Step 1: 캔버스 정면을 이미지에 object-fit: cover로 맞추기
+  const canvasOnImage = calculateTargetFitCover({
+    targetWidthM: canvasWidthM,
+    targetHeightM: canvasHeightM,
+    imageWidthPx,
+    imageHeightPx,
+  });
+  
+  // Step 2: panning 적용하여 캔버스 위치 계산
+  let canvasX: number;
+  let canvasY: number;
+  
+  if (canvasOnImage.panAxis === 'horizontal') {
+    canvasX = (canvasOnImage.panRangePx.horizontal * panPercent) / 100;
+    canvasY = 0;
+  } else if (canvasOnImage.panAxis === 'vertical') {
+    canvasX = 0;
+    canvasY = (canvasOnImage.panRangePx.vertical * panPercent) / 100;
+  } else {
+    canvasX = 0;
+    canvasY = 0;
+  }
+  
+  // Step 3: 정면의 픽셀 좌표 반환
+  return {
+    x: canvasX,
+    y: canvasY,
+    width: canvasOnImage.targetWidthPx,
+    height: canvasOnImage.targetHeightPx,
+  };
+}
+
+// 자르기 모드를 위한 통합 함수
+export function createClipModeGeometries({
+  imageWidthPx,
+  imageHeightPx,
+  canvasWidthM,
+  canvasHeightM,
+  sideThicknessM,
+  panPercent,
+}: {
+  imageWidthPx: number;
+  imageHeightPx: number;
+  canvasWidthM: number;
+  canvasHeightM: number;
+  sideThicknessM: number;
+  panPercent: number;
+}) {
+  // Step 1: 정면의 픽셀 좌표 계산
+  const frontRect = calculateClipModeFrontRect({
+    imageWidthPx,
+    imageHeightPx,
+    canvasWidthM,
+    canvasHeightM,
+    panPercent,
+  });
+  
+  // Step 2: 정면의 픽셀 좌표를 UV로 변환
+  const frontUV = convertPixelToUV({
+    faceRects: { front: frontRect },
+    imageWidthPx,
+    imageHeightPx,
+    flipY: false,
+  }).front;
+  
+  // Step 3: 각 면의 geometry 생성
+  const geometries = {
+    front: new THREE.PlaneGeometry(canvasWidthM, canvasHeightM),
+    left: new THREE.PlaneGeometry(sideThicknessM, canvasHeightM),
+    right: new THREE.PlaneGeometry(sideThicknessM, canvasHeightM),
+    top: new THREE.PlaneGeometry(canvasWidthM, sideThicknessM),
+    bottom: new THREE.PlaneGeometry(canvasWidthM, sideThicknessM),
+  };
+  
+  // 정면에만 UV 적용 (이미지 텍스처)
+  if (frontUV) applyUVToGeometry(geometries.front, frontUV);
+  
+  // 옆면들은 UV 설정 없음 (캔버스 텍스처 사용)
+  
+  return geometries;
+}
+
+
+// 뒤집기 모드: 각 면에 미러링된 UV 계산
+export function calculateFlipModeUVs({
+  imageWidthPx,
+  imageHeightPx,
+  canvasWidthM,
+  canvasHeightM,
+  sideThicknessM,
+  imageOffset,
+}: {
+  imageWidthPx: number;
+  imageHeightPx: number;
+  canvasWidthM: number;
+  canvasHeightM: number;
+  sideThicknessM: number;
+  imageOffset: { x: number; y: number };
+}) {
+  // 먼저 기본 정면 UV 계산 (자르기 모드와 동일한 방식)
+  const panPercentX = offsetToPanPercent(imageOffset.x);
+  const panPercentY = offsetToPanPercent(imageOffset.y);
+  
+  // 이미지와 캔버스 비율에 따라 적절한 pan 축 선택
+  const canvasAspect = canvasWidthM / canvasHeightM;
+  const imageAspect = imageWidthPx / imageHeightPx;
+  const panPercent = imageAspect > canvasAspect ? panPercentX : panPercentY;
+  
+  // 정면의 픽셀 좌표 계산
+  const frontRect = calculateClipModeFrontRect({
+    imageWidthPx,
+    imageHeightPx,
+    canvasWidthM,
+    canvasHeightM,
+    panPercent,
+  });
+  
+  // UV로 변환
+  const frontUV = convertPixelToUV({
+    faceRects: { front: frontRect },
+    imageWidthPx,
+    imageHeightPx,
+    flipY: false,
+  }).front;
+  
+  const { uMin: uvLeft, uMax: uvRight, vMin: uvBottom, vMax: uvTop } = frontUV || { uMin: 0, uMax: 1, vMin: 0, vMax: 1 };
+  
+  // 옆면 두께와 캔버스 크기를 고려한 스케일 계산
+  const horizontalScale = sideThicknessM / canvasWidthM;
+  const verticalScale = sideThicknessM / canvasHeightM;
+  
+  return {
+    front: frontUV,
+    // 왼쪽면: 정면의 왼쪽 가장자리부터 시작해서 왼쪽으로 뒤집기
+    left: {
+      uMin: Math.max(0, uvLeft),
+      uMax: Math.min(1, uvLeft + (uvRight - uvLeft) * horizontalScale),
+      vMin: uvBottom,
+      vMax: uvTop,
+      flipX: true, // X축 뒤집기 표시
+    },
+    // 오른쪽면: 정면의 오른쪽 가장자리부터 시작해서 오른쪽으로 뒤집기
+    right: {
+      uMin: Math.max(0, uvRight - (uvRight - uvLeft) * horizontalScale),
+      uMax: Math.min(1, uvRight),
+      vMin: uvBottom,
+      vMax: uvTop,
+      flipX: true,
+    },
+    // 상단면: 정면의 상단 가장자리부터 시작해서 위로 뒤집기
+    top: {
+      uMin: uvLeft,
+      uMax: uvRight,
+      vMin: Math.max(0, uvTop - (uvTop - uvBottom) * verticalScale),
+      vMax: Math.min(1, uvTop),
+      flipY: true, // Y축 뒤집기 표시
+    },
+    // 하단면: 정면의 하단 가장자리부터 시작해서 아래로 뒤집기
+    bottom: {
+      uMin: uvLeft,
+      uMax: uvRight,
+      vMin: Math.max(0, uvBottom),
+      vMax: Math.min(1, uvBottom + (uvTop - uvBottom) * verticalScale),
+      flipY: true,
+    },
+  };
+}
+
+// 미러링이 필요한 UV에 뒤집기 적용
+export function applyFlipToUV(
+  geometry: THREE.PlaneGeometry,
+  uvBounds: { uMin: number; uMax: number; vMin: number; vMax: number; flipX?: boolean; flipY?: boolean }
+) {
+  const { uMin, uMax, vMin, vMax, flipX, flipY } = uvBounds;
+  
+  let uvs: Float32Array;
+  
+  if (flipX && !flipY) {
+    // X축 뒤집기
+    uvs = new Float32Array([
+      uMax, vMin,  // 좌하 -> 우하를 사용
+      uMin, vMin,  // 우하 -> 좌하를 사용
+      uMax, vMax,  // 좌상 -> 우상을 사용
+      uMin, vMax,  // 우상 -> 좌상을 사용
+    ]);
+  } else if (!flipX && flipY) {
+    // Y축 뒤집기
+    uvs = new Float32Array([
+      uMin, vMax,  // 좌하 -> 좌상을 사용
+      uMax, vMax,  // 우하 -> 우상을 사용
+      uMin, vMin,  // 좌상 -> 좌하를 사용
+      uMax, vMin,  // 우상 -> 우하를 사용
+    ]);
+  } else {
+    // 뒤집기 없음 (기본)
+    uvs = new Float32Array([
+      uMin, vMin,  // 좌하
+      uMax, vMin,  // 우하
+      uMin, vMax,  // 좌상
+      uMax, vMax,  // 우상
+    ]);
+  }
+  
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
 }
 
 type SimpleCanvasViewProps = {
@@ -354,78 +603,84 @@ function CanvasFrame({
   // 이미지 정보
   const imageWidthPx = imageTexture.image.width;
   const imageHeightPx = imageTexture.image.height;
-  const imageAspect = imageWidthPx / imageHeightPx;
-  const canvasAspect = w / h;
 
-  let scaleX = 1, scaleY = 1;
-  let preserveScaleX = 1, preserveScaleY = 1;
-  
-  // 기본 UV (자르기, 뒤집기 모드용)
-  if (imageAspect > canvasAspect) {
-    scaleY = 1;
-    scaleX = canvasAspect / imageAspect;
-  } else {
-    scaleX = 1;
-    scaleY = imageAspect / canvasAspect;
-  }
-
-  // 살리기 모드용 UV (정면 기준으로 계산)
-  // 살리기 모드에서는 이미지를 정면 크기에 맞추고, 넘치는 부분을 옆면에 표시
-  if (imageAspect > canvasAspect) {
-    // 가로가 긴 이미지: 좌우로 넘침
-    preserveScaleY = 1;
-    preserveScaleX = canvasAspect / imageAspect;
-  } else {
-    // 세로가 긴 이미지: 상하로 넘침
-    preserveScaleX = 1;
-    preserveScaleY = imageAspect / canvasAspect;
-  }
-  
-  console.log(`[DEBUG] Preserve UV calculations:`, {
-    imageAspect,
-    canvasAspect,
-    preserveScaleX,
-    preserveScaleY,
-    mode: imageAspect > canvasAspect ? 'horizontal overflow' : 'vertical overflow'
-  });
-
-  const maxOffsetX = (1 - scaleX) / 2;
-  const maxOffsetY = (1 - scaleY) / 2;
-  const offsetX = imageOffset.x * maxOffsetX;
-  const offsetY = imageOffset.y * maxOffsetY;
-
-  // 살리기 모드는 새로운 방식에서 panPercent로 처리됨
-
-  // UV 좌표
-  const uvLeft = (1 - scaleX) / 2 - offsetX;
-  const uvRight = 1 - (1 - scaleX) / 2 - offsetX;
-  const uvBottom = (1 - scaleY) / 2 - offsetY;
-  const uvTop = 1 - (1 - scaleY) / 2 - offsetY;
-  
-  // 살리기 모드용 UV 계산은 이제 사용하지 않음 (새로운 방식으로 대체)
-
-  // 정면 geometry와 UV 설정
-  const frontGeometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(w, h);
-    // 살리기 모드가 아닐 때만 UV 설정 (살리기 모드는 useFrame에서 업데이트)
-    if (sideMode !== SideMode.PRESERVE) {
-      const uvs = new Float32Array([
-        uvLeft, uvBottom,   // 좌하
-        uvRight, uvBottom,  // 우하
-        uvLeft, uvTop,      // 좌상
-        uvRight, uvTop,     // 우상
-      ]);
-      geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-    }
-    return geo;
-  }, [w, h, uvLeft, uvRight, uvBottom, uvTop, sideMode]);
-  
+  // 모든 geometry를 한 번만 생성 (UV는 나중에 설정)
+  const frontGeometry = useMemo(() => new THREE.PlaneGeometry(w, h), [w, h]);
   const frontGeometryRef = useRef<THREE.PlaneGeometry | null>(null);
   
-  // 정면 UV 업데이트 (살리기 모드)
+  // 통일된 UV 계산 - 모든 모드가 동일한 패턴 사용
+  const modeUVs = useMemo(() => {
+    switch (sideMode) {
+      case SideMode.CLIP: {
+        // 자르기 모드: 새로운 방식
+        const panPercentX = offsetToPanPercent(imageOffset.x);
+        const panPercentY = offsetToPanPercent(imageOffset.y);
+        
+        // 이미지와 캔버스 비율에 따라 적절한 pan 축 선택
+        const canvasAspect = w / h;
+        const imageAspect = imageWidthPx / imageHeightPx;
+        const panPercent = imageAspect > canvasAspect ? panPercentX : panPercentY;
+        
+        // 정면의 픽셀 좌표 계산
+        const frontRect = calculateClipModeFrontRect({
+          imageWidthPx,
+          imageHeightPx,
+          canvasWidthM: w,
+          canvasHeightM: h,
+          panPercent,
+        });
+        
+        // UV로 변환
+        return convertPixelToUV({
+          faceRects: { front: frontRect },
+          imageWidthPx,
+          imageHeightPx,
+          flipY: false,
+        });
+      }
+        
+      case SideMode.PRESERVE:
+        // panPercent 계산
+        const imageAspect = imageWidthPx / imageHeightPx;
+        const unfoldedAspect = (w + 2 * t) / (h + 2 * t);
+        const panPercentX = offsetToPanPercent(imageOffset.x);
+        const panPercentY = offsetToPanPercent(imageOffset.y);
+        const panPercent = imageAspect > unfoldedAspect ? panPercentX : panPercentY;
+        
+        // 각 면의 픽셀 좌표 계산
+        const faceRects = calculateFaceRects({
+          imageWidthPx,
+          imageHeightPx,
+          canvasWidthM: w,
+          canvasHeightM: h,
+          sideThicknessM: t,
+          panPercent,
+        });
+        
+        // UV 좌표로 변환
+        return convertPixelToUV({
+          faceRects,
+          imageWidthPx,
+          imageHeightPx,
+          flipY: false,
+        });
+        
+      case SideMode.FLIP:
+        return calculateFlipModeUVs({
+          imageWidthPx,
+          imageHeightPx,
+          canvasWidthM: w,
+          canvasHeightM: h,
+          sideThicknessM: t,
+          imageOffset,
+        });
+    }
+  }, [sideMode, imageOffset, imageWidthPx, imageHeightPx, w, h, t]);
+  
+  // 정면 UV 업데이트 (모든 모드에서 동일한 방식 사용)
   useFrame(() => {
-    if (sideMode === SideMode.PRESERVE && preserveModeUVs && frontGeometryRef.current) {
-      applyUVToGeometry(frontGeometryRef.current, preserveModeUVs.front);
+    if (modeUVs && modeUVs.front && frontGeometryRef.current) {
+      applyUVToGeometry(frontGeometryRef.current, modeUVs.front);
     }
   });
 
@@ -448,6 +703,7 @@ function CanvasFrame({
     const panPercentY = offsetToPanPercent(imageOffset.y);
     
     // 가로/세로 중 어느 축으로 panning 가능한지 확인
+    const imageAspect = imageWidthPx / imageHeightPx;
     const unfoldedAspect = (w + 2 * t) / (h + 2 * t);
     const panPercent = imageAspect > unfoldedAspect ? panPercentX : panPercentY;
     
@@ -469,6 +725,19 @@ function CanvasFrame({
       flipY: false,
     });
   }, [sideMode, imageOffset, imageWidthPx, imageHeightPx, w, h, t]);
+
+  // 뒤집기 모드에서 사용할 정면 UV 좌표
+  const uvBounds = useMemo(() => {
+    if (sideMode === SideMode.FLIP && modeUVs?.front) {
+      return {
+        uvLeft: modeUVs.front.uMin || 0,
+        uvRight: modeUVs.front.uMax || 1,
+        uvBottom: modeUVs.front.vMin || 0,
+        uvTop: modeUVs.front.vMax || 1,
+      };
+    }
+    return { uvLeft: 0, uvRight: 1, uvBottom: 0, uvTop: 1 };
+  }, [sideMode, modeUVs]);
 
   return (
     <group ref={groupRef}>
@@ -492,7 +761,7 @@ function CanvasFrame({
         sideMode={sideMode}
         texture={texture}
         edge="left"
-        uvBounds={{ uvLeft, uvRight, uvBottom, uvTop }}
+        uvBounds={uvBounds}
         preserveModeUVs={preserveModeUVs}
       />
 
@@ -504,7 +773,7 @@ function CanvasFrame({
         sideMode={sideMode}
         texture={texture}
         edge="right"
-        uvBounds={{ uvLeft, uvRight, uvBottom, uvTop }}
+        uvBounds={uvBounds}
         preserveModeUVs={preserveModeUVs}
       />
 
@@ -516,7 +785,7 @@ function CanvasFrame({
         sideMode={sideMode}
         texture={texture}
         edge="top"
-        uvBounds={{ uvLeft, uvRight, uvBottom, uvTop }}
+        uvBounds={uvBounds}
         preserveModeUVs={preserveModeUVs}
       />
 
@@ -528,7 +797,7 @@ function CanvasFrame({
         sideMode={sideMode}
         texture={texture}
         edge="bottom"
-        uvBounds={{ uvLeft, uvRight, uvBottom, uvTop }}
+        uvBounds={uvBounds}
         preserveModeUVs={preserveModeUVs}
       />
     </group>
@@ -587,7 +856,6 @@ function SideFace({
       return;
     }
 
-    console.log(`[DEBUG] Loading canvas texture for ${edge} side, sideMode: ${sideMode}, size:`, size);
     const loader = new THREE.TextureLoader();
     loader.load(
       '/canvas-texture.jpg', 
@@ -599,11 +867,10 @@ function SideFace({
         tex.repeat.set(repeatX, repeatY);
         canvasTextureRef.current = tex;
         setTextureLoaded(true);
-        console.log(`[DEBUG] Canvas texture loaded successfully for ${edge} side`);
       },
       undefined,
       (error) => {
-        console.error(`[DEBUG] Failed to load canvas texture for ${edge} side:`, error);
+        console.error(`Failed to load canvas texture for ${edge} side:`, error);
         setTextureLoaded(false);
       }
     );
@@ -701,7 +968,7 @@ function SideFace({
         ]);
         break;
       default:
-        console.error(`[DEBUG] Unknown edge in flipGeometry: ${edge}`);
+        console.error(`Unknown edge in flipGeometry: ${edge}`);
         break;
     }
     
@@ -733,7 +1000,6 @@ function SideFace({
     }
   }[sideMode];
 
-  console.log(`[DEBUG] Rendering ${edge} side - sideMode: ${sideMode}, selectedGeometry: ${selectedGeometry ? 'exists' : 'null'}, materialProps:`, materialProps);
 
   return (
     <mesh position={position} rotation={rotation}>
