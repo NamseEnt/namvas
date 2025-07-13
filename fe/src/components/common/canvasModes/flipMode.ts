@@ -40,7 +40,6 @@ export function calculateFlipModeUVs({
     rect: frontRect,
     imageWidthPx,
     imageHeightPx,
-    flipY: false,
   });
   
   const { uMin: uvLeft, uMax: uvRight, vMin: uvBottom, vMax: uvTop } = frontUV;
@@ -186,29 +185,30 @@ export function applyFlipModeUVToGeometry(
   
   let uvs: Float32Array;
   
+  // PlaneGeometry의 정점 순서: Vertex 0=좌상, 1=우상, 2=좌하, 3=우하
   if (flipX && !flipY) {
-    // X축 뒤집기
+    // X축 뒤집기 (좌우 바뀜)
     uvs = new Float32Array([
-      uMax, vMin,  // 좌하 -> 우하를 사용
-      uMin, vMin,  // 우하 -> 좌하를 사용
-      uMax, vMax,  // 좌상 -> 우상을 사용
-      uMin, vMax,  // 우상 -> 좌상을 사용
+      uMax, vMax,  // Vertex 0 (좌상) → 우상 UV
+      uMin, vMax,  // Vertex 1 (우상) → 좌상 UV
+      uMax, vMin,  // Vertex 2 (좌하) → 우하 UV
+      uMin, vMin,  // Vertex 3 (우하) → 좌하 UV
     ]);
   } else if (!flipX && flipY) {
-    // Y축 뒤집기
+    // Y축 뒤집기 (상하 바뀜)
     uvs = new Float32Array([
-      uMin, vMax,  // 좌하 -> 좌상을 사용
-      uMax, vMax,  // 우하 -> 우상을 사용
-      uMin, vMin,  // 좌상 -> 좌하를 사용
-      uMax, vMin,  // 우상 -> 우하를 사용
+      uMin, vMin,  // Vertex 0 (좌상) → 좌하 UV
+      uMax, vMin,  // Vertex 1 (우상) → 우하 UV
+      uMin, vMax,  // Vertex 2 (좌하) → 좌상 UV
+      uMax, vMax,  // Vertex 3 (우하) → 우상 UV
     ]);
   } else {
     // 뒤집기 없음 (기본)
     uvs = new Float32Array([
-      uMin, vMin,  // 좌하
-      uMax, vMin,  // 우하
-      uMin, vMax,  // 좌상
-      uMax, vMax,  // 우상
+      uMin, vMax,  // Vertex 0 (좌상)
+      uMax, vMax,  // Vertex 1 (우상)
+      uMin, vMin,  // Vertex 2 (좌하)
+      uMax, vMin,  // Vertex 3 (우하)
     ]);
   }
   
@@ -252,11 +252,13 @@ export function createFlipModeGeometries({
   
   // UV 적용
   if (uvs.front) {
+    // PlaneGeometry의 올바른 정점 순서에 따른 UV 매핑
+    // Vertex 0: 좌상, Vertex 1: 우상, Vertex 2: 좌하, Vertex 3: 우하
     const frontUVs = new Float32Array([
-      uvs.front.uMin, uvs.front.vMin,
-      uvs.front.uMax, uvs.front.vMin,
-      uvs.front.uMin, uvs.front.vMax,
-      uvs.front.uMax, uvs.front.vMax,
+      uvs.front.uMin, uvs.front.vMax,  // Vertex 0: 좌상
+      uvs.front.uMax, uvs.front.vMax,  // Vertex 1: 우상
+      uvs.front.uMin, uvs.front.vMin,  // Vertex 2: 좌하
+      uvs.front.uMax, uvs.front.vMin,  // Vertex 3: 우하
     ]);
     geometries.front.setAttribute('uv', new THREE.BufferAttribute(frontUVs, 2));
   }

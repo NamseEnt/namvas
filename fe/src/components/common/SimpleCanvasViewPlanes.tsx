@@ -146,9 +146,6 @@ function CanvasFrame({
   // 텍스처 설정
   const texture = useMemo(() => {
     const tex = imageTexture.clone();
-    tex.wrapS = THREE.ClampToEdgeWrapping;
-    tex.wrapT = THREE.ClampToEdgeWrapping;
-    tex.flipY = false; // 이미지 뒤집힘 방지
     tex.needsUpdate = true;
     return tex;
   }, [imageTexture]);

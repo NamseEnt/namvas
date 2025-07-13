@@ -180,6 +180,10 @@ useEffect(() => {
 - **File size**: Under 200 lines recommended, 300 max
 - **Split when exceeded**: Extract utils, hooks, constants
 
+### Three.js
+- **Never override Three.js default values** unless absolutely necessary
+- Document any overrides with clear reasoning
+
 ---
 
 ## 📖 Advanced Patterns

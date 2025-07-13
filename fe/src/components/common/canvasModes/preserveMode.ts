@@ -187,13 +187,26 @@ export function applyPreserveModeUVToGeometry(
   geometry: THREE.PlaneGeometry,
   uvBounds: { uMin: number; uMax: number; vMin: number; vMax: number }
 ) {
-  const uvs = new Float32Array([
-    uvBounds.uMin, uvBounds.vMin,  // 좌하
-    uvBounds.uMax, uvBounds.vMin,  // 우하
-    uvBounds.uMin, uvBounds.vMax,  // 좌상
-    uvBounds.uMax, uvBounds.vMax,  // 우상
-  ]);
+  // 정면과 왼쪽면만 로깅
+  if (geometry.parameters.width === 0.1 && geometry.parameters.height === 0.15) {
+    console.log('=== FRONT ===');
+    console.log('UV bounds:', uvBounds);
+  } else if (geometry.parameters.width === 0.006 && geometry.parameters.height === 0.15) {
+    const isLeft = uvBounds.uMin < 0.5;
+    if (isLeft) {
+      console.log('=== LEFT ===');
+      console.log('UV bounds:', uvBounds);
+    }
+  }
   
+  // PlaneGeometry의 올바른 정점 순서에 따른 UV 매핑
+  // Vertex 0: 좌상, Vertex 1: 우상, Vertex 2: 좌하, Vertex 3: 우하
+  const uvs = new Float32Array([
+    uvBounds.uMin, uvBounds.vMax,  // Vertex 0: 좌상
+    uvBounds.uMax, uvBounds.vMax,  // Vertex 1: 우상
+    uvBounds.uMin, uvBounds.vMin,  // Vertex 2: 좌하
+    uvBounds.uMax, uvBounds.vMin,  // Vertex 3: 우하
+  ]);
   geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
 }
 
@@ -228,8 +241,8 @@ export function createPreserveModeGeometries({
     faceRects,
     imageWidthPx,
     imageHeightPx,
-    flipY: false,
   });
+  
   
   // Step 3: 각 면의 geometry 생성 및 UV 적용
   const geometries = {

@@ -5,7 +5,7 @@
   "scripts": {
     "build:lambda": "bun build-script/lambda.ts",
     "test": "bun build-script/test.ts && dotenv -e .env.test -- ../llrt test -d dist",
-    "test:bun": "echo '❌ bun test 사용 금지 - npm run test를 사용하세요 (LLRT 환경 필요)' && exit 1",
+    "test:bun": "echo '❌ bun test 사용 금지 - bun run test를 사용하세요 (LLRT 환경 필요)' && exit 1",
     "schema-gen": "bun -e \"import { generateSchema } from './build-script/generate-schema.ts'; generateSchema('src/schema.ts', 'src/__generated/db.ts');\""
   },
   "dependencies": {
