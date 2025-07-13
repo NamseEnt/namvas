@@ -1,5 +1,4 @@
 import { Outlet, createRootRoute, useLocation } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { PageHeader } from '@/components/common/PageHeader'
 import { PageFooter } from '@/components/common/PageFooter'
 import { Toaster } from '@/components/ui/sonner'
@@ -17,7 +16,6 @@ function RootLayout() {
         <>
           <Outlet />
           <Toaster />
-          <TanStackRouterDevtools />
         </>
       ) : (
         <div className="min-h-screen flex flex-col bg-background">
@@ -27,7 +25,6 @@ function RootLayout() {
           </main>
           <PageFooter />
           <Toaster />
-          <TanStackRouterDevtools />
         </div>
       )}
     </LoginIntentProvider>
