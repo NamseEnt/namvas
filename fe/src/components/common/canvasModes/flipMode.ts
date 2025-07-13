@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { offsetToPanPercent } from "./common";
+import type { UVBounds } from "./common";
+import { pixelToUV, offsetToPanPercent } from "./common";
 
 // 뒤집기 모드 전용: 각 면에 미러링된 UV 계산
 export function calculateFlipModeUVs({
@@ -36,7 +37,7 @@ export function calculateFlipModeUVs({
   });
   
   // UV로 변환
-  const frontUV = convertFlipModePixelToUV({
+  const frontUV = pixelToUV({
     rect: frontRect,
     imageWidthPx,
     imageHeightPx,
@@ -147,39 +148,11 @@ function calculateFlipModeFrontRect({
   };
 }
 
-// 뒤집기 모드 전용: 픽셀을 UV로 변환
-function convertFlipModePixelToUV({
-  rect,
-  imageWidthPx,
-  imageHeightPx,
-  flipY = false,
-}: {
-  rect: { x: number; y: number; width: number; height: number };
-  imageWidthPx: number;
-  imageHeightPx: number;
-  flipY?: boolean;
-}) {
-  const uMin = rect.x / imageWidthPx;
-  const uMax = (rect.x + rect.width) / imageWidthPx;
-  
-  let vMin: number;
-  let vMax: number;
-  
-  if (flipY) {
-    vMin = 1 - (rect.y + rect.height) / imageHeightPx;
-    vMax = 1 - rect.y / imageHeightPx;
-  } else {
-    vMin = rect.y / imageHeightPx;
-    vMax = (rect.y + rect.height) / imageHeightPx;
-  }
-  
-  return { uMin, uMax, vMin, vMax };
-}
 
 // 뒤집기 모드 전용: 미러링이 필요한 UV에 뒤집기 적용
 export function applyFlipModeUVToGeometry(
   geometry: THREE.PlaneGeometry,
-  uvBounds: { uMin: number; uMax: number; vMin: number; vMax: number; flipX?: boolean; flipY?: boolean }
+  uvBounds: UVBounds & { flipX?: boolean; flipY?: boolean }
 ) {
   const { uMin, uMax, vMin, vMax, flipX, flipY } = uvBounds;
   

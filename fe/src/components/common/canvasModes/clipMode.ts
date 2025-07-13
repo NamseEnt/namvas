@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import type { UVBounds } from "./common";
+import { pixelToUV } from "./common";
 
 // 자르기 모드 전용: 캔버스 정면을 이미지에 object-fit: cover로 맞추기
 export function calculateClipModeTargetFit({
@@ -106,30 +108,19 @@ export function convertClipModePixelToUV({
   imageWidthPx: number;
   imageHeightPx: number;
   flipY?: boolean;
-}) {
-  const uMin = frontRect.x / imageWidthPx;
-  const uMax = (frontRect.x + frontRect.width) / imageWidthPx;
-  
-  let vMin: number;
-  let vMax: number;
-  
-  if (flipY) {
-    // Y축 뒤집기 (Three.js 기본값)
-    vMin = 1 - (frontRect.y + frontRect.height) / imageHeightPx;
-    vMax = 1 - frontRect.y / imageHeightPx;
-  } else {
-    // Y축 유지
-    vMin = frontRect.y / imageHeightPx;
-    vMax = (frontRect.y + frontRect.height) / imageHeightPx;
-  }
-  
-  return { uMin, uMax, vMin, vMax };
+}): UVBounds {
+  return pixelToUV({
+    rect: frontRect,
+    imageWidthPx,
+    imageHeightPx,
+    flipY,
+  });
 }
 
 // 자르기 모드 전용: UV를 Geometry에 적용
 export function applyClipModeUVToGeometry(
   geometry: THREE.PlaneGeometry,
-  uvBounds: { uMin: number; uMax: number; vMin: number; vMax: number }
+  uvBounds: UVBounds
 ) {
   // PlaneGeometry의 올바른 정점 순서에 따른 UV 매핑
   // Vertex 0: 좌상, Vertex 1: 우상, Vertex 2: 좌하, Vertex 3: 우하

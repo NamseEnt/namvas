@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import type { UVBounds } from "./common";
+import { pixelToUV } from "./common";
 
 // 살리기 모드 전용: 전개도를 이미지에 object-fit: cover로 맞추기
 export function calculatePreserveModeTargetFit({
@@ -153,39 +155,19 @@ export function convertPreserveModePixelToUV({
   imageHeightPx: number;
   flipY?: boolean;
 }) {
-  const convertFace = (rect: { x: number; y: number; width: number; height: number }) => {
-    const uMin = rect.x / imageWidthPx;
-    const uMax = (rect.x + rect.width) / imageWidthPx;
-    
-    let vMin: number;
-    let vMax: number;
-    
-    if (flipY) {
-      // Y축 뒤집기 (Three.js 기본값)
-      vMin = 1 - (rect.y + rect.height) / imageHeightPx;
-      vMax = 1 - rect.y / imageHeightPx;
-    } else {
-      // Y축 유지
-      vMin = rect.y / imageHeightPx;
-      vMax = (rect.y + rect.height) / imageHeightPx;
-    }
-    
-    return { uMin, uMax, vMin, vMax };
-  };
-  
   return {
-    front: convertFace(faceRects.front),
-    left: convertFace(faceRects.left),
-    right: convertFace(faceRects.right),
-    top: convertFace(faceRects.top),
-    bottom: convertFace(faceRects.bottom),
+    front: pixelToUV({ rect: faceRects.front, imageWidthPx, imageHeightPx, flipY }),
+    left: pixelToUV({ rect: faceRects.left, imageWidthPx, imageHeightPx, flipY }),
+    right: pixelToUV({ rect: faceRects.right, imageWidthPx, imageHeightPx, flipY }),
+    top: pixelToUV({ rect: faceRects.top, imageWidthPx, imageHeightPx, flipY }),
+    bottom: pixelToUV({ rect: faceRects.bottom, imageWidthPx, imageHeightPx, flipY }),
   };
 }
 
 // 살리기 모드 전용: UV를 Geometry에 적용
 export function applyPreserveModeUVToGeometry(
   geometry: THREE.PlaneGeometry,
-  uvBounds: { uMin: number; uMax: number; vMin: number; vMax: number }
+  uvBounds: UVBounds
 ) {
   // PlaneGeometry의 올바른 정점 순서에 따른 UV 매핑
   // Vertex 0: 좌상, Vertex 1: 우상, Vertex 2: 좌하, Vertex 3: 우하
