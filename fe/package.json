@@ -33,15 +33,13 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.523.0",
-    "next-themes": "^0.4.6",
     "postcss": "^8.5.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.10",
-    "three": "^0.177.0",
-    "uuid": "^11.1.0"
+    "three": "^0.177.0"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
@@ -50,7 +48,6 @@
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@types/three": "^0.177.0",
-    "@types/uuid": "^10.0.0",
     "@types/wicg-file-system-access": "^2023.10.6",
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.35.0",
@@ -62,8 +59,7 @@
     "tw-animate-css": "^1.3.4",
     "typescript": "^5.7.2",
     "vite": "^6.1.0",
-    "vitest": "^3.0.5",
-    "web-vitals": "^4.2.4"
+    "vitest": "^3.0.5"
   },
   "overrides": {
     "@tanstack/react-router": "^1.121.2"
