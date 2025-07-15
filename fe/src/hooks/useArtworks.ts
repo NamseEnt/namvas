@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { userApi } from "@/lib/api";
 import type { Artwork } from "../../../shared/types";
-import type { CanvasRenderSettings } from "@/components/common/CanvasView/CanvasView";
+import type { CanvasRenderSettings } from "@/components/common/canvas/CanvasView/CanvasView";
 
 type SaveArtworkData = {
   title: string;

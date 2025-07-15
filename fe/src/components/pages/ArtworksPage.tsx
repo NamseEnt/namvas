@@ -2,14 +2,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
-// import type { Artwork } from "../../../../shared/types";
+// import type { Artwork } from "../../../shared/types";
 
+// 임시 타입 정의 (원래 shared에서 가져와야 함)
 type Artwork = {
   id: string;
   title: string;
+  originalImageId: string;
+  dpi: number;
+  imageCenterXyInch: { x: number; y: number };
+  sideProcessing: any;
   createdAt: string;
-  imageUrl: string;
-  thumbnailUrl?: string;
+  canvasBackgroundColor: string;
 };
 import { useArtworks } from "@/hooks/useArtworks";
 import { CanvasView } from "@/components/common/canvas/CanvasView/CanvasView";

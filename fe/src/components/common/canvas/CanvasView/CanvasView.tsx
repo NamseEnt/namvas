@@ -5,6 +5,18 @@ import { canvasProductSizeM } from "./constants";
 import { calculateCameraDistance, createCanvasTexture } from "./utils";
 // import { type Artwork } from "../../../../../shared/types";
 
+// CanvasView에서만 사용하는 임시 타입 (원래 shared에서 가져와야 함)
+type Artwork = {
+  id: string;
+  title: string;
+  originalImageId: string;
+  dpi: number;
+  imageCenterXyInch: { x: number; y: number };
+  sideProcessing: any;
+  createdAt: string;
+  canvasBackgroundColor: string;
+};
+
 export function CanvasView({
   rotation,
   src,
