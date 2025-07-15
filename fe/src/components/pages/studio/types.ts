@@ -15,7 +15,7 @@ export type SideProcessing =
 
 export const CAMERA_ROTATION_LIMITS = {
   maxXRotation: 25,
-  maxYRotation: 45,
+  maxYRotation: 60,
 } as const;
 
 export enum SideMode {
@@ -24,10 +24,12 @@ export enum SideMode {
   FLIP = "flip",
 }
 
+import { canvasProductSizeM } from "./utils/canvasConstants";
+
 export const lrtbs = ["left", "top", "right", "bottom"] as const;
-export const w = 0.1;
-export const h = 0.15;
-export const t = 0.006;
+export const w = canvasProductSizeM.widthM;
+export const h = canvasProductSizeM.heightM;
+export const t = canvasProductSizeM.thicknessM;
 
 export const positions = {
   left: [-w / 2, 0, 0],

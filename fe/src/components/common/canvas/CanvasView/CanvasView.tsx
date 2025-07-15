@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { Canvas, useThree } from "@react-three/fiber";
 import { canvasProductSizeM } from "./constants";
 import { calculateCameraDistance, createCanvasTexture } from "./utils";
-import { type Artwork } from "../../../../../shared/types";
+// import { type Artwork } from "../../../../../shared/types";
 
 export function CanvasView({
   rotation,

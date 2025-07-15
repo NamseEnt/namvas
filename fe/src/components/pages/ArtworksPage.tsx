@@ -2,9 +2,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
-import type { Artwork } from "../../../../shared/types";
+// import type { Artwork } from "../../../../shared/types";
+
+type Artwork = {
+  id: string;
+  title: string;
+  createdAt: string;
+  imageUrl: string;
+  thumbnailUrl?: string;
+};
 import { useArtworks } from "@/hooks/useArtworks";
-import { CanvasView } from "../common/CanvasView/CanvasView";
+import { CanvasView } from "@/components/common/canvas/CanvasView/CanvasView";
 import { getImageUrl } from "@/lib/config";
 
 export function ArtworksPage() {

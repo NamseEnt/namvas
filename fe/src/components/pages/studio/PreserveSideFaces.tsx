@@ -1,11 +1,18 @@
 import { useMemo, useContext } from "react";
-import { useLoader } from "@react-three/fiber";
 import * as THREE from "three";
-import { h, lrtbs, positions, rotations, sizes, t, w } from "./types";
+import { lrtbs, positions, rotations, sizes } from "./types";
 import { StudioContext } from "./StudioContext";
+import { calculatePreserveModeUV } from "./utils/uvCalculations";
 
 export function PreserveSideFaces() {
-  const canvasTexture = useLoader(THREE.TextureLoader, "/canvas-texture.jpg");
+  const {
+    state: { uploadedImage },
+  } = useContext(StudioContext);
+  
+  if (!uploadedImage) {
+    throw "unreachable";
+  }
+
   const uvs = useUvs();
   const geos = useMemo(() => {
     return lrtbs.reduce(
@@ -26,7 +33,7 @@ export function PreserveSideFaces() {
         rotation={rotations[edge]}
         geometry={geos[edge]}
       >
-        <meshStandardMaterial map={canvasTexture} />
+        <meshStandardMaterial map={uploadedImage.texture} />
       </mesh>
     );
   });
@@ -36,60 +43,46 @@ export function PreserveSideFaces() {
 
 function useUvs() {
   const {
-    state: { uploadedImage },
+    state: { uploadedImage, imageOffset },
   } = useContext(StudioContext);
+  
   if (!uploadedImage) {
     throw "unreachable";
   }
-  const { uvBounds } = uploadedImage;
 
   return useMemo(() => {
-    const leftUVWidth = t / w;
-    const rightUVWidth = t / w;
-    const topUVHeight = t / h;
-    const bottomUVHeight = t / h;
+    const preserveUV = calculatePreserveModeUV({
+      imageWidthPx: uploadedImage.texture.image.width,
+      imageHeightPx: uploadedImage.texture.image.height,
+      imageOffset,
+    });
 
+    // Convert to the format expected by the component
     return {
       left: new Float32Array([
-        uvBounds.left - leftUVWidth,
-        uvBounds.bottom,
-        uvBounds.left,
-        uvBounds.bottom,
-        uvBounds.left - leftUVWidth,
-        uvBounds.top,
-        uvBounds.left,
-        uvBounds.top,
+        preserveUV.left.uMin, preserveUV.left.vMax,  // 좌상
+        preserveUV.left.uMax, preserveUV.left.vMax,  // 우상
+        preserveUV.left.uMin, preserveUV.left.vMin,  // 좌하
+        preserveUV.left.uMax, preserveUV.left.vMin,  // 우하
       ]),
       right: new Float32Array([
-        uvBounds.right,
-        uvBounds.bottom,
-        uvBounds.right + rightUVWidth,
-        uvBounds.bottom,
-        uvBounds.right,
-        uvBounds.top,
-        uvBounds.right + rightUVWidth,
-        uvBounds.top,
+        preserveUV.right.uMin, preserveUV.right.vMax,
+        preserveUV.right.uMax, preserveUV.right.vMax,
+        preserveUV.right.uMin, preserveUV.right.vMin,
+        preserveUV.right.uMax, preserveUV.right.vMin,
       ]),
       top: new Float32Array([
-        uvBounds.left,
-        uvBounds.top,
-        uvBounds.right,
-        uvBounds.top,
-        uvBounds.left,
-        uvBounds.top + topUVHeight,
-        uvBounds.right,
-        uvBounds.top + topUVHeight,
+        preserveUV.top.uMin, preserveUV.top.vMax,
+        preserveUV.top.uMax, preserveUV.top.vMax,
+        preserveUV.top.uMin, preserveUV.top.vMin,
+        preserveUV.top.uMax, preserveUV.top.vMin,
       ]),
       bottom: new Float32Array([
-        uvBounds.left,
-        uvBounds.bottom - bottomUVHeight,
-        uvBounds.right,
-        uvBounds.bottom - bottomUVHeight,
-        uvBounds.left,
-        uvBounds.bottom,
-        uvBounds.right,
-        uvBounds.bottom,
+        preserveUV.bottom.uMin, preserveUV.bottom.vMax,
+        preserveUV.bottom.uMax, preserveUV.bottom.vMax,
+        preserveUV.bottom.uMin, preserveUV.bottom.vMin,
+        preserveUV.bottom.uMax, preserveUV.bottom.vMin,
       ]),
     };
-  }, [uvBounds]);
+  }, [uploadedImage, imageOffset]);
 }

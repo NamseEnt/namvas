@@ -6,6 +6,7 @@ import { PreserveSideFaces } from "./PreserveSideFaces";
 import { FlipSideFaces } from "./FlipSideFaces";
 import { h, SideMode, t, w } from "./types";
 import { StudioContext } from "./StudioContext";
+import { calculateCameraDistance } from "./utils/textureOptimization";
 
 export function Planes() {
   const { state } = useContext(StudioContext);
@@ -13,11 +14,7 @@ export function Planes() {
   const { rotation } = state;
 
   const cameraDistance = useMemo(() => {
-    const diagonal = Math.sqrt(0.1 ** 2 + 0.15 ** 2);
-    const baseDistance = diagonal * 1.5;
-    const rotationFactor =
-      (Math.abs(rotation.y) + Math.abs(rotation.x)) * diagonal * 0.003;
-    return baseDistance + rotationFactor;
+    return calculateCameraDistance(rotation);
   }, [rotation]);
 
   return (

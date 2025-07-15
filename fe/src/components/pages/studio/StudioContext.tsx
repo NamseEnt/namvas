@@ -8,8 +8,9 @@ import {
 } from "react";
 import { toast } from "sonner";
 import * as THREE from "three";
-import { CAMERA_PRESETS, SideMode } from "./types";
+import { CAMERA_PRESETS, CAMERA_ROTATION_LIMITS, SideMode } from "./types";
 import { getUvBounds } from "./getUvBounds";
+import { createOptimizedTexture } from "./utils/textureOptimization";
 
 export const StudioContext = createContext<{
   state: State;
@@ -89,10 +90,10 @@ export function StudioContextProvider({
             height: img.height,
           },
           imageOffset: { x: 0, y: 0 },
+          sideMode: state.sideMode,
         });
 
-        const texture = new THREE.Texture(img);
-        texture.needsUpdate = true;
+        const texture = createOptimizedTexture(img);
 
         setState((prev) => ({
           ...prev,
@@ -104,7 +105,7 @@ export function StudioContextProvider({
         }));
       };
     }
-  }, []);
+  }, [state.sideMode]);
 
   useEffect(
     function updateUvBounds() {
@@ -117,6 +118,7 @@ export function StudioContextProvider({
           height: state.uploadedImage.texture.image.height,
         },
         imageOffset: state.imageOffset,
+        sideMode: state.sideMode,
       });
 
       updateState((prev) => {
@@ -126,7 +128,7 @@ export function StudioContextProvider({
         return prev;
       });
     },
-    [state.uploadedImage, state.imageOffset, updateState]
+    [state.uploadedImage, state.imageOffset, state.sideMode, updateState]
   );
 
   const handleImageUpload = useCallback(
@@ -140,8 +142,7 @@ export function StudioContextProvider({
           localStorage.setItem("Studio_imageData", dataUrl);
           localStorage.setItem("Studio_fileName", file.name);
 
-          const texture = new THREE.Texture(img);
-          texture.needsUpdate = true;
+          const texture = createOptimizedTexture(img);
 
           updateState((prev) => {
             prev.uploadedImage = {
@@ -153,6 +154,7 @@ export function StudioContextProvider({
                   height: img.height,
                 },
                 imageOffset: state.imageOffset,
+                sideMode: state.sideMode,
               }),
             };
           });
@@ -160,7 +162,7 @@ export function StudioContextProvider({
       };
       reader.readAsDataURL(file);
     },
-    [state.imageOffset, updateState]
+    [state.imageOffset, state.sideMode, updateState]
   );
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -179,8 +181,14 @@ export function StudioContextProvider({
 
     updateState((prev) => {
       prev.rotation = {
-        x: Math.max(-30, Math.min(30, prev.rotation.x + deltaY * 0.5)),
-        y: prev.rotation.y + deltaX * 0.5,
+        x: Math.max(
+          -CAMERA_ROTATION_LIMITS.maxXRotation, 
+          Math.min(CAMERA_ROTATION_LIMITS.maxXRotation, prev.rotation.x + deltaY * 0.5)
+        ),
+        y: Math.max(
+          -CAMERA_ROTATION_LIMITS.maxYRotation,
+          Math.min(CAMERA_ROTATION_LIMITS.maxYRotation, prev.rotation.y + deltaX * 0.5)
+        ),
       };
     });
 

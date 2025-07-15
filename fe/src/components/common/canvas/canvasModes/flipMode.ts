@@ -237,10 +237,10 @@ export function createFlipModeGeometries({
   }
   
   // 옆면들은 뒤집기 적용
-  if (uvs.left) applyFlipModeUVToGeometry(geometries.left, uvs.left);
-  if (uvs.right) applyFlipModeUVToGeometry(geometries.right, uvs.right);
-  if (uvs.top) applyFlipModeUVToGeometry(geometries.top, uvs.top);
-  if (uvs.bottom) applyFlipModeUVToGeometry(geometries.bottom, uvs.bottom);
+  if (uvs.left) {applyFlipModeUVToGeometry(geometries.left, uvs.left);}
+  if (uvs.right) {applyFlipModeUVToGeometry(geometries.right, uvs.right);}
+  if (uvs.top) {applyFlipModeUVToGeometry(geometries.top, uvs.top);}
+  if (uvs.bottom) {applyFlipModeUVToGeometry(geometries.bottom, uvs.bottom);}
   
   return geometries;
 }
