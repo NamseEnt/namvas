@@ -1,20 +1,6 @@
-// UV calculation utilities for studio page
-import { canvasProductSizeM } from "./canvasConstants";
-
-// UV 좌표 범위 타입
-export type UVBounds = {
-  uMin: number;
-  uMax: number;
-  vMin: number;
-  vMax: number;
-};
-
-// 옆면 처리 모드
-export enum SideMode {
-  CLIP = "clip",     // 자르기
-  PRESERVE = "preserve", // 살리기
-  FLIP = "flip"      // 뒤집기
-}
+// UV calculation utilities for CanvasView
+import { canvasProductSizeM } from "../constants";
+import { SideMode, type UVBounds } from "../types";
 
 // imageOffset (-1 ~ 1)을 panPercent (0 ~ 100)로 변환
 // offset이 양수이면 이미지가 양의 방향으로 이동

@@ -1,8 +1,7 @@
-import { Planes } from "../Planes";
-import { useContext } from "react";
+import { useContext, type ReactNode } from "react";
 import { StudioContext } from "../StudioContext";
 
-export function CanvasArea() {
+export function CanvasArea({ children }: { children: ReactNode }) {
   const { onPointerDown, onPointerMove, onPointerUp } =
     useContext(StudioContext);
   return (
@@ -19,7 +18,7 @@ export function CanvasArea() {
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
     >
-      <Planes />
+      {children}
     </div>
   );
 }

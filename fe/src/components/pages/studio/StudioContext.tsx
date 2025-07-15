@@ -2,15 +2,11 @@ import {
   useState,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   createContext,
 } from "react";
 import { toast } from "sonner";
-import * as THREE from "three";
 import { CAMERA_PRESETS, CAMERA_ROTATION_LIMITS, SideMode } from "./types";
-import { getUvBounds } from "./getUvBounds";
-import { createOptimizedTexture } from "./utils/textureOptimization";
 
 export const StudioContext = createContext<{
   state: State;
@@ -22,24 +18,14 @@ export const StudioContext = createContext<{
   onPointerDown: (e: React.PointerEvent) => void;
   onPointerMove: (e: React.PointerEvent) => void;
   onPointerUp: (e: React.PointerEvent) => void;
-  imagePositionInfo: {
-    isHorizontalMovable: boolean;
-    canMove: boolean;
-  };
   cycleCameraPreset: (direction: "next" | "prev") => void;
 }>(null!);
 
 type State = {
   uploadedImage:
     | {
-        texture: THREE.Texture;
+        dataUrl: string;
         name: string;
-        uvBounds: {
-          left: number;
-          right: number;
-          bottom: number;
-          top: number;
-        };
       }
     | undefined;
   sideMode: SideMode;
@@ -81,88 +67,35 @@ export function StudioContextProvider({
     const savedFileName = localStorage.getItem("Studio_fileName");
 
     if (savedImageData && savedFileName) {
-      const img = new Image();
-      img.src = savedImageData;
-      img.onload = () => {
-        const uvBounds = getUvBounds({
-          imageWh: {
-            width: img.width,
-            height: img.height,
-          },
-          imageOffset: { x: 0, y: 0 },
-          sideMode: state.sideMode,
-        });
-
-        const texture = createOptimizedTexture(img);
-
-        setState((prev) => ({
-          ...prev,
-          uploadedImage: {
-            texture,
-            name: savedFileName,
-            uvBounds,
-          },
-        }));
-      };
-    }
-  }, [state.sideMode]);
-
-  useEffect(
-    function updateUvBounds() {
-      if (!state.uploadedImage) {
-        return;
-      }
-      const uvBounds = getUvBounds({
-        imageWh: {
-          width: state.uploadedImage.texture.image.width,
-          height: state.uploadedImage.texture.image.height,
+      setState((prev) => ({
+        ...prev,
+        uploadedImage: {
+          dataUrl: savedImageData,
+          name: savedFileName,
         },
-        imageOffset: state.imageOffset,
-        sideMode: state.sideMode,
-      });
+      }));
+    }
+  }, []);
 
-      updateState((prev) => {
-        if (prev.uploadedImage) {
-          prev.uploadedImage.uvBounds = uvBounds;
-        }
-        return prev;
-      });
-    },
-    [state.uploadedImage, state.imageOffset, state.sideMode, updateState]
-  );
 
   const handleImageUpload = useCallback(
     (file: File) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
-        const img = new Image();
-        img.src = dataUrl;
-        img.onload = () => {
-          localStorage.setItem("Studio_imageData", dataUrl);
-          localStorage.setItem("Studio_fileName", file.name);
+        localStorage.setItem("Studio_imageData", dataUrl);
+        localStorage.setItem("Studio_fileName", file.name);
 
-          const texture = createOptimizedTexture(img);
-
-          updateState((prev) => {
-            prev.uploadedImage = {
-              texture,
-              name: file.name,
-              uvBounds: getUvBounds({
-                imageWh: {
-                  width: img.width,
-                  height: img.height,
-                },
-                imageOffset: state.imageOffset,
-                sideMode: state.sideMode,
-              }),
-            };
-          });
-        };
+        updateState((prev) => {
+          prev.uploadedImage = {
+            dataUrl,
+            name: file.name,
+          };
+        });
       };
       reader.readAsDataURL(file);
     },
-    [state.imageOffset, state.sideMode, updateState]
+    [updateState]
   );
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -251,19 +184,6 @@ export function StudioContextProvider({
     [state.rotation, updateState]
   );
 
-  const imagePositionInfo = useMemo(() => {
-    if (!state.uploadedImage) {
-      return { isHorizontalMovable: false, canMove: false };
-    }
-
-    const imageAspect =
-      state.uploadedImage.texture.image.width /
-      state.uploadedImage.texture.image.height;
-    const canvasAspect = 4 / 6; // 100mm / 150mm
-    const isHorizontalMovable = imageAspect > canvasAspect;
-
-    return { isHorizontalMovable, canMove: true };
-  }, [state.uploadedImage]);
 
   return (
     <StudioContext.Provider
@@ -277,7 +197,6 @@ export function StudioContextProvider({
         onPointerDown,
         onPointerMove,
         onPointerUp,
-        imagePositionInfo,
         cycleCameraPreset,
       }}
     >

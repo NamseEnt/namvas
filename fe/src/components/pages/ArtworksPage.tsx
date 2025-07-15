@@ -16,8 +16,8 @@ type Artwork = {
   canvasBackgroundColor: string;
 };
 import { useArtworks } from "@/hooks/useArtworks";
-import { CanvasView } from "@/components/common/canvas/CanvasView/CanvasView";
-import { getImageUrl } from "@/lib/config";
+// import { CanvasView } from "@/components/common/CanvasView";
+// import { getImageUrl } from "@/lib/config";
 
 export function ArtworksPage() {
   const { artworks, isLoading, loadArtworks } = useArtworks();
@@ -111,11 +111,10 @@ function ArtworkItem({ artwork }: { artwork: Artwork }) {
         </h3>
       </div>
       <div className="aspect-square overflow-hidden bg-slate-100">
-        <CanvasView
-          rotation={{ x: 0, y: 30 }}
-          src={{ type: "url", url: getImageUrl(artwork.originalImageId) }}
-          settings={artwork}
-        />
+        {/* TODO: 새로운 CanvasView 인터페이스에 맞게 수정 예정 */}
+        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+          <span className="text-sm text-gray-500">미리보기</span>
+        </div>
       </div>
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
     </div>

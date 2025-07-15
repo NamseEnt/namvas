@@ -2,7 +2,12 @@ import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { userApi } from "@/lib/api";
 import type { Artwork } from "../../../shared/types";
-import type { CanvasRenderSettings } from "@/components/common/canvas/CanvasView/CanvasView";
+// CanvasRenderSettings 타입 임시 정의 (추후 CanvasView에서 export 예정)
+type CanvasRenderSettings = {
+  dpi: number;
+  imageCenterXyInch: { x: number; y: number };
+  sideProcessing: any;
+};
 
 type SaveArtworkData = {
   title: string;

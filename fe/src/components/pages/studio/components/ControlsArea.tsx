@@ -14,7 +14,6 @@ export function ControlsArea() {
     updateState,
     handleImageUpload,
     handleSave,
-    imagePositionInfo,
     cycleCameraPreset,
   } = useContext(StudioContext);
   const navigate = useNavigate();
@@ -127,7 +126,7 @@ export function ControlsArea() {
           </ToggleGroup>
         </div>
 
-        {state.uploadedImage && imagePositionInfo.canMove && (
+        {state.uploadedImage && (
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Label className="text-sm font-medium">위치</Label>
@@ -136,30 +135,22 @@ export function ControlsArea() {
             <div>
               <div className="flex justify-between mb-2">
                 <span className="text-xs text-gray-600">
-                  {imagePositionInfo.isHorizontalMovable
-                    ? "좌우 이동"
-                    : "상하 이동"}
+                  좌우 이동
                 </span>
                 <span className="text-xs text-gray-600">
                   {(
-                    (imagePositionInfo.isHorizontalMovable
-                      ? state.imageOffset.x
-                      : state.imageOffset.y) * 100
+                    state.imageOffset.x * 100
                   ).toFixed(0)}
                   %
                 </span>
               </div>
               <Slider
                 value={[
-                  imagePositionInfo.isHorizontalMovable
-                    ? state.imageOffset.x
-                    : state.imageOffset.y,
+                  state.imageOffset.x,
                 ]}
                 onValueChange={([value]) =>
                   updateState((prev) => {
-                    prev.imageOffset = imagePositionInfo.isHorizontalMovable
-                      ? { x: value, y: 0 }
-                      : { x: 0, y: value };
+                    prev.imageOffset = { x: value, y: 0 };
                   })
                 }
                 min={-1}
@@ -211,19 +202,13 @@ export function ControlsArea() {
           </Button>
         </label>
 
-        {state.uploadedImage && imagePositionInfo.canMove && (
+        {state.uploadedImage && (
           <div className="flex-1 mx-4">
             <Slider
-              value={[
-                imagePositionInfo.isHorizontalMovable
-                  ? state.imageOffset.x
-                  : state.imageOffset.y,
-              ]}
+              value={[state.imageOffset.x]}
               onValueChange={([value]) =>
                 updateState((prev) => {
-                  prev.imageOffset = imagePositionInfo.isHorizontalMovable
-                    ? { x: value, y: 0 }
-                    : { x: 0, y: value };
+                  prev.imageOffset = { x: value, y: 0 };
                 })
               }
               min={-1}

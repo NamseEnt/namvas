@@ -1,5 +1,5 @@
-// Texture optimization utilities for studio page
-import { canvasProductSizeM } from "./canvasConstants";
+// Texture optimization utilities for CanvasView
+import { canvasProductSizeM } from "../constants";
 import * as THREE from "three";
 
 // 화면에서 보이는 실제 픽셀 크기를 기반으로 최적의 pixelsPerThreeUnit 계산

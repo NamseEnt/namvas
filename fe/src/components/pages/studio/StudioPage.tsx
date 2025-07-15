@@ -3,6 +3,7 @@ import { CanvasArea } from "./components/CanvasArea";
 import { ControlsArea } from "./components/ControlsArea";
 import { UploadArea } from "./components/UploadArea";
 import { StudioContext } from "./StudioContext";
+import { CanvasView } from "@/components/common/CanvasView";
 import { useContext } from "react";
 
 export default function StudioPage() {
@@ -15,7 +16,14 @@ export default function StudioPage() {
   return (
     <div className="h-screen bg-gray-50 flex flex-col lg:flex-row">
       <div className="flex-1 relative p-4 lg:p-0">
-        <CanvasArea />
+        <CanvasArea>
+          <CanvasView
+            imageSource={state.uploadedImage.dataUrl}
+            rotation={state.rotation}
+            sideMode={state.sideMode}
+            imageOffset={state.imageOffset}
+          />
+        </CanvasArea>
 
         <div className="lg:hidden absolute top-6 right-6">
           <Button

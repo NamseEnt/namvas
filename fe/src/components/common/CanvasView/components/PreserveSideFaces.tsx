@@ -1,39 +1,36 @@
-import { useMemo, useContext } from "react";
+import { useMemo } from "react";
 import * as THREE from "three";
-import { lrtbs, positions, rotations, sizes } from "./types";
-import { StudioContext } from "./StudioContext";
-import { calculatePreserveModeUV } from "./utils/uvCalculations";
+import { FACE_DIRECTIONS, SIDE_FACE_POSITIONS, SIDE_FACE_ROTATIONS, SIDE_FACE_SIZES } from "../types";
+import { calculatePreserveModeUV } from "../utils/uvCalculations";
 
-export function PreserveSideFaces() {
-  const {
-    state: { uploadedImage },
-  } = useContext(StudioContext);
-  
-  if (!uploadedImage) {
-    throw "unreachable";
-  }
-
-  const uvs = useUvs();
+export function PreserveSideFaces({
+  texture,
+  imageOffset
+}: {
+  texture: THREE.Texture;
+  imageOffset: { x: number; y: number };
+}) {
+  const uvs = useUvs(texture, imageOffset);
   const geos = useMemo(() => {
-    return lrtbs.reduce(
+    return FACE_DIRECTIONS.reduce(
       (acc, edge) => {
-        acc[edge] = new THREE.PlaneGeometry(sizes[edge][0], sizes[edge][1]);
+        acc[edge] = new THREE.PlaneGeometry(SIDE_FACE_SIZES[edge][0], SIDE_FACE_SIZES[edge][1]);
         acc[edge].setAttribute("uv", new THREE.BufferAttribute(uvs[edge], 2));
         return acc;
       },
-      {} as Record<(typeof lrtbs)[number], THREE.PlaneGeometry>
+      {} as Record<(typeof FACE_DIRECTIONS)[number], THREE.PlaneGeometry>
     );
   }, [uvs]);
 
-  const meshes = lrtbs.map((edge) => {
+  const meshes = FACE_DIRECTIONS.map((edge) => {
     return (
       <mesh
         key={edge}
-        position={positions[edge]}
-        rotation={rotations[edge]}
+        position={SIDE_FACE_POSITIONS[edge]}
+        rotation={SIDE_FACE_ROTATIONS[edge]}
         geometry={geos[edge]}
       >
-        <meshStandardMaterial map={uploadedImage.texture} />
+        <meshStandardMaterial map={texture} />
       </mesh>
     );
   });
@@ -41,19 +38,11 @@ export function PreserveSideFaces() {
   return <>{meshes}</>;
 }
 
-function useUvs() {
-  const {
-    state: { uploadedImage, imageOffset },
-  } = useContext(StudioContext);
-  
-  if (!uploadedImage) {
-    throw "unreachable";
-  }
-
+function useUvs(texture: THREE.Texture, imageOffset: { x: number; y: number }) {
   return useMemo(() => {
     const preserveUV = calculatePreserveModeUV({
-      imageWidthPx: uploadedImage.texture.image.width,
-      imageHeightPx: uploadedImage.texture.image.height,
+      imageWidthPx: texture.image.width,
+      imageHeightPx: texture.image.height,
       imageOffset,
     });
 
@@ -84,5 +73,5 @@ function useUvs() {
         preserveUV.bottom.uMax, preserveUV.bottom.vMin,
       ]),
     };
-  }, [uploadedImage, imageOffset]);
+  }, [texture, imageOffset]);
 }
