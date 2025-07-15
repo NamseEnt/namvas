@@ -13,24 +13,21 @@ export type SideProcessing =
       type: "flip";
     };
 
-export const sideProcessingTypes = ["none", "clip", "color", "flip"] as const;
-
 export const CAMERA_ROTATION_LIMITS = {
   maxXRotation: 25,
   maxYRotation: 45,
 } as const;
 
-// 옆면 처리 모드
 export enum SideMode {
-  CLIP = "clip", // 자르기
-  PRESERVE = "preserve", // 살리기
-  FLIP = "flip", // 뒤집기
+  CLIP = "clip",
+  PRESERVE = "preserve",
+  FLIP = "flip",
 }
 
 export const lrtbs = ["left", "top", "right", "bottom"] as const;
-export const w = 0.1; // width
-export const h = 0.15; // height
-export const t = 0.006; // thickness
+export const w = 0.1;
+export const h = 0.15;
+export const t = 0.006;
 
 export const positions = {
   left: [-w / 2, 0, 0],
@@ -52,3 +49,10 @@ export const sizes = {
   right: [t, h],
   bottom: [w, t],
 } as const;
+
+export const CAMERA_PRESETS = [
+  { label: "정면", rotation: { x: 0, y: 0 } },
+  { label: "우측", rotation: { x: 0, y: 25 } },
+  { label: "좌측", rotation: { x: 0, y: -25 } },
+  { label: "위에서", rotation: { x: 15, y: 0 } },
+];

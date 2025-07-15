@@ -2,7 +2,7 @@ import { useMemo, useContext } from "react";
 import { useLoader } from "@react-three/fiber";
 import * as THREE from "three";
 import { lrtbs, positions, rotations, sizes } from "./types";
-import { PlanesContext } from "./Planes";
+import { StudioContext } from "./StudioContext";
 
 export function FlipSideFaces() {
   const canvasTexture = useLoader(THREE.TextureLoader, "/canvas-texture.jpg");
@@ -35,7 +35,13 @@ export function FlipSideFaces() {
 }
 
 function useUvs() {
-  const { uvBounds } = useContext(PlanesContext);
+  const {
+    state: { uploadedImage },
+  } = useContext(StudioContext);
+  if (!uploadedImage) {
+    throw "unreachable";
+  }
+  const { uvBounds } = uploadedImage;
 
   return useMemo(() => {
     return {

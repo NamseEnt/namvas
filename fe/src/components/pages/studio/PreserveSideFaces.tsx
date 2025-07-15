@@ -1,8 +1,8 @@
 import { useMemo, useContext } from "react";
 import { useLoader } from "@react-three/fiber";
 import * as THREE from "three";
-import { lrtbs, positions, rotations, sizes } from "./types";
-import { PlanesContext } from "./Planes";
+import { h, lrtbs, positions, rotations, sizes, t, w } from "./types";
+import { StudioContext } from "./StudioContext";
 
 export function PreserveSideFaces() {
   const canvasTexture = useLoader(THREE.TextureLoader, "/canvas-texture.jpg");
@@ -35,17 +35,19 @@ export function PreserveSideFaces() {
 }
 
 function useUvs() {
-  const { uvBounds } = useContext(PlanesContext);
+  const {
+    state: { uploadedImage },
+  } = useContext(StudioContext);
+  if (!uploadedImage) {
+    throw "unreachable";
+  }
+  const { uvBounds } = uploadedImage;
 
   return useMemo(() => {
-    const sideThickness = 0.006; // 옆면 두께 6mm
-    const frontWidth = 0.1; // 정면 너비 100mm
-    const frontHeight = 0.15; // 정면 높이 150mm
-
-    const leftUVWidth = sideThickness / frontWidth;
-    const rightUVWidth = sideThickness / frontWidth;
-    const topUVHeight = sideThickness / frontHeight;
-    const bottomUVHeight = sideThickness / frontHeight;
+    const leftUVWidth = t / w;
+    const rightUVWidth = t / w;
+    const topUVHeight = t / h;
+    const bottomUVHeight = t / h;
 
     return {
       left: new Float32Array([
