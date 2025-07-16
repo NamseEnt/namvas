@@ -67,6 +67,7 @@ export function CanvasView({
       imageOffset,
       canvasSize: size,
       callback: (bitmap) => {
+        console.log("callback", bitmap.width, bitmap.height);
         if (seqRef.current !== seq + 1) {
           return;
         }
@@ -180,6 +181,8 @@ class CanvasViewWorker {
 
     const cameraDistance = calculateCameraDistance(rotation);
     this.camera.position.setZ(cameraDistance);
+    this.camera.aspect = canvasSize.width / canvasSize.height;
+    this.camera.updateProjectionMatrix();
 
     const uvBounds = getUvBounds({
       imageWh: {
