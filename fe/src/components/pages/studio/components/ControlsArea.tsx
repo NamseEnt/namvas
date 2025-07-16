@@ -50,9 +50,11 @@ export function ControlsArea() {
                 }
                 className="hidden"
               />
-              <Button variant="outline" className="w-full" type="button">
-                <Upload className="w-4 h-4 mr-2" />
-                다른 이미지 선택
+              <Button variant="outline" className="w-full" asChild>
+                <div>
+                  <Upload className="w-4 h-4 mr-2" />
+                  다른 이미지 선택
+                </div>
               </Button>
             </label>
           </div>
@@ -190,9 +192,11 @@ export function ControlsArea() {
             variant="outline"
             size="sm"
             className="w-12 h-12"
-            type="button"
+            asChild
           >
-            🖼️
+            <div>
+              🖼️
+            </div>
           </Button>
         </label>
 

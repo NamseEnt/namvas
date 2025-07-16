@@ -67,7 +67,6 @@ export function CanvasView({
       imageOffset,
       canvasSize: size,
       callback: (bitmap) => {
-        console.log("callback", bitmap.width, bitmap.height);
         if (seqRef.current !== seq + 1) {
           return;
         }

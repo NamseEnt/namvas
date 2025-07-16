@@ -3,7 +3,7 @@ import { ddb } from "../__generated/db";
 import { Apis } from "../apis";
 
 export const updateArtwork: Apis["updateArtwork"] = async (
-  { artworkId, title, artwork },
+  { artworkId, title, sideMode, imageOffset },
   req
 ) => {
   const session = await getSession(req);
@@ -11,27 +11,20 @@ export const updateArtwork: Apis["updateArtwork"] = async (
     return { ok: false, reason: "NOT_LOGGED_IN" };
   }
 
-  const existingArtworkDoc = await ddb.getArtworkDoc({ id: artworkId });
-  if (!existingArtworkDoc) {
+  const artworkDoc = await ddb.getArtworkDoc({ id: artworkId });
+  if (!artworkDoc) {
     return { ok: false, reason: "ARTWORK_NOT_FOUND" };
   }
 
-  if (existingArtworkDoc.ownerId !== session.userId) {
+  if (artworkDoc.ownerId !== session.userId) {
     return { ok: false, reason: "PERMISSION_DENIED" };
   }
 
-  if (title) {
-    existingArtworkDoc.title = title;
-  }
+  artworkDoc.title = title;
+  artworkDoc.sideMode = sideMode;
+  artworkDoc.imageOffset = imageOffset;
 
-  if (artwork) {
-    existingArtworkDoc.originalImageId = artwork.originalImageId;
-    existingArtworkDoc.imageCenterXy = artwork.imageCenterXy;
-    existingArtworkDoc.dpi = artwork.dpi;
-    existingArtworkDoc.sideProcessing = artwork.sideProcessing;
-  }
-
-  await ddb.tx((tx) => tx.updateArtworkDoc(existingArtworkDoc));
+  await ddb.tx((tx) => tx.updateArtworkDoc(artworkDoc));
 
   return { ok: true };
 };

@@ -163,20 +163,9 @@ export type ApiSpec = {
   updateArtwork: {
     req: {
       artworkId: string;
-      title?: string;
-      artwork?: {
-        originalImageId: string;
-        imageCenterXy: { x: number; y: number };
-        dpi: number;
-        sideProcessing:
-          | {
-              type: "clip" | "flip" | "none";
-            }
-          | {
-              type: "color";
-              color: string;
-            };
-      };
+      title: string;
+      sideMode: SideMode;
+      imageOffset: { x: number; y: number };
     };
     res:
       | {

@@ -23,6 +23,8 @@ type State = {
   imageOffset: { x: number; y: number };
   rotation: { x: number; y: number };
   isSaving: boolean;
+  artworkId: string | undefined;
+  isImageChanged: boolean;
 };
 
 export function StudioContextProvider({
@@ -36,6 +38,8 @@ export function StudioContextProvider({
     imageOffset: { x: 0, y: 0 },
     rotation: { x: 0, y: 0 },
     isSaving: false,
+    artworkId: undefined,
+    isImageChanged: false,
   });
 
   // 상태 업데이트
@@ -53,54 +57,14 @@ export function StudioContextProvider({
   const isDragging = useRef(false);
   const lastMousePosition = useRef({ x: 0, y: 0 });
 
-  useEffect(function loadSavedImage() {
-    const savedImageString = localStorage.getItem("Studio_imageFile");
-    if (!savedImageString) {
-      return;
-    }
-    const savedImageData = JSON.parse(savedImageString) as {
-      name: string;
-      type: string;
-      lastModified: number;
-      dataUrl: string;
-    };
-
-    (async () => {
-      const response = await fetch(savedImageData.dataUrl);
-      const blob = await response.blob();
-
-      const file = new File([blob], savedImageData.name, {
-        type: savedImageData.type,
-        lastModified: savedImageData.lastModified,
-      });
-
-      setState((prev) => ({
-        ...prev,
-        uploadedImage: file,
-      }));
-    })();
-  }, []);
 
   const handleImageUpload = useCallback(
     (file: File) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        localStorage.setItem(
-          "Studio_imageFile",
-          JSON.stringify({
-            name: file.name,
-            type: file.type,
-            lastModified: file.lastModified,
-            dataUrl,
-          })
-        );
-
-        updateState((prev) => {
-          prev.uploadedImage = file;
-        });
-      };
-      reader.readAsDataURL(file);
+      updateState((prev) => ({
+        ...prev,
+        uploadedImage: file,
+        isImageChanged: true,
+      }));
     },
     [updateState]
   );
@@ -164,32 +128,59 @@ export function StudioContextProvider({
     setIsSaving(true);
     try {
       const title = state.uploadedImage.name.replace(/\.[^/.]+$/, "");
-      const newArtworkRes = await api.newArtwork({
-        title,
-        sideMode: state.sideMode,
-        imageOffset: state.imageOffset,
-      });
-      if (!newArtworkRes.ok) {
-        throw new Error(newArtworkRes.reason);
+      let artworkId = state.artworkId;
+
+      if (!artworkId) {
+        const newArtworkRes = await api.newArtwork({
+          title,
+          sideMode: state.sideMode,
+          imageOffset: state.imageOffset,
+        });
+        if (!newArtworkRes.ok) {
+          throw new Error(newArtworkRes.reason);
+        }
+        artworkId = newArtworkRes.artworkId;
+
+        updateState((prev) => ({
+          ...prev,
+          artworkId,
+        }));
+      } else {
+        const updateRes = await api.updateArtwork({
+          artworkId,
+          title,
+          sideMode: state.sideMode,
+          imageOffset: state.imageOffset,
+        });
+        if (!updateRes.ok) {
+          throw new Error(updateRes.reason);
+        }
       }
 
-      const putUrlResponse = await api.getArtworkImagePutUrl({
-        artworkId: newArtworkRes.artworkId,
-        contentLength: state.uploadedImage.size,
-      });
-      if (!putUrlResponse.ok) {
-        throw new Error(putUrlResponse.reason);
-      }
+      if (state.isImageChanged) {
+        const putUrlResponse = await api.getArtworkImagePutUrl({
+          artworkId,
+          contentLength: state.uploadedImage.size,
+        });
+        if (!putUrlResponse.ok) {
+          throw new Error(putUrlResponse.reason);
+        }
 
-      const putImageRes = await fetch(putUrlResponse.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": state.uploadedImage.type,
-        },
-        body: state.uploadedImage,
-      });
-      if (!putImageRes.ok) {
-        throw new Error(await putImageRes.text());
+        const putImageRes = await fetch(putUrlResponse.uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": state.uploadedImage.type,
+          },
+          body: state.uploadedImage,
+        });
+        if (!putImageRes.ok) {
+          throw new Error(await putImageRes.text());
+        }
+
+        updateState((prev) => ({
+          ...prev,
+          isImageChanged: false,
+        }));
       }
 
       toast.success("작품이 성공적으로 저장되었습니다.");
@@ -200,7 +191,7 @@ export function StudioContextProvider({
     } finally {
       setIsSaving(false);
     }
-  }, [state.uploadedImage, isSaving, state.sideMode, state.imageOffset]);
+  }, [state.uploadedImage, isSaving, state.sideMode, state.imageOffset, state.artworkId, state.isImageChanged, updateState]);
 
   const cycleCameraPreset = useCallback(
     (direction: "next" | "prev") => {
