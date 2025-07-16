@@ -1,12 +1,8 @@
-import {
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-  createContext,
-} from "react";
+import { useState, useCallback, useEffect, useRef, createContext } from "react";
 import { toast } from "sonner";
-import { CAMERA_PRESETS, CAMERA_ROTATION_LIMITS, SideMode } from "./types";
+import { CAMERA_PRESETS, CAMERA_ROTATION_LIMITS } from "./types";
+import { SideMode } from "../../../../../shared/types";
+import { api } from "@/lib/api";
 
 export const StudioContext = createContext<{
   state: State;
@@ -22,12 +18,7 @@ export const StudioContext = createContext<{
 }>(null!);
 
 type State = {
-  uploadedImage:
-    | {
-        dataUrl: string;
-        name: string;
-      }
-    | undefined;
+  uploadedImage: File | undefined;
   sideMode: SideMode;
   imageOffset: { x: number; y: number };
   rotation: { x: number; y: number };
@@ -63,34 +54,50 @@ export function StudioContextProvider({
   const lastMousePosition = useRef({ x: 0, y: 0 });
 
   useEffect(function loadSavedImage() {
-    const savedImageData = localStorage.getItem("Studio_imageData");
-    const savedFileName = localStorage.getItem("Studio_fileName");
+    const savedImageString = localStorage.getItem("Studio_imageFile");
+    if (!savedImageString) {
+      return;
+    }
+    const savedImageData = JSON.parse(savedImageString) as {
+      name: string;
+      type: string;
+      lastModified: number;
+      dataUrl: string;
+    };
 
-    if (savedImageData && savedFileName) {
+    (async () => {
+      const response = await fetch(savedImageData.dataUrl);
+      const blob = await response.blob();
+
+      const file = new File([blob], savedImageData.name, {
+        type: savedImageData.type,
+        lastModified: savedImageData.lastModified,
+      });
+
       setState((prev) => ({
         ...prev,
-        uploadedImage: {
-          dataUrl: savedImageData,
-          name: savedFileName,
-        },
+        uploadedImage: file,
       }));
-    }
+    })();
   }, []);
-
 
   const handleImageUpload = useCallback(
     (file: File) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
-        localStorage.setItem("Studio_imageData", dataUrl);
-        localStorage.setItem("Studio_fileName", file.name);
+        localStorage.setItem(
+          "Studio_imageFile",
+          JSON.stringify({
+            name: file.name,
+            type: file.type,
+            lastModified: file.lastModified,
+            dataUrl,
+          })
+        );
 
         updateState((prev) => {
-          prev.uploadedImage = {
-            dataUrl,
-            name: file.name,
-          };
+          prev.uploadedImage = file;
         });
       };
       reader.readAsDataURL(file);
@@ -115,12 +122,18 @@ export function StudioContextProvider({
     updateState((prev) => {
       prev.rotation = {
         x: Math.max(
-          -CAMERA_ROTATION_LIMITS.maxXRotation, 
-          Math.min(CAMERA_ROTATION_LIMITS.maxXRotation, prev.rotation.x + deltaY * 0.5)
+          -CAMERA_ROTATION_LIMITS.maxXRotation,
+          Math.min(
+            CAMERA_ROTATION_LIMITS.maxXRotation,
+            prev.rotation.x + deltaY * 0.5
+          )
         ),
         y: Math.max(
           -CAMERA_ROTATION_LIMITS.maxYRotation,
-          Math.min(CAMERA_ROTATION_LIMITS.maxYRotation, prev.rotation.y + deltaX * 0.5)
+          Math.min(
+            CAMERA_ROTATION_LIMITS.maxYRotation,
+            prev.rotation.y + deltaX * 0.5
+          )
         ),
       };
     });
@@ -150,16 +163,41 @@ export function StudioContextProvider({
 
     setIsSaving(true);
     try {
-      // const title = state.uploadedFileName.replace(/\.[^/.]+$/, "");
-      // await handleSaveToArtworks(title); // 실제 구현 대기
-      throw new Error("Not implemented");
+      const title = state.uploadedImage.name.replace(/\.[^/.]+$/, "");
+      const newArtworkRes = await api.newArtwork({
+        title,
+        sideMode: state.sideMode,
+        imageOffset: state.imageOffset,
+      });
+      if (!newArtworkRes.ok) {
+        throw new Error(newArtworkRes.reason);
+      }
+
+      const putUrlResponse = await api.getArtworkImagePutUrl({
+        artworkId: newArtworkRes.artworkId,
+        contentLength: state.uploadedImage.size,
+      });
+      if (!putUrlResponse.ok) {
+        throw new Error(putUrlResponse.reason);
+      }
+
+      const putImageRes = await fetch(putUrlResponse.uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": state.uploadedImage.type,
+        },
+        body: state.uploadedImage,
+      });
+      if (!putImageRes.ok) {
+        throw new Error(await putImageRes.text());
+      }
     } catch (error) {
       console.error("Failed to save artwork:", error);
       toast.error("작품 저장에 실패했습니다.");
     } finally {
       setIsSaving(false);
     }
-  }, [state.uploadedImage, isSaving]);
+  }, [state.uploadedImage, isSaving, state.sideMode, state.imageOffset]);
 
   const cycleCameraPreset = useCallback(
     (direction: "next" | "prev") => {
@@ -169,13 +207,12 @@ export function StudioContextProvider({
           preset.rotation.y === state.rotation.y
       );
 
-      let nextIndex;
-      if (direction === "next") {
-        nextIndex = (currentIndex + 1) % CAMERA_PRESETS.length;
-      } else {
-        nextIndex =
-          currentIndex === 0 ? CAMERA_PRESETS.length - 1 : currentIndex - 1;
-      }
+      const nextIndex =
+        direction === "next"
+          ? (currentIndex + 1) % CAMERA_PRESETS.length
+          : currentIndex === 0
+            ? CAMERA_PRESETS.length - 1
+            : currentIndex - 1;
 
       updateState((prev) => {
         prev.rotation = CAMERA_PRESETS[nextIndex].rotation;
@@ -183,7 +220,6 @@ export function StudioContextProvider({
     },
     [state.rotation, updateState]
   );
-
 
   return (
     <StudioContext.Provider

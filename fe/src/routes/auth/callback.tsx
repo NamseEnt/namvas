@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { authApi } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export const Route = createFileRoute("/auth/callback")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -16,8 +16,13 @@ function AuthCallback() {
   const { code, error } = Route.useSearch();
 
   const twitterLoginMutation = useMutation({
-    mutationFn: ({ code, codeVerifier }: { code: string; codeVerifier: string }) => 
-      authApi.loginWithTwitter(code, codeVerifier),
+    mutationFn: ({
+      code,
+      codeVerifier,
+    }: {
+      code: string;
+      codeVerifier: string;
+    }) => api.loginWithTwitter({ authorizationCode: code, codeVerifier }),
     onSuccess: () => {
       sessionStorage.removeItem("twitter_code_verifier");
       navigate({ to: "/" });
@@ -29,7 +34,8 @@ function AuthCallback() {
   });
 
   const googleLoginMutation = useMutation({
-    mutationFn: (code: string) => authApi.loginWithGoogle(code),
+    mutationFn: (code: string) =>
+      api.loginWithGoogle({ authorizationCode: code }),
     onSuccess: () => {
       navigate({ to: "/" });
     },

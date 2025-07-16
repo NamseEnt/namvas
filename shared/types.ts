@@ -72,21 +72,16 @@ export type Artwork = {
   id: string;
   title: string;
   originalImageId: string;
-  dpi: number;
-  imageCenterXyInch: { x: number; y: number };
-  sideProcessing: SideProcessing;
+  imageOffset: { x: number; y: number };
+  sideMode: SideMode;
   createdAt: string;
-  canvasBackgroundColor: string;
 };
 
-export type SideProcessing =
-  | {
-      type: "clip" | "flip" | "none";
-    }
-  | {
-      type: "color";
-      color: string;
-    };
+export enum SideMode {
+  CLIP = "clip",
+  PRESERVE = "preserve",
+  FLIP = "flip",
+}
 
 export type SavedArtwork = {
   id: string;

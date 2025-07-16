@@ -1,36 +1,34 @@
 import { useMemo } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { type CanvasViewProps } from "./types";
 import { calculateCameraDistance } from "./utils/textureOptimization";
 import { useTextureLoader } from "./hooks/useTextureLoader";
-import { useUvBounds } from "./hooks/useUvBounds";
 import { CanvasFrame } from "./components/CanvasFrame";
+import type { SideMode } from "../../../../../shared/types";
 
 export function CanvasView({
   imageSource,
   rotation,
   sideMode,
-  imageOffset
-}: CanvasViewProps) {
-  const { texture, loading, error } = useTextureLoader(imageSource);
-  const uvBounds = useUvBounds({ texture, imageOffset, sideMode });
-  const cameraDistance = useMemo(() => calculateCameraDistance(rotation), [rotation]);
+  imageOffset,
+}: {
+  imageSource: string | File;
+  rotation: { x: number; y: number };
+  sideMode: SideMode;
+  imageOffset: { x: number; y: number };
+}) {
+  const textureResult = useTextureLoader(imageSource);
+  const cameraDistance = useMemo(
+    () => calculateCameraDistance(rotation),
+    [rotation]
+  );
 
-  if (loading) {
-    return (
-      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div>로딩 중...</div>
-      </div>
-    );
+  if (textureResult.type === "loading") {
+    return <div>Loading...</div>;
   }
-
-  if (error) {
-    return (
-      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div>이미지를 불러올 수 없습니다</div>
-      </div>
-    );
+  if (textureResult.type === "error") {
+    return <div>Error: {textureResult.error.message}</div>;
   }
+  const texture = textureResult.texture;
 
   return (
     <Canvas
@@ -50,7 +48,6 @@ export function CanvasView({
       <directionalLight position={[1, 2, 0]} intensity={0.6} color="#f0f8ff" />
       <CanvasFrame
         texture={texture}
-        uvBounds={uvBounds}
         sideMode={sideMode}
         imageOffset={imageOffset}
         rotation={rotation}
@@ -65,5 +62,3 @@ function CameraController({ cameraDistance }: { cameraDistance: number }) {
   });
   return null;
 }
-
-export { SideMode, type CanvasViewProps } from "./types";

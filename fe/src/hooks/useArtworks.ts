@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { userApi } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { Artwork } from "../../../shared/types";
 // CanvasRenderSettings 타입 임시 정의 (추후 CanvasView에서 export 예정)
 type CanvasRenderSettings = {
@@ -26,10 +26,14 @@ export function useArtworks() {
     try {
       setIsLoading(true);
       setError(undefined);
-      const response = await userApi.listMyArtworks({
+      const response = await api.listMyArtworks({
         pageSize: 20,
         nextToken: pageToken,
       });
+
+      if (!response.ok) {
+        throw new Error(response.reason);
+      }
 
       if (pageToken) {
         setArtworks((prev) => [
@@ -56,7 +60,7 @@ export function useArtworks() {
 
   const deleteArtwork = useCallback(async (artworkId: string) => {
     try {
-      await userApi.deleteArtwork(artworkId);
+      await api.deleteArtwork({ artworkId });
       setArtworks((prev) => prev.filter((artwork) => artwork.id !== artworkId));
     } catch (err) {
       console.error("Failed to delete artwork:", err);
@@ -67,7 +71,7 @@ export function useArtworks() {
   const duplicateArtwork = useCallback(
     async (artworkId: string, title: string) => {
       try {
-        await userApi.duplicateArtwork(artworkId, title);
+        await api.duplicateArtwork({ artworkId, title });
         await loadArtworks(); // Reload to get the new artwork
       } catch (err) {
         console.error("Failed to duplicate artwork:", err);
@@ -91,8 +95,9 @@ export function useArtworks() {
 
       // 1. 원본 이미지 업로드
       const imageBlob = await fetch(imageDataUrl).then((r) => r.blob());
-      const uploadResponse = await userApi.getOriginalImageUploadUrl(
-        imageBlob.size
+      const uploadResponse = await api.getArtworkImagePutUrl(
+        imageBlob.size,
+        artworkId
       );
 
       await fetch(uploadResponse.uploadUrl, {
@@ -104,7 +109,7 @@ export function useArtworks() {
       });
 
       // 2. 아트워크 메타데이터 저장
-      return await userApi.newArtwork({
+      return await api.newArtwork({
         title,
         artwork: {
           originalImageId: uploadResponse.imageId,

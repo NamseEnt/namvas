@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { userApi } from "@/lib/api";
+import { api } from "@/lib/api";
 import { PRICES } from "@/constants";
 import type { Artwork } from "../../../shared/types";
 
@@ -20,8 +20,10 @@ export function useBuildOrder() {
   const loadArtworks = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await userApi.listMyArtworks({ pageSize: 100 });
-      setArtworks(response.artworks.filter(artwork => 'title' in artwork) as Artwork[]);
+      const response = await api.listMyArtworks({ pageSize: 100 });
+      setArtworks(
+        response.artworks.filter((artwork) => "title" in artwork) as Artwork[]
+      );
     } catch (error) {
       console.error("Failed to load artworks:", error);
     } finally {
@@ -30,11 +32,11 @@ export function useBuildOrder() {
   }, []);
 
   const addToOrder = useCallback((artwork: Artwork) => {
-    setOrderItems(prev => {
-      const existingItem = prev.find(item => item.artwork.id === artwork.id);
+    setOrderItems((prev) => {
+      const existingItem = prev.find((item) => item.artwork.id === artwork.id);
       if (existingItem) {
-        return prev.map(item =>
-          item.artwork.id === artwork.id 
+        return prev.map((item) =>
+          item.artwork.id === artwork.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -45,24 +47,29 @@ export function useBuildOrder() {
   }, []);
 
   const removeFromOrder = useCallback((artworkId: string) => {
-    setOrderItems(prev => prev.filter(item => item.artwork.id !== artworkId));
+    setOrderItems((prev) =>
+      prev.filter((item) => item.artwork.id !== artworkId)
+    );
   }, []);
 
-  const updateQuantity = useCallback((artworkId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromOrder(artworkId);
-      return;
-    }
-    setOrderItems(prev =>
-      prev.map(item =>
-        item.artwork.id === artworkId ? { ...item, quantity } : item
-      )
-    );
-  }, [removeFromOrder]);
+  const updateQuantity = useCallback(
+    (artworkId: string, quantity: number) => {
+      if (quantity <= 0) {
+        removeFromOrder(artworkId);
+        return;
+      }
+      setOrderItems((prev) =>
+        prev.map((item) =>
+          item.artwork.id === artworkId ? { ...item, quantity } : item
+        )
+      );
+    },
+    [removeFromOrder]
+  );
 
   const getTotalPrice = useCallback(() => {
     return orderItems.reduce((total, item) => {
-      return total + (PRICES.CANVAS * item.quantity);
+      return total + PRICES.CANVAS * item.quantity;
     }, 0);
   }, [orderItems]);
 
@@ -87,16 +94,15 @@ export function useBuildOrder() {
     return getTotalPrice() + getPlasticStandPrice();
   }, [getTotalPrice, getPlasticStandPrice]);
 
-  
   const handlePayment = useCallback(() => {
     if (orderItems.length === 0) {
-      alert('주문할 상품을 선택해주세요.');
+      alert("주문할 상품을 선택해주세요.");
       return;
     }
-    
+
     // 주문 데이터를 localStorage에 저장
     const orderData = {
-      orderItems: orderItems.map(item => ({
+      orderItems: orderItems.map((item) => ({
         artworkId: item.artwork.id,
         quantity: item.quantity,
         price: 10000,
@@ -105,12 +111,14 @@ export function useBuildOrder() {
       plasticStandPrice: 250,
       totalPrice: getFinalTotalPrice(),
     };
-    
-    localStorage.setItem('tempOrderData', JSON.stringify(orderData));
-    
+
+    localStorage.setItem("tempOrderData", JSON.stringify(orderData));
+
     // 배송지 입력 페이지로 이동
-    navigate({ to: '/order', search: { fromStudio: undefined, fromBuildOrder: 'true' } });
-    
+    navigate({
+      to: "/order",
+      search: { fromStudio: undefined, fromBuildOrder: "true" },
+    });
   }, [orderItems, plasticStandCount, getFinalTotalPrice, navigate]);
 
   return {

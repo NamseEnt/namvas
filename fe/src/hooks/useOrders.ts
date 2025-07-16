@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { userApi } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { Order } from "../../../shared/types";
 
 type CreateOrderData = {
@@ -38,28 +38,32 @@ export function useOrders() {
         plasticStandCount,
         plasticStandPrice,
         naverPaymentId,
-        recipient
+        recipient,
       } = data;
 
-      return await userApi.createOrder({
+      return await api.createOrder({
         rows: [
           ...orderItems.map((item) => ({
             item: {
-              type: 'artwork' as const,
+              type: "artwork" as const,
               title: item.artworkId, // buildOrder에서는 artworkId를 title로 사용
               originalImageId: item.artworkId, // 임시로 artworkId 사용
               dpi: 300, // 기본값
               imageCenterXy: { x: 0, y: 0 }, // 기본값
-              sideProcessing: { type: 'clip' as const }, // 기본값
+              sideProcessing: { type: "clip" as const }, // 기본값
             },
             count: item.quantity,
             price: item.price,
           })),
-          ...(plasticStandCount > 0 ? [{
-            item: { type: 'plasticStand' as const },
-            count: plasticStandCount,
-            price: plasticStandPrice,
-          }] : [])
+          ...(plasticStandCount > 0
+            ? [
+                {
+                  item: { type: "plasticStand" as const },
+                  count: plasticStandCount,
+                  price: plasticStandPrice,
+                },
+              ]
+            : []),
         ],
         naverPaymentId,
         recipient,
@@ -79,17 +83,17 @@ export function useOrders() {
     try {
       setIsLoading(true);
       setError(undefined);
-      const response = await userApi.listMyOrders({
+      const response = await api.listMyOrders({
         pageSize: 20,
         nextToken: pageToken,
       });
-      
+
       if (pageToken) {
-        setOrders(prev => [...prev, ...response.orders]);
+        setOrders((prev) => [...prev, ...response.orders]);
       } else {
         setOrders(response.orders);
       }
-      
+
       setNextToken(response.nextToken);
       setHasMore(!!response.nextToken);
     } catch (err) {
@@ -102,12 +106,14 @@ export function useOrders() {
 
   const cancelOrder = useCallback(async (orderId: string) => {
     try {
-      await userApi.cancelOrder(orderId);
-      setOrders(prev => prev.map(order => 
-        order.id === orderId 
-          ? { ...order, status: "payment_canceled" as const }
-          : order
-      ));
+      await api.cancelOrder(orderId);
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId
+            ? { ...order, status: "payment_canceled" as const }
+            : order
+        )
+      );
     } catch (err) {
       console.error("Failed to cancel order:", err);
       throw err;
@@ -115,7 +121,9 @@ export function useOrders() {
   }, []);
 
   const loadMore = useCallback(async () => {
-    if (!hasMore || isLoading) {return;}
+    if (!hasMore || isLoading) {
+      return;
+    }
     await loadOrders(nextToken);
   }, [hasMore, isLoading, nextToken, loadOrders]);
 
@@ -127,7 +135,7 @@ export function useOrders() {
     loadOrders,
     loadMore,
     cancelOrder,
-    
+
     // 새로운 주문 생성 기능
     createOrder: createOrderMutation.mutateAsync,
     isCreatingOrder: createOrderMutation.isPending,

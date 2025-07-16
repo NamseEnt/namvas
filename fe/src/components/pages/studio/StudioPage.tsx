@@ -18,7 +18,7 @@ export default function StudioPage() {
       <div className="flex-1 relative p-4 lg:p-0">
         <CanvasArea>
           <CanvasView
-            imageSource={state.uploadedImage.dataUrl}
+            imageSource={state.uploadedImage}
             rotation={state.rotation}
             sideMode={state.sideMode}
             imageOffset={state.imageOffset}

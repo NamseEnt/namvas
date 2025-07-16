@@ -3,12 +3,12 @@ import { OrderPage } from "@/components/pages/OrderPage";
 import { AuthGuard } from "@/components/common/AuthGuard";
 
 function OrderPageComponent() {
-  const { fromStudio, fromBuildOrder } = Route.useSearch();
-  return (
-    <AuthGuard>
-      <OrderPage fromStudio={fromStudio} fromBuildOrder={fromBuildOrder} />
-    </AuthGuard>
-  );
+  // const { fromStudio, fromBuildOrder } = Route.useSearch();
+  // return (
+  //   <AuthGuard>
+  //     <OrderPage fromStudio={fromStudio} fromBuildOrder={fromBuildOrder} />
+  //   </AuthGuard>
+  // );
 }
 
 export const Route = createFileRoute("/order")({

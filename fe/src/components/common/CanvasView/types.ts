@@ -1,26 +1,4 @@
-import { canvasProductSizeM } from './constants';
-
-export enum SideMode {
-  CLIP = "clip",
-  PRESERVE = "preserve", 
-  FLIP = "flip"
-}
-
-export type SideProcessing =
-  | {
-      type: "none";
-    }
-  | {
-      type: "clip";
-    }
-  | {
-      type: "color";
-      color: string;
-    }
-  | {
-      type: "flip";
-    };
-
+import { canvasProductSizeM } from "./constants";
 
 // UV 좌표 범위 타입
 export type UVBounds = {
@@ -71,11 +49,3 @@ export const SIDE_FACE_SIZES = {
   right: [t, h],
   bottom: [w, t],
 } as const;
-
-// CanvasView 메인 Props 타입
-export interface CanvasViewProps {
-  imageSource: string | File | HTMLImageElement;
-  rotation: { x: number; y: number };
-  sideMode: SideMode;
-  imageOffset: { x: number; y: number };
-}

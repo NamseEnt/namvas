@@ -2,22 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
-// import type { Artwork } from "../../../shared/types";
-
-// 임시 타입 정의 (원래 shared에서 가져와야 함)
-type Artwork = {
-  id: string;
-  title: string;
-  originalImageId: string;
-  dpi: number;
-  imageCenterXyInch: { x: number; y: number };
-  sideProcessing: any;
-  createdAt: string;
-  canvasBackgroundColor: string;
-};
+import type { Artwork } from "../../../../shared/types";
 import { useArtworks } from "@/hooks/useArtworks";
-// import { CanvasView } from "@/components/common/CanvasView";
-// import { getImageUrl } from "@/lib/config";
+import { CanvasView } from "../common/CanvasView";
+import { getImageUrl } from "@/lib/config";
 
 export function ArtworksPage() {
   const { artworks, isLoading, loadArtworks } = useArtworks();
@@ -111,10 +99,15 @@ function ArtworkItem({ artwork }: { artwork: Artwork }) {
         </h3>
       </div>
       <div className="aspect-square overflow-hidden bg-slate-100">
-        {/* TODO: 새로운 CanvasView 인터페이스에 맞게 수정 예정 */}
-        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-          <span className="text-sm text-gray-500">미리보기</span>
-        </div>
+        <CanvasView
+          imageSource={getImageUrl(artwork.originalImageId)}
+          rotation={{
+            x: 20,
+            y: 40,
+          }}
+          sideMode={artwork.sideMode}
+          imageOffset={artwork.imageOffset}
+        />
       </div>
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
     </div>

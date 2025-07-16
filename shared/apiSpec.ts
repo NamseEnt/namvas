@@ -1,4 +1,4 @@
-import type { Artwork, Order } from "./types";
+import type { Artwork, Order, SideMode } from "./types";
 
 export type ApiSpec = {
   getMe: {
@@ -46,15 +46,15 @@ export type ApiSpec = {
           reason: "TWITTER_API_ERROR";
         };
   };
-  getOriginalImageUploadUrl: {
+  getArtworkImagePutUrl: {
     req: {
+      artworkId: string;
       contentLength: number;
     };
     res:
       | {
           ok: true;
           uploadUrl: string;
-          imageId: string;
         }
       | {
           ok: false;
@@ -103,7 +103,12 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "NOT_LOGGED_IN" | "EMPTY_ORDER_ITEMS" | "INVALID_ITEM_TYPE" | "INVALID_COUNT" | "INVALID_PRICE";
+          reason:
+            | "NOT_LOGGED_IN"
+            | "EMPTY_ORDER_ITEMS"
+            | "INVALID_ITEM_TYPE"
+            | "INVALID_COUNT"
+            | "INVALID_PRICE";
         };
   };
   listMyOrders: {
@@ -142,19 +147,8 @@ export type ApiSpec = {
   newArtwork: {
     req: {
       title: string;
-      artwork: {
-        originalImageId: string;
-        imageCenterXy: { x: number; y: number };
-        dpi: number;
-        sideProcessing:
-          | {
-              type: "clip" | "flip" | "none";
-            }
-          | {
-              type: "color";
-              color: string;
-            };
-      };
+      sideMode: SideMode;
+      imageOffset: { x: number; y: number };
     };
     res:
       | {

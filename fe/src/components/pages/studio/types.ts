@@ -1,5 +1,3 @@
-import { SideMode } from "../../common/CanvasView/types";
-
 export type SideProcessing =
   | {
       type: "none";
@@ -19,9 +17,6 @@ export const CAMERA_ROTATION_LIMITS = {
   maxXRotation: 25,
   maxYRotation: 60,
 } as const;
-
-export { SideMode };
-
 
 export const CAMERA_PRESETS = [
   { label: "정면", rotation: { x: 0, y: 0 } },

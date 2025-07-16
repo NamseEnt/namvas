@@ -3,10 +3,11 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Upload } from "lucide-react";
-import { CAMERA_PRESETS, SideMode } from "../types";
+import { CAMERA_PRESETS } from "../types";
 import { useContext } from "react";
 import { StudioContext } from "../StudioContext";
 import { useNavigate } from "@tanstack/react-router";
+import { SideMode } from "../../../../../../shared/types";
 
 export function ControlsArea() {
   const {
@@ -134,20 +135,13 @@ export function ControlsArea() {
             </div>
             <div>
               <div className="flex justify-between mb-2">
+                <span className="text-xs text-gray-600">좌우 이동</span>
                 <span className="text-xs text-gray-600">
-                  좌우 이동
-                </span>
-                <span className="text-xs text-gray-600">
-                  {(
-                    state.imageOffset.x * 100
-                  ).toFixed(0)}
-                  %
+                  {(state.imageOffset.x * 100).toFixed(0)}%
                 </span>
               </div>
               <Slider
-                value={[
-                  state.imageOffset.x,
-                ]}
+                value={[state.imageOffset.x]}
                 onValueChange={([value]) =>
                   updateState((prev) => {
                     prev.imageOffset = { x: value, y: 0 };

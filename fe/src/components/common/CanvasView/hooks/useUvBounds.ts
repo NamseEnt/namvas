@@ -1,22 +1,18 @@
 import { useMemo } from "react";
 import * as THREE from "three";
-import { SideMode } from "../types";
+import { SideMode } from "../../../../../../shared/types";
 import { getUvBounds } from "../getUvBounds";
 
 export function useUvBounds({
   texture,
   imageOffset,
-  sideMode
+  sideMode,
 }: {
-  texture: THREE.Texture | null;
+  texture: THREE.Texture;
   imageOffset: { x: number; y: number };
   sideMode: SideMode;
 }) {
   return useMemo(() => {
-    if (!texture || !texture.image) {
-      return null;
-    }
-
     return getUvBounds({
       imageWh: {
         width: texture.image.width,
