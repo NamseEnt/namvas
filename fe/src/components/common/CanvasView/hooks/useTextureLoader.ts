@@ -24,7 +24,9 @@ export function useTextureLoader(imageSource: string | File):
 
         const image =
           imageSource instanceof File
-            ? await createImageBitmap(imageSource)
+            ? await createImageBitmap(imageSource, {
+                imageOrientation: "flipY",
+              })
             : await loadImageFromUrl(imageSource);
 
         const texture = new THREE.Texture(image);
