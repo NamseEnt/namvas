@@ -33,6 +33,7 @@ export function CanvasView({
   const textureResult = useTextureLoader(imageSource);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const seqRef = useRef<number>(0);
 
   useEffect(() => {
     if (workers.length > 0) {
@@ -58,6 +59,7 @@ export function CanvasView({
     if (size.width === 0 || size.height === 0) {
       return;
     }
+    const seq = seqRef.current++;
     queue[id] = {
       texture: textureResult.texture,
       rotation,
@@ -65,6 +67,9 @@ export function CanvasView({
       imageOffset,
       canvasSize: size,
       callback: (bitmap) => {
+        if (seqRef.current !== seq + 1) {
+          return;
+        }
         const context = canvasRef.current?.getContext("bitmaprenderer");
         if (!context) {
           return;
@@ -127,11 +132,16 @@ class CanvasViewWorker {
   camera = new THREE.PerspectiveCamera(35);
   renderer = new THREE.WebGLRenderer({
     antialias: true,
+    alpha: true,
   });
   disposed = false;
   canvasTexture = new THREE.TextureLoader().load("/canvas-texture.jpg");
   constructor() {
-    this.scene.add(new THREE.AmbientLight(undefined, 1.0));
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+  }
+  resetScene() {
+    this.scene.clear();
+    this.scene.add(new THREE.AmbientLight(0xffffff, 1.0));
     const directionalLightProps = [
       { position: [-1, 1, 1], intensity: 1.5, castShadow: true },
       { position: [0, 0, 1], intensity: 1.0 },
@@ -148,7 +158,6 @@ class CanvasViewWorker {
       light.castShadow = props.castShadow || false;
       this.scene.add(light);
     });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
   }
   async run() {
     if (this.disposed) {
@@ -160,6 +169,8 @@ class CanvasViewWorker {
       setTimeout(() => this.run(), 0);
       return;
     }
+
+    this.resetScene();
 
     const { callback, imageOffset, rotation, sideMode, texture, canvasSize } =
       queue[key];
