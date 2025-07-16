@@ -11,7 +11,7 @@ export function UploadArea() {
         bg-gray-50 
         flex items-center justify-center 
         p-4
-        h-screen
+        h-[calc(100vh-56px)]
       `}
       onDrop={onDragDrop}
       onDragOver={onDragOver}

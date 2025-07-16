@@ -1,5 +1,6 @@
 import { Outlet, createRootRoute, useLocation } from '@tanstack/react-router'
 import { PageHeader } from '@/components/common/PageHeader'
+import { DropdownGNB } from '@/components/common/DropdownGNB'
 import { PageFooter } from '@/components/common/PageFooter'
 import { Toaster } from '@/components/ui/sonner'
 import { LoginIntentProvider } from '@/contexts/LoginIntentContext'
@@ -7,17 +8,12 @@ import { LoginIntentProvider } from '@/contexts/LoginIntentContext'
 function RootLayout() {
   const location = useLocation()
   
-  // Studio 페이지는 독립적인 레이아웃 유지
-  const isStudioPage = location.pathname.startsWith('/studio')
+  // 랜딩 페이지는 GNB 없이 기존 레이아웃 유지
+  const isLandingPage = location.pathname === '/'
   
   return (
     <LoginIntentProvider>
-      {isStudioPage ? (
-        <>
-          <Outlet />
-          <Toaster />
-        </>
-      ) : (
+      {isLandingPage ? (
         <div className="min-h-screen flex flex-col bg-background">
           <PageHeader />
           <main className="flex-1">
@@ -26,6 +22,14 @@ function RootLayout() {
           <PageFooter />
           <Toaster />
         </div>
+      ) : (
+        <>
+          <DropdownGNB />
+          <main className="pt-14">
+            <Outlet />
+          </main>
+          <Toaster />
+        </>
       )}
     </LoginIntentProvider>
   )

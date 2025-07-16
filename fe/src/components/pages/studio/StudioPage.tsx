@@ -14,7 +14,7 @@ export default function StudioPage() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col lg:flex-row">
+    <div className="h-[calc(100vh-56px)] bg-gray-50 flex flex-col lg:flex-row">
       <div className="flex-1 relative p-4 lg:p-0">
         <CanvasArea>
           <CanvasView
