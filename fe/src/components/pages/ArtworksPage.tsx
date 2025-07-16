@@ -100,10 +100,10 @@ function ArtworkItem({ artwork }: { artwork: Artwork }) {
       </div>
       <div className="aspect-square overflow-hidden bg-slate-100">
         <CanvasView
-          imageSource={getImageUrl(artwork.originalImageId)}
+          imageSource={getImageUrl(artwork.id)}
           rotation={{
-            x: 20,
-            y: 40,
+            x: 0,
+            y: 30,
           }}
           sideMode={artwork.sideMode}
           imageOffset={artwork.imageOffset}

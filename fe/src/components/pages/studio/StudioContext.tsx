@@ -191,9 +191,12 @@ export function StudioContextProvider({
       if (!putImageRes.ok) {
         throw new Error(await putImageRes.text());
       }
+
+      toast.success("작품이 성공적으로 저장되었습니다.");
     } catch (error) {
       console.error("Failed to save artwork:", error);
-      toast.error("작품 저장에 실패했습니다.");
+      const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+      toast.error(`작품 저장에 실패했습니다: ${errorMessage}`);
     } finally {
       setIsSaving(false);
     }

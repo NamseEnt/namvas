@@ -54,11 +54,14 @@ export async function handler(
     // console.log("Extracted API name:", apiName);
     const apiParams = apiEvent.body;
 
-    const inCookies = (apiEvent.cookies || [])?.reduce((acc, cookie) => {
-      const [key, value] = cookie.split("=");
-      acc[key] = value;
-      return acc;
-    }, {} as Record<string, string>);
+    const inCookies = (apiEvent.cookies || [])?.reduce(
+      (acc, cookie) => {
+        const [key, value] = cookie.split("=");
+        acc[key] = value;
+        return acc;
+      },
+      {} as Record<string, string>
+    );
     const outCookies = { ...inCookies };
 
     const apiRequest: ApiRequest = {
@@ -66,7 +69,7 @@ export async function handler(
       cookies: outCookies,
     };
 
-    const api = apis[apiName as keyof typeof apis];
+    const api = await apis[apiName as keyof typeof apis];
     if (!api) {
       console.log(
         "API not found:",

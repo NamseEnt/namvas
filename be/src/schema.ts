@@ -48,17 +48,8 @@ export type ArtworkDoc = {
   id: Pk<string>;
   ownerId: string;
   title: string;
-  originalImageId: string;
-  dpi: number;
-  imageCenterXy: { x: number; y: number };
-  sideProcessing:
-    | {
-        type: "clip" | "flip" | "none";
-      }
-    | {
-        type: "color";
-        color: string;
-      };
+  imageOffset: { x: number; y: number };
+  sideMode: "clip" | "preserve" | "flip";
 };
 
 export type ArtworksOfUserIndex = Index<UserDoc, ArtworkDoc>;
@@ -72,18 +63,10 @@ export type OrderDoc = {
     item:
       | {
           type: "artwork";
+          imageId: string;
           title: string;
-          originalImageId: string;
-          dpi: number;
-          imageCenterXy: { x: number; y: number };
-          sideProcessing:
-            | {
-                type: "clip" | "flip" | "none";
-              }
-            | {
-                type: "color";
-                color: string;
-              };
+          imageOffset: { x: number; y: number };
+          sideMode: "clip" | "preserve" | "flip";
         }
       | {
           type: "plasticStand";
@@ -137,34 +120,3 @@ export type PaymentCancellingOrderList = {
   $v: number;
   orderId: Sk<string>;
 };
-
-// export type OrderDoc = {
-//   id: Pk<string>;
-//   userId: string;
-//   orderDate: string;
-//   status:
-//     | "payment_completed"
-//     | "in_production"
-//     | "shipping"
-//     | "delivered"
-//     | "production_hold";
-//   artwork: {
-//     originalImageS3Key: string;
-//     mmPerPixel: number;
-//     imageCenterXy: { x: number; y: number };
-//     sideProcessing:
-//       | { type: "clip" | "flip" | "none" }
-//       | { type: "color"; color: string };
-//   };
-//   plasticStand: boolean;
-//   quantity: number;
-//   recipient: {
-//     name: string;
-//     phone: string;
-//     postalCode: string;
-//     address: string;
-//     addressDetail: string;
-//   };
-//   deliveryMemo: string;
-//   adminMemo?: string;
-// };

@@ -108,7 +108,7 @@ export function useAuth() {
 
   return {
     // 사용자 정보
-    user: userQuery.data,
+    data: userQuery.data,
     isLoading: userQuery.isLoading,
     error: userQuery.error,
 

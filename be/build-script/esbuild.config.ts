@@ -67,5 +67,5 @@ export const localOptions: BuildOptions = {
     "src/entry/local-scheduler-entry.ts",
   ],
   outdir: "dist",
-  minify: true,
+  minify: false,
 };

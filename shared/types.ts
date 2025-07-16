@@ -71,10 +71,8 @@ export type Order = {
 export type Artwork = {
   id: string;
   title: string;
-  originalImageId: string;
   imageOffset: { x: number; y: number };
   sideMode: SideMode;
-  createdAt: string;
 };
 
 export enum SideMode {

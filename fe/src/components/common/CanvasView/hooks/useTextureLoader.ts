@@ -31,11 +31,11 @@ export function useTextureLoader(imageSource: string | File):
 
         const texture = new THREE.Texture(image);
         texture.needsUpdate = true;
-        texture.generateMipmaps = false;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
         setTexture(texture);
       })()
         .catch((error) => {
-          console.log(imageSource);
           console.error("Failed to load texture:", error);
           setError(error);
         })

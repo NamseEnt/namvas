@@ -13,7 +13,7 @@ export type ApiSpec = {
           reason: "NOT_LOGGED_IN";
         };
   };
-  logOut: {
+  logout: {
     req: {};
     res: {
       ok: true;

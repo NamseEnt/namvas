@@ -68,8 +68,8 @@ async function executeLLRT(
     LOCAL_DEV: "1",
     // Override localhost URLs for Docker environment
     ...(process.env.AWS_ENDPOINT_URL && {
-      QUEUE_URL: process.env.AWS_ENDPOINT_URL + "/000000000000/main-queue"
-    })
+      QUEUE_URL: process.env.AWS_ENDPOINT_URL + "/000000000000/main-queue",
+    }),
   };
 
   if (!existsSync(LLRT_PATH)) {

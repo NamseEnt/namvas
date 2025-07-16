@@ -8,8 +8,15 @@ type PageHeaderProps = {
 };
 
 export function PageHeader({ title = "NAMVAS", actions }: PageHeaderProps) {
-  const { user, isLoading, logout, loginWithGoogle, loginWithX, loginDev } = useAuth();
-  
+  const {
+    data: authData,
+    isLoading,
+    logout,
+    loginWithGoogle,
+    loginWithX,
+    loginDev,
+  } = useAuth();
+
   const handleLogout = () => {
     logout();
   };
@@ -23,15 +30,15 @@ export function PageHeader({ title = "NAMVAS", actions }: PageHeaderProps) {
   };
 
   const handleDevLogin = () => {
-    loginDev('dev-user');
+    loginDev("dev-user");
   };
 
   const renderAuthButtons = () => {
     if (isLoading) {
       return <div className="h-9 w-32 bg-muted rounded animate-pulse" />;
     }
-    
-    if (user) {
+
+    if (authData?.ok) {
       // 로그인 상태: 네비게이션 메뉴 + 로그아웃
       return (
         <div className="flex gap-3">
@@ -71,7 +78,7 @@ export function PageHeader({ title = "NAMVAS", actions }: PageHeaderProps) {
           >
             X로 시작하기
           </Button>
-          {import.meta.env.MODE !== 'production' && (
+          {import.meta.env.MODE !== "production" && (
             <Button
               variant="outline"
               size="sm"
@@ -91,7 +98,10 @@ export function PageHeader({ title = "NAMVAS", actions }: PageHeaderProps) {
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold text-foreground tracking-tight hover:text-primary transition-colors">
+            <Link
+              to="/"
+              className="text-2xl font-bold text-foreground tracking-tight hover:text-primary transition-colors"
+            >
               {title}
             </Link>
           </div>

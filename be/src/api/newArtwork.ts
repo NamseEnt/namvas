@@ -4,15 +4,13 @@ import { generateId } from "../utils/uuid";
 import { Apis } from "../apis";
 
 export const newArtwork: Apis["newArtwork"] = async (
-  { title, artwork },
+  { title, sideMode, imageOffset },
   req
 ) => {
   const session = await getSession(req);
   if (!session) {
     return { ok: false, reason: "NOT_LOGGED_IN" };
   }
-
-  console.log("[DEBUG] newArtwork - session.userId:", session.userId);
 
   const artworkId = generateId();
 
@@ -22,16 +20,12 @@ export const newArtwork: Apis["newArtwork"] = async (
         id: artworkId,
         ownerId: session.userId,
         title,
-        originalImageId: artwork.originalImageId,
-        dpi: artwork.dpi,
-        imageCenterXy: artwork.imageCenterXy,
-        sideProcessing: artwork.sideProcessing,
+        sideMode,
+        imageOffset,
       },
       { id: session.userId }
     )
   );
-
-  console.log("[DEBUG] newArtwork - created artworkId:", artworkId);
 
   return { ok: true, artworkId };
 };
