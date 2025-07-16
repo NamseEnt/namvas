@@ -1,19 +1,6 @@
 import { useState, useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Artwork } from "../../../shared/types";
-// CanvasRenderSettings 타입 임시 정의 (추후 CanvasView에서 export 예정)
-type CanvasRenderSettings = {
-  dpi: number;
-  imageCenterXyInch: { x: number; y: number };
-  sideProcessing: any;
-};
-
-type SaveArtworkData = {
-  title: string;
-  imageDataUrl: string;
-  settings: CanvasRenderSettings;
-};
 
 export function useArtworks() {
   const [artworks, setArtworks] = useState<Artwork[]>([]);
@@ -60,7 +47,10 @@ export function useArtworks() {
 
   const deleteArtwork = useCallback(async (artworkId: string) => {
     try {
-      await api.deleteArtwork({ artworkId });
+      const response = await api.deleteArtwork({ artworkId });
+      if (!response.ok) {
+        throw new Error(response.reason);
+      }
       setArtworks((prev) => prev.filter((artwork) => artwork.id !== artworkId));
     } catch (err) {
       console.error("Failed to delete artwork:", err);
@@ -71,7 +61,10 @@ export function useArtworks() {
   const duplicateArtwork = useCallback(
     async (artworkId: string, title: string) => {
       try {
-        await api.duplicateArtwork({ artworkId, title });
+        const response = await api.duplicateArtwork({ artworkId, title });
+        if (!response.ok) {
+          throw new Error(response.reason);
+        }
         await loadArtworks(); // Reload to get the new artwork
       } catch (err) {
         console.error("Failed to duplicate artwork:", err);
@@ -81,56 +74,44 @@ export function useArtworks() {
     [loadArtworks]
   );
 
+  const updateArtworkTitle = useCallback(
+    async (artworkId: string, title: string) => {
+      try {
+        const artwork = artworks.find((artwork) => artwork.id === artworkId);
+        if (!artwork) {
+          throw new Error("Artwork not found");
+        }
+
+        const response = await api.updateArtwork({
+          artworkId,
+          title,
+          sideMode: artwork.sideMode,
+          imageOffset: artwork.imageOffset,
+        });
+
+        if (!response.ok) {
+          throw new Error(response.reason);
+        }
+
+        setArtworks((prev) =>
+          prev.map((artwork) =>
+            artwork.id === artworkId ? { ...artwork, title } : artwork
+          )
+        );
+      } catch (err) {
+        console.error("Failed to update artwork title:", err);
+        throw err;
+      }
+    },
+    [artworks]
+  );
+
   const loadMore = useCallback(async () => {
     if (!hasMore || isLoading) {
       return;
     }
     await loadArtworks(nextToken);
   }, [hasMore, isLoading, nextToken, loadArtworks]);
-
-  // 아트워크 저장 기능
-  const saveArtworkMutation = useMutation({
-    mutationFn: async (data: SaveArtworkData) => {
-      const { title, imageDataUrl, settings } = data;
-
-      // 1. 원본 이미지 업로드
-      const imageBlob = await fetch(imageDataUrl).then((r) => r.blob());
-      const uploadResponse = await api.getArtworkImagePutUrl(
-        imageBlob.size,
-        artworkId
-      );
-
-      await fetch(uploadResponse.uploadUrl, {
-        method: "PUT",
-        body: imageBlob,
-        headers: {
-          "Content-Type": imageBlob.type,
-        },
-      });
-
-      // 2. 아트워크 메타데이터 저장
-      return await api.newArtwork({
-        title,
-        artwork: {
-          originalImageId: uploadResponse.imageId,
-          imageCenterXy: {
-            x: settings.imageCenterXyInch.x * 25.4, // inch to mm
-            y: settings.imageCenterXyInch.y * 25.4,
-          },
-          dpi: settings.dpi,
-          sideProcessing: settings.sideProcessing,
-        },
-      });
-    },
-    onSuccess: () => {
-      // 성공 시 아트워크 목록 새로고침
-      loadArtworks();
-    },
-    onError: (error) => {
-      console.error("Error saving artwork:", error);
-      setError(error as Error);
-    },
-  });
 
   return {
     artworks,
@@ -141,10 +122,6 @@ export function useArtworks() {
     loadMore,
     deleteArtwork,
     duplicateArtwork,
-
-    // 새로운 저장 기능
-    saveArtwork: saveArtworkMutation.mutateAsync,
-    isSaving: saveArtworkMutation.isPending,
-    saveError: saveArtworkMutation.error,
+    updateArtworkTitle,
   };
 }

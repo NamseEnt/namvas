@@ -1,11 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useEffect } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Edit, Copy, FileText, Trash2 } from "lucide-react";
 import type { Artwork } from "../../../../shared/types";
 import { useArtworks } from "@/hooks/useArtworks";
 import { CanvasView } from "../common/CanvasView";
 import { getImageUrl } from "@/lib/config";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { ArtworkTitleEditModal } from "../common/ArtworkTitleEditModal";
+import { useNavigate } from "@tanstack/react-router";
 
 export function ArtworksPage() {
   const { artworks, isLoading, loadArtworks } = useArtworks();
@@ -91,25 +99,102 @@ function ArtworksSection({
 }
 
 function ArtworkItem({ artwork }: { artwork: Artwork }) {
+  const { deleteArtwork, duplicateArtwork, updateArtworkTitle } = useArtworks();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  async function handleEdit() {
+    navigate({ to: "/studio" });
+  }
+
+  async function handleDuplicate() {
+    try {
+      setIsLoading(true);
+      await duplicateArtwork(artwork.id, `${artwork.title} (복사본)`);
+    } catch (error) {
+      console.error("복제 실패:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (confirm("정말로 이 작품을 삭제하시겠습니까?")) {
+      try {
+        setIsLoading(true);
+        await deleteArtwork(artwork.id);
+      } catch (error) {
+        console.error("삭제 실패:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }
+
+  async function handleTitleSave(newTitle: string) {
+    try {
+      setIsLoading(true);
+      await updateArtworkTitle(artwork.id, newTitle);
+      setIsEditModalOpen(false);
+    } catch (error) {
+      console.error("제목 변경 실패:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
-    <div className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-slate-200 hover:border-slate-300">
-      <div className="p-4">
-        <h3 className="font-medium text-slate-900 group-hover:text-slate-600 transition-colors truncate">
-          {artwork.title}
-        </h3>
-      </div>
-      <div className="aspect-square overflow-hidden bg-slate-100">
-        <CanvasView
-          imageSource={getImageUrl(artwork.id)}
-          rotation={{
-            x: 0,
-            y: 30,
-          }}
-          sideMode={artwork.sideMode}
-          imageOffset={artwork.imageOffset}
-        />
-      </div>
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
-    </div>
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <div className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-slate-200 hover:border-slate-300">
+            <div className="p-4">
+              <h3 className="font-medium text-slate-900 group-hover:text-slate-600 transition-colors truncate">
+                {artwork.title}
+              </h3>
+            </div>
+            <div className="aspect-square overflow-hidden bg-slate-100">
+              <CanvasView
+                imageSource={getImageUrl(artwork.id)}
+                rotation={{
+                  x: 0,
+                  y: 30,
+                }}
+                sideMode={artwork.sideMode}
+                imageOffset={artwork.imageOffset}
+              />
+            </div>
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem onClick={handleEdit} disabled={isLoading}>
+            <Edit className="w-4 h-4 mr-2" />
+            편집
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleDuplicate} disabled={isLoading}>
+            <Copy className="w-4 h-4 mr-2" />
+            복제
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => setIsEditModalOpen(true)} disabled={isLoading}>
+            <FileText className="w-4 h-4 mr-2" />
+            이름 바꾸기
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleDelete} disabled={isLoading}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            삭제
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+      
+      <ArtworkTitleEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        currentTitle={artwork.title}
+        onSave={handleTitleSave}
+        isLoading={isLoading}
+      />
+    </>
   );
 }
