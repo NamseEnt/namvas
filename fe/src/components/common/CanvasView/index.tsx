@@ -134,10 +134,14 @@ class CanvasViewWorker {
   renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
+    powerPreference: "high-performance",
   });
   disposed = false;
   canvasTexture = new THREE.TextureLoader().load("/canvas-texture.jpg");
   constructor() {
+    // r3f와 동일한 기본값 설정
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.setPixelRatio(window.devicePixelRatio);
   }
   resetScene() {

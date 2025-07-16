@@ -33,6 +33,7 @@ export function useTextureLoader(imageSource: string | File):
         texture.needsUpdate = true;
         texture.minFilter = THREE.LinearMipmapLinearFilter;
         texture.magFilter = THREE.LinearFilter;
+        texture.colorSpace = THREE.SRGBColorSpace;
         setTexture(texture);
       })()
         .catch((error) => {
