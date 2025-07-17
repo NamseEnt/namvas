@@ -95,7 +95,7 @@ export async function handler(
     }
 
     const parsedParams = JSON.parse(apiParams);
-    console.log(`[Lambda] Calling ${apiName}`);
+    console.log(`Calling ${apiName}`);
 
     const apiResult = await api(parsedParams, apiRequest);
 

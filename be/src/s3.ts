@@ -8,6 +8,10 @@ import { isLocalDev } from "./isLocalDev";
 import { s3ClientConfig } from "./config";
 
 const s3Client = new S3Client(s3ClientConfig);
+const localS3Client = new S3Client({
+  ...s3ClientConfig,
+  endpoint: "http://localhost:4566",
+});
 
 const BUCKET_NAME =
   process.env.S3_BUCKET_NAME || (isLocalDev() ? "namvas-local" : undefined);
@@ -25,20 +29,13 @@ export const s3 = {
       ContentType: contentType,
     });
 
-    return await getSignedUrl(s3Client, command, {
-      expiresIn: 300, // 5 minutes
-    });
-  },
-
-  async getPresignedDownloadUrl(key: string): Promise<string> {
-    const command = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-    });
-
-    return await getSignedUrl(s3Client, command, {
-      expiresIn: 300, // 5 minutes
-    });
+    return await getSignedUrl(
+      isLocalDev() ? localS3Client : s3Client,
+      command,
+      {
+        expiresIn: 300,
+      }
+    );
   },
 
   async putObject(

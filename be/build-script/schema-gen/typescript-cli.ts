@@ -1,48 +1,36 @@
 #!/usr/bin/env bun
 
-import { writeFileSync } from 'fs';
-import { parseTypeScriptSchema } from './typescript-type-parser.js';
-import { generateMigrations } from './migration-generator.js';
-import { generateSchemaCRUD } from './schema-crud-generator.js';
+import { writeFileSync } from "fs";
+import { parseTypeScriptSchema } from "./typescript-type-parser.js";
+import { generateSchemaCRUD } from "./schema-crud-generator.js";
 
 async function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length === 0) {
-    console.log('Usage: bun run schema <input-file.ts> [output-file]');
-    console.log('Example: bun run schema schema.ts generated.ts');
+    console.log("Usage: bun run schema <input-file.ts> [output-file]");
+    console.log("Example: bun run schema schema.ts generated.ts");
     process.exit(1);
   }
 
   const inputFile = args[0];
-  const outputFile = args[1] || inputFile.replace(/\.ts$/, '.generated.ts');
+  const outputFile = args[1] || inputFile.replace(/\.ts$/, ".generated.ts");
 
   // Validate input file extension
-  if (!inputFile.endsWith('.ts')) {
-    console.error('❌ Input file must be a TypeScript file (.ts)');
+  if (!inputFile.endsWith(".ts")) {
+    console.error("❌ Input file must be a TypeScript file (.ts)");
     process.exit(1);
   }
 
   try {
-    console.log(`📖 Parsing TypeScript schema from: ${inputFile}`);
-    
     const schema = parseTypeScriptSchema(inputFile);
-    
+
     if (schema.documents.size === 0) {
-      console.log('⚠️  No documents found in the schema file.');
       process.exit(0);
     }
 
-    console.log(`📊 Found ${schema.documents.size} document(s):`);
-    for (const [name, doc] of schema.documents) {
-      console.log(`  - ${name} (${doc.fields.length} fields)`);
-    }
-
-    console.log('⚙️  Generating TypeScript code...');
-    
-    // Generate CRUD functions
     const crudCode = generateSchemaCRUD(schema);
-    
+
     // Combine everything
     const fullOutput = `// Auto-generated schema and CRUD functions
 // Generated from: ${inputFile}
@@ -51,26 +39,11 @@ async function main() {
 ${crudCode}
 `;
 
-    console.log(`💾 Writing output to: ${outputFile}`);
     writeFileSync(outputFile, fullOutput);
-    
-    console.log('✅ TypeScript schema generation completed successfully!');
-    console.log(`
-📋 Summary:
-  - Documents: ${schema.documents.size}
-  - Generated functions: ${Array.from(schema.documents.keys()).map(name => 
-    `get${capitalizeFirst(name)}, create${capitalizeFirst(name)}, update${capitalizeFirst(name)}, delete${capitalizeFirst(name)}, list${capitalizeFirst(name)}s`
-  ).join(', ')}
-`);
-    
   } catch (error) {
-    console.error('❌ Error:', error instanceof Error ? error.message : error);
+    console.error("❌ Error:", error instanceof Error ? error.message : error);
     process.exit(1);
   }
-}
-
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 if ((import.meta as any).main) {
