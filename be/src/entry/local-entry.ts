@@ -9,7 +9,8 @@ if (!PORT) {
   throw new Error("PORT is not set");
 }
 
-const emulatorUrl = `http://localhost:${PORT}`;
+// Docker 컨테이너에서 실행될 때는 EMULATOR_ENDPOINT 환경변수 사용
+const emulatorUrl = process.env.EMULATOR_ENDPOINT || `http://localhost:${PORT}`;
 
 async function main() {
   try {

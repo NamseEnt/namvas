@@ -1,0 +1,31 @@
+# Lambda runtime을 위한 Docker 이미지 - Amazon Linux 2023 기반
+FROM amazonlinux:2023
+
+# 필요한 시스템 의존성 설치
+# Amazon Linux 2023에는 curl-minimal이 이미 설치되어 있음
+RUN dnf update -y && \
+    dnf install -y unzip && \
+    dnf clean all
+
+# LLRT 다운로드 및 설치 (아키텍처에 따라 선택)
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        LLRT_FILE="llrt-linux-arm64.zip"; \
+    else \
+        LLRT_FILE="llrt-linux-x64.zip"; \
+    fi && \
+    curl -L -o llrt.zip https://github.com/awslabs/llrt/releases/latest/download/${LLRT_FILE} && \
+    unzip llrt.zip && \
+    chmod +x llrt && \
+    mv llrt /usr/local/bin/llrt && \
+    rm llrt.zip
+
+# 작업 디렉토리 설정
+WORKDIR /var/task
+
+# 환경 변수 설정
+ENV NODE_ENV=production
+ENV LOCAL_DEV=1
+
+# LLRT가 기본 엔트리포인트
+ENTRYPOINT ["/usr/local/bin/llrt"]
