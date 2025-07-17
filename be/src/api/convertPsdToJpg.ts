@@ -8,7 +8,6 @@ export const convertPsdToJpg: Apis["convertPsdToJpg"] = async ({
   conversionId,
 }) => {
   const psdS3Key = `psd-temp/${conversionId}.psd`;
-  console.log("psdS3Key", psdS3Key);
 
   const bytes = await s3.getObject(psdS3Key);
   if (!bytes) {
@@ -19,6 +18,7 @@ export const convertPsdToJpg: Apis["convertPsdToJpg"] = async ({
 
   const jpgPath = `/tmp/${hash}.jpg`;
 
+  
   const statusCode = await imagick(
     ["psd:-", "-flatten", "-quality", "90", jpgPath],
     bytes

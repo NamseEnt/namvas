@@ -60,7 +60,6 @@ export const s3 = {
     });
 
     const response = await s3Client.send(command);
-    // llrt doesn't support streaming blob payload output types
-    return response.Body as unknown as Uint8Array | undefined;
+    return response.Body?.transformToByteArray();
   },
 };

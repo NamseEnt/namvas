@@ -2,12 +2,10 @@ import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { isLocalDev } from "./isLocalDev";
 import { s3ClientConfig } from "./config";
 import { SpawnOptions } from "child_process";
-import { writeFile } from "fs/promises";
+import { writeFile, access, chmod } from "fs/promises";
 
 const s3Client = new S3Client(s3ClientConfig);
 const MAGICK_PATH = `/tmp/magick-${getLambdaArchitecture()}`;
-const MAGICK_BINARY_PATH = `${MAGICK_PATH}/bin/magick`;
-const MAGICK_LD_LIBRARY_PATH = `${MAGICK_PATH}/lib`;
 
 export async function imagick(
   args: string[],
@@ -20,13 +18,10 @@ export async function imagick(
   }
 
   return await spawnAsync(
-    MAGICK_BINARY_PATH,
+    MAGICK_PATH,
     args,
     {
-      env: {
-        ...process.env,
-        LD_LIBRARY_PATH: `${MAGICK_LD_LIBRARY_PATH}:${process.env.LD_LIBRARY_PATH || ""}`,
-      },
+      env: process.env,
     },
     stdin
   );
@@ -37,7 +32,21 @@ const BINARY_ASSETS_BUCKET_NAME =
   (isLocalDev() ? "namvas-binary-assets-local" : undefined);
 
 function getLambdaArchitecture(): string {
-  const arch = process.arch;
+  // AWS Lambda 환경에서는 환경변수나 /proc/cpuinfo를 통해 확인
+  let arch = process.arch;
+
+  // Lambda Runtime API에서 아키텍처 확인
+  if (process.env.AWS_EXECUTION_ENV) {
+    // Lambda 환경인 경우
+    const execEnv = process.env.AWS_EXECUTION_ENV;
+    if (execEnv.includes("arm64") || execEnv.includes("aarch64")) {
+      arch = "arm64";
+    } else {
+      arch = "x64";
+    }
+  }
+
+
   switch (arch) {
     case "x64":
       return "x64";
@@ -64,13 +73,15 @@ async function downloadAndExtractMagick() {
     throw new Error(`Failed to download magick-${arch} from S3`);
   }
 
-  await writeFile(MAGICK_BINARY_PATH, response.Body as unknown as Uint8Array);
+  const bytes = await response.Body.transformToByteArray();
+
+  await writeFile(MAGICK_PATH, bytes);
+  await chmod(MAGICK_PATH, 0o755);
 }
 
 async function checkMagickExists(): Promise<boolean> {
   try {
-    const { accessSync } = await import("fs");
-    accessSync(MAGICK_BINARY_PATH);
+    await access(MAGICK_PATH);
     return true;
   } catch {
     return false;
@@ -95,6 +106,10 @@ async function spawnAsync(
   }
 
   return new Promise<number>((resolve) => {
+    process.on("exit", (code) => {
+      resolve(code || 0);
+    });
+
     process.on("close", (code) => {
       resolve(code || 0);
     });
