@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-echo "Creating S3 bucket..."
-awslocal s3 mb s3://namvas-local || echo "Bucket may already exist"
+echo "Creating S3 buckets..."
+awslocal s3 mb s3://namvas-local || echo "Main bucket may already exist"
+awslocal s3 mb s3://namvas-binary-assets-local || echo "Binary assets bucket may already exist"
 
 echo "Setting up S3 bucket CORS configuration..."
 awslocal s3api put-bucket-cors --bucket namvas-local --cors-configuration '{

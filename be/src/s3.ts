@@ -5,18 +5,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { isLocalDev } from "./isLocalDev";
-
-const s3ClientConfig = isLocalDev()
-  ? {
-      endpoint: "http://localhost:4566",
-      region: "us-east-1",
-      credentials: {
-        accessKeyId: "test",
-        secretAccessKey: "test",
-      },
-      forcePathStyle: true,
-    }
-  : {};
+import { s3ClientConfig } from "./config";
 
 const s3Client = new S3Client(s3ClientConfig);
 

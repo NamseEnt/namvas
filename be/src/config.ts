@@ -1,8 +1,22 @@
+import { isLocalDev } from "./isLocalDev";
+
 const localRedirectUri = "http://localhost:3002/auth/callback";
 const productionRedirectUri = "https://namvas.com/auth/callback";
 
 const redirectUri =
   process.env.LOCAL_DEV === "1" ? localRedirectUri : productionRedirectUri;
+
+export const s3ClientConfig = isLocalDev()
+  ? {
+      endpoint: "http://localhost:4566",
+      region: "us-east-1",
+      credentials: {
+        accessKeyId: "test",
+        secretAccessKey: "test",
+      },
+      forcePathStyle: true,
+    }
+  : {};
 
 export let config = {
   GOOGLE_CLIENT_ID:

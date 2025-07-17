@@ -7,12 +7,17 @@ const domainName = config.get("domainName") || process.env.DOMAIN_NAME; // Optio
 
 // Create S3 bucket for frontend hosting
 const frontendBucket = new aws.s3.BucketV2("frontend-bucket", {
-  bucket: "namvas-frontend",
+  bucketPrefix: "namvas-frontend-",
 });
 
 // Create S3 bucket for image storage
 const imageBucket = new aws.s3.BucketV2("image-bucket", {
   bucketPrefix: "namvas-images-",
+});
+
+// Create S3 bucket for binary assets
+const binaryAssetsBucket = new aws.s3.BucketV2("binary-assets-bucket", {
+  bucketPrefix: "namvas-binary-assets-",
 });
 
 // Configure S3 bucket for static website hosting
@@ -112,55 +117,62 @@ const lambdaRole = new aws.iam.Role("lambda-role", {
 const lambdaPolicy = new aws.iam.RolePolicy("lambda-policy", {
   role: lambdaRole.id,
   policy: pulumi
-    .all([dynamoTable.arn, mainQueue.arn, mainDlq.arn, imageBucket.arn])
-    .apply(([tableArn, queueArn, dlqArn, imageBucketArn]) =>
-      JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-          {
-            Effect: "Allow",
-            Action: [
-              "logs:CreateLogGroup",
-              "logs:CreateLogStream",
-              "logs:PutLogEvents",
-            ],
-            Resource: "arn:aws:logs:*:*:*",
-          },
-          {
-            Effect: "Allow",
-            Action: [
-              "dynamodb:GetItem",
-              "dynamodb:PutItem",
-              "dynamodb:UpdateItem",
-              "dynamodb:DeleteItem",
-              "dynamodb:Query",
-              "dynamodb:Scan",
-            ],
-            Resource: [tableArn, `${tableArn}/index/*`],
-          },
-          {
-            Effect: "Allow",
-            Action: [
-              "sqs:SendMessage",
-              "sqs:ReceiveMessage",
-              "sqs:DeleteMessage",
-              "sqs:GetQueueAttributes",
-            ],
-            Resource: [queueArn, dlqArn],
-          },
-          {
-            Effect: "Allow",
-            Action: [
-              "s3:GetObject",
-              "s3:PutObject",
-              "s3:DeleteObject",
-              "s3:GetObjectAcl",
-              "s3:PutObjectAcl",
-            ],
-            Resource: `${imageBucketArn}/*`,
-          },
-        ],
-      })
+    .all([
+      dynamoTable.arn,
+      mainQueue.arn,
+      mainDlq.arn,
+      imageBucket.arn,
+      binaryAssetsBucket.arn,
+    ])
+    .apply(
+      ([tableArn, queueArn, dlqArn, imageBucketArn, binaryAssetsBucketArn]) =>
+        JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Effect: "Allow",
+              Action: [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ],
+              Resource: "arn:aws:logs:*:*:*",
+            },
+            {
+              Effect: "Allow",
+              Action: [
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:Query",
+                "dynamodb:Scan",
+              ],
+              Resource: [tableArn, `${tableArn}/index/*`],
+            },
+            {
+              Effect: "Allow",
+              Action: [
+                "sqs:SendMessage",
+                "sqs:ReceiveMessage",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes",
+              ],
+              Resource: [queueArn, dlqArn],
+            },
+            {
+              Effect: "Allow",
+              Action: [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:GetObjectAcl",
+                "s3:PutObjectAcl",
+              ],
+              Resource: [`${imageBucketArn}/*`, `${binaryAssetsBucketArn}/*`],
+            },
+          ],
+        })
     ),
 });
 
@@ -178,6 +190,21 @@ const schedulerRole = new aws.iam.Role("scheduler-role", {
       },
     ],
   }),
+});
+
+// Upload ImageMagick binaries for both platforms
+const imagemagickArm64Object = new aws.s3.BucketObjectv2("imagemagick-arm64-object", {
+  bucket: binaryAssetsBucket.bucket,
+  key: "imagemagick-arm64.tar.zst",
+  source: new pulumi.asset.FileAsset("../im/imagemagick-arm64.tar.zst"),
+  contentType: "application/zstd",
+});
+
+const imagemagickX64Object = new aws.s3.BucketObjectv2("imagemagick-x64-object", {
+  bucket: binaryAssetsBucket.bucket,
+  key: "imagemagick-x64.tar.zst",
+  source: new pulumi.asset.FileAsset("../im/imagemagick-x64.tar.zst"),
+  contentType: "application/zstd",
 });
 
 // LLRT Layer
@@ -204,6 +231,7 @@ const lambdaFunction = new aws.lambda.Function(
         DYNAMODB_TABLE_NAME: dynamoTable.name,
         QUEUE_URL: mainQueue.url,
         S3_BUCKET_NAME: imageBucket.bucket,
+        BINARY_ASSETS_BUCKET_NAME: binaryAssetsBucket.bucket,
         NODE_ENV: "production",
         LAMBDA: "true",
         GOOGLE_CLIENT_ID:
@@ -411,6 +439,11 @@ if (domainName) {
 export const frontendBucketName = frontendBucket.id;
 export const frontendBucketWebsiteUrl = frontendBucketWebsite.websiteEndpoint;
 export const imageBucketName = imageBucket.id;
+export const binaryAssetsBucketName = binaryAssetsBucket.id;
+export const imagemagickArm64ObjectKey = imagemagickArm64Object.key;
+export const imagemagickX64ObjectKey = imagemagickX64Object.key;
+export const imagemagickArm64ObjectUrl = pulumi.interpolate`https://${binaryAssetsBucket.bucket}.s3.${binaryAssetsBucket.region}.amazonaws.com/${imagemagickArm64Object.key}`;
+export const imagemagickX64ObjectUrl = pulumi.interpolate`https://${binaryAssetsBucket.bucket}.s3.${binaryAssetsBucket.region}.amazonaws.com/${imagemagickX64Object.key}`;
 export const dynamoTableName = dynamoTable.name;
 export const lambdaFunctionName = lambdaFunction.name;
 export const lambdaFunctionUrlEndpoint = lambdaFunctionUrl.functionUrl;
