@@ -2,34 +2,18 @@ import { serve, spawn } from "bun";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { buildLocal } from "../../be/build-script/build-api";
+import { ContainerPool } from "./container-pool";
+import { createHash } from "crypto";
 
 const PORT = process.env.PORT || 3003;
-const LLRT_PATH = process.env.LLRT_PATH || join(__dirname, "../../llrt");
 const BE_PATH = process.env.BE_PATH || join(__dirname, "../../be");
 
-interface PendingRequest {
-  req: Request;
-  resolve: (response: Response) => void;
-}
-
-const requestQueue: PendingRequest[] = [];
-let currentRequest: PendingRequest | null = null;
 let buildContext: any = null;
+let containerPool: ContainerPool | null = null;
+let codeVersion: string = "";
 
-async function checkLLRT(): Promise<boolean> {
-  if (!existsSync(LLRT_PATH)) {
-    console.error(`LLRT binary not found at ${LLRT_PATH}`);
-    console.error(
-      "Please run 'bun download-llrt.ts' from the root directory to download LLRT"
-    );
-    throw new Error("LLRT binary is required but not found");
-  }
-  return true;
-}
 
 async function ensureDockerImage(): Promise<void> {
-  console.log("Checking Docker image...");
-
   // Check if image exists
   const checkProc = spawn(["docker", "images", "-q", "local-lambda"], {
     stdout: "pipe",
@@ -39,8 +23,6 @@ async function ensureDockerImage(): Promise<void> {
   const output = await new Response(checkProc.stdout).text();
 
   if (!output.trim()) {
-    console.log("Docker image not found. Building...");
-
     // Build the image
     const buildProc = spawn(
       ["docker", "build", "-f", "Dockerfile.lambda", "-t", "local-lambda", "."],
@@ -80,10 +62,6 @@ async function ensureDockerImage(): Promise<void> {
     if (buildProc.exitCode !== 0) {
       throw new Error("Failed to build Docker image");
     }
-
-    console.log("Docker image built successfully!");
-  } else {
-    console.log("Docker image found.");
   }
 }
 
@@ -93,234 +71,82 @@ async function setupBuild() {
     mkdirSync(distPath, { recursive: true });
   }
 
+  // Calculate initial code version
+  updateCodeVersion();
+
   // Build with watch mode using the API
   buildContext = await buildLocal(true);
-}
-
-async function executeLLRT(
-  entry: "local-entry" | "local-scheduler-entry",
-  argv2?: string
-) {
-  const useDocker = process.env.USE_DOCKER_LAMBDA !== "false";
-
-  if (useDocker) {
-    // Docker 컨테이너를 통한 실행
-    return await executeLLRTViaDocker(entry, argv2);
-  } else {
-    // 기존 로컬 실행 방식 (fallback)
-    return await executeLLRTLocal(entry, argv2);
-  }
-}
-
-async function executeLLRTViaDocker(
-  entry: "local-entry" | "local-scheduler-entry",
-  argv2?: string
-) {
-  const entryFile = `dist/${entry}.js`;
-
-  // Load .env file from BE directory
-  const envPath = join(BE_PATH, ".env");
-  let envVars = {};
-  if (existsSync(envPath)) {
-    const envContent = readFileSync(envPath, "utf-8");
-    envVars = Object.fromEntries(
-      envContent
-        .split("\n")
-        .filter((line) => line && !line.startsWith("#"))
-        .map((line) => line.split("=").map((s) => s.trim()))
-        .filter(([key, value]) => key && value)
-    );
-  }
-
-  const AWS_ENDPOINT_URL = "http://host.docker.internal:4566";
-
-  const env = {
-    ...process.env,
-    ...envVars,
-    PORT: PORT.toString(),
-    LOCAL_DEV: "1",
-    EMULATOR_ENDPOINT: `http://host.docker.internal:${PORT}`,
-    AWS_ENDPOINT_URL,
-    QUEUE_URL: `${AWS_ENDPOINT_URL}/000000000000/main-queue`,
-  };
-
-  // Docker run 명령어 구성
-  const dockerArgs = [
-    "run",
-    "--rm", // 컨테이너 자동 삭제
-    "--add-host",
-    "host.docker.internal:host-gateway", // macOS에서 호스트 접근을 위해 필요
-    "-v",
-    `${join(BE_PATH, "dist")}:/var/task/dist:ro`, // dist 디렉토리 마운트
-    "-v",
-    `${join(BE_PATH, ".env")}:/var/task/.env:ro`, // .env 파일 마운트
-  ];
-
-  // 환경 변수 추가
-  Object.entries(env).forEach(([key, value]) => {
-    dockerArgs.push("-e", `${key}=${value}`);
-  });
-
-  // 이미지 이름과 실행할 파일
-  dockerArgs.push("local-lambda", entryFile);
-
-  // argv2가 있으면 추가
-  if (argv2) {
-    dockerArgs.push(argv2);
-  }
-
-  // 디버깅을 위해 환경변수 개수 출력
-  console.log(`Docker command with ${Object.keys(env).length} env vars`);
-  console.log("Entry file:", entryFile);
-
-  const proc = spawn(["docker", ...dockerArgs], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  // Capture and display stdout (console.log outputs)
-  const stdoutReader = proc.stdout.getReader();
-  const stderrReader = proc.stderr.getReader();
-
-  // Read stdout in background
-  (async () => {
+  
+  // Set up file watcher for dist directory
+  const watcher = Bun.file(join(BE_PATH, "dist/local-entry.js"));
+  let lastModified = 0;
+  
+  setInterval(async () => {
     try {
-      while (true) {
-        const { done, value } = await stdoutReader.read();
-        if (done) break;
-        const text = new TextDecoder().decode(value);
-        process.stdout.write(text);
+      const stats = await watcher.exists();
+      if (stats) {
+        const currentModified = (await Bun.file(join(BE_PATH, "dist/local-entry.js")).lastModified);
+        if (currentModified > lastModified && lastModified > 0) {
+          console.log("Code change detected, invalidating containers...");
+          updateCodeVersion();
+          if (containerPool) {
+            await containerPool.invalidateAll();
+          }
+        }
+        lastModified = currentModified;
       }
     } catch (e) {
-      // Reader was closed
+      // Ignore errors
     }
-  })();
-
-  // Read stderr in background
-  (async () => {
-    try {
-      while (true) {
-        const { done, value } = await stderrReader.read();
-        if (done) break;
-        const text = new TextDecoder().decode(value);
-        process.stderr.write(text);
-      }
-    } catch (e) {
-      // Reader was closed
-    }
-  })();
-
-  await proc.exited;
-  console.log(`Docker process exited with code: ${proc.exitCode}`);
+  }, 2000); // Check every 2 seconds
 }
 
-async function executeLLRTLocal(
-  entry: "local-entry" | "local-scheduler-entry",
-  argv2?: string
-) {
-  const entryFile = join(BE_PATH, "dist", `${entry}.js`);
-
-  if (!existsSync(entryFile)) {
-    throw new Error(`Entry file not found: ${entryFile}`);
-  }
-
-  // Load .env file from BE directory
-  const envPath = join(BE_PATH, ".env");
-  let envVars = {};
-  if (existsSync(envPath)) {
-    const envContent = readFileSync(envPath, "utf-8");
-    envVars = Object.fromEntries(
-      envContent
-        .split("\n")
-        .filter((line) => line && !line.startsWith("#"))
-        .map((line) => line.split("=").map((s) => s.trim()))
-        .filter(([key, value]) => key && value)
-    );
-  }
-
-  const env = {
-    ...process.env,
-    ...envVars,
-    PORT: PORT.toString(),
-    LOCAL_DEV: "1",
-    // Override localhost URLs for Docker environment
-    ...(process.env.AWS_ENDPOINT_URL && {
-      QUEUE_URL: process.env.AWS_ENDPOINT_URL + "/000000000000/main-queue",
-    }),
-  };
-
-  if (!existsSync(LLRT_PATH)) {
-    throw new Error(`LLRT binary not found at ${LLRT_PATH}`);
-  }
-  const proc = spawn([LLRT_PATH, entryFile, argv2 ?? ""], {
-    env,
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  // Capture and display stdout (console.log outputs)
-  const stdoutReader = proc.stdout.getReader();
-  const stderrReader = proc.stderr.getReader();
-
-  // Read stdout in background
-  (async () => {
-    try {
-      while (true) {
-        const { done, value } = await stdoutReader.read();
-        if (done) break;
-        const text = new TextDecoder().decode(value);
-        process.stdout.write(text);
-      }
-    } catch (e) {
-      // Reader was closed
-    }
-  })();
-
-  // Read stderr in background
-  (async () => {
-    try {
-      while (true) {
-        const { done, value } = await stderrReader.read();
-        if (done) break;
-        const text = new TextDecoder().decode(value);
-        process.stderr.write(text);
-      }
-    } catch (e) {
-      // Reader was closed
-    }
-  })();
-
-  await proc.exited;
-  console.log(`Docker process exited with code: ${proc.exitCode}`);
+function updateCodeVersion() {
+  // Generate a hash based on current timestamp for code version
+  // This ensures all containers started after a rebuild will have a new version
+  codeVersion = Date.now().toString(36);
+  process.env.CODE_VERSION = codeVersion;
+  console.log(`Code version updated: ${codeVersion}`);
 }
+
+
+
 
 serve({
   port: PORT,
+  idleTimeout: 120, // 2분으로 설정 (long polling을 위해)
   async fetch(req) {
     const url = new URL(req.url);
 
-    if (url.pathname === "/__emulator/request") {
-      console.log("Received /__emulator/request");
-      if (!currentRequest) {
-        console.log("No pending request");
-        return new Response("No pending request", { status: 404 });
+    if (url.pathname.startsWith("/__emulator/request/")) {
+      const containerId = url.pathname.split("/").pop()!;
+      
+      // Check container version from query params
+      const containerVersion = url.searchParams.get("version");
+      if (containerVersion && containerVersion !== codeVersion) {
+        // Container is running old code, tell it to shut down
+        return new Response("CODE_VERSION_MISMATCH", { status: 410 });
       }
-
-      const requestData = {
-        method: currentRequest.req.method,
-        url: currentRequest.req.url,
-        headers: Object.fromEntries(currentRequest.req.headers.entries()),
-        body: await currentRequest.req.text(),
-      };
-
-      return Response.json(requestData);
+      
+      // ContainerPool에서 이 컨테이너의 요청을 가져옴
+      if (!containerPool) {
+        return new Response("Service not ready", { status: 503 });
+      }
+      
+      const request = containerPool.getRequestForContainer(containerId);
+      if (request) {
+        return Response.json(request);
+      }
+      
+      // 요청이 없으면 long polling - 대기
+      return containerPool.waitForRequest(containerId);
     }
 
-    if (url.pathname === "/__emulator/response") {
-      console.log("Received /__emulator/response");
-      if (!currentRequest) {
-        console.log("No current request to respond to");
-        return new Response("No pending request", { status: 404 });
+    if (url.pathname.startsWith("/__emulator/response/")) {
+      const containerId = url.pathname.split("/").pop()!;
+      
+      if (!containerPool) {
+        return new Response("Service not ready", { status: 503 });
       }
 
       const responseData = (await req.json()) as {
@@ -330,110 +156,101 @@ serve({
         status: number;
       };
 
-      // Handle cookies from Lambda response
-      const responseHeaders = { ...responseData.headers };
-      if (responseData.cookies && responseData.cookies.length > 0) {
-        responseHeaders["Set-Cookie"] = responseData.cookies
-          .map((cookie) => `${cookie.split("=")[0]}=${cookie.split("=")[1]}`)
-          .join("; ");
-      }
-
-      const response = new Response(responseData.body, {
-        status: responseData.status,
-        headers: responseHeaders,
-      });
-
-      currentRequest.resolve(response);
-      currentRequest = null;
-
-      // Process next request in queue
-      if (requestQueue.length > 0) {
-        console.log(
-          `Processing next request from queue. Remaining: ${requestQueue.length - 1}`
-        );
-        currentRequest = requestQueue.shift()!;
-        executeLLRT("local-entry").catch((error) => {
-          console.error("LLRT execution error:", error);
-          if (currentRequest) {
-            currentRequest.resolve(
-              new Response("Internal Server Error", { status: 500 })
-            );
-            currentRequest = null;
-          }
-        });
-      }
-
+      // ContainerPool에 응답 전달
+      containerPool.handleResponse(containerId, responseData);
+      
       return new Response("OK");
     }
 
-    // Regular request - add to queue
-    console.log(`Received request: ${req.method} ${req.url}`);
-    return new Promise<Response>((resolve) => {
-      const pending = { req, resolve };
-
-      if (!currentRequest) {
-        console.log("Starting Lambda execution for API request...");
-        currentRequest = pending;
-        executeLLRT("local-entry").catch((error) => {
-          console.error("LLRT execution error:", error);
-          if (currentRequest) {
-            currentRequest.resolve(
-              new Response("Internal Server Error", { status: 500 })
-            );
-            currentRequest = null;
-          }
-        });
-      } else {
-        console.log(`Request queued. Queue length: ${requestQueue.length + 1}`);
-        requestQueue.push(pending);
-      }
-
-      setTimeout(() => {
-        if (currentRequest === pending) {
-          currentRequest = null;
-          resolve(new Response("Request timeout", { status: 504 }));
-        } else {
-          const index = requestQueue.indexOf(pending);
-          if (index !== -1) {
-            requestQueue.splice(index, 1);
-            resolve(new Response("Request timeout", { status: 504 }));
-          }
-        }
-      }, 30000);
-    });
+    // Regular request - ContainerPool이 처리
+    if (!containerPool) {
+      return new Response("Service not ready", { status: 503 });
+    }
+    
+    const body = await req.text();
+    const requestData = {
+      method: req.method,
+      url: req.url,
+      headers: Object.fromEntries(req.headers.entries()),
+      body,
+    };
+    
+    return containerPool.handleRequest(requestData);
   },
 });
 
-function startScheduler() {
-  setInterval(() => {
-    executeLLRT(
-      "local-scheduler-entry",
-      JSON.stringify({ type: "verifyPayments", body: JSON.stringify({}) })
-    ).catch((error) => {
-      console.error("LLRT execution error:", error);
-    });
-  }, 10 * 1000);
+
+// 시작 전 기존 컨테이너 정리
+async function cleanupExistingContainers() {
+  console.log("Cleaning up existing containers...");
+  const proc = spawn(["docker", "ps", "-aq", "-f", "name=lambda-"], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  
+  const output = await new Response(proc.stdout).text();
+  const containerIds = output.trim().split('\n').filter(id => id);
+  
+  if (containerIds.length > 0 && containerIds[0] !== '') {
+    console.log(`Found ${containerIds.length} existing containers to clean up`);
+    // Force remove all containers (stop + rm in one command)
+    try {
+      await spawn(["docker", "rm", "-f", ...containerIds]).exited;
+      console.log(`Cleaned up ${containerIds.length} existing containers`);
+    } catch (e) {
+      console.error("Error cleaning up containers:", e);
+    }
+  }
 }
 
 console.log(`Local Lambda Emulator running on http://localhost:${PORT}`);
 
-const useDocker = process.env.USE_DOCKER_LAMBDA !== "false";
-if (useDocker) {
-  console.log("Using Docker for Lambda execution");
-  await ensureDockerImage();
-} else {
-  console.log("Using local LLRT for Lambda execution");
-  await checkLLRT();
-}
+// 시작 전 기존 컨테이너 정리
+await cleanupExistingContainers();
+
+// 항상 Docker 사용
+await ensureDockerImage();
+
+// 코드 버전 초기화 (컨테이너 생성 전에 필요)
+updateCodeVersion();
+
+// 코드 버전을 환경변수로 설정
+process.env.CODE_VERSION = codeVersion;
+
+containerPool = new ContainerPool({
+  minSize: 2,
+  maxSize: 10,
+});
+await containerPool.initialize();
 
 await setupBuild();
-// startScheduler(); // 디버깅을 위해 임시로 비활성화
 
 // Cleanup on exit
-process.on("SIGINT", async () => {
+const cleanup = async () => {
   console.log("\nShutting down...");
   if (buildContext) {
     await buildContext.dispose();
   }
+  if (containerPool) {
+    await containerPool.shutdown();
+  }
   process.exit(0);
+};
+
+process.on("SIGINT", cleanup);
+process.on("SIGTERM", cleanup);
+process.on("exit", () => {
+  // 동기적으로 컨테이너 정리 시도
+  try {
+    const proc = Bun.spawnSync(["docker", "ps", "-q", "-f", "name=lambda-"]);
+    if (proc.stdout) {
+      const output = proc.stdout.toString();
+      const containerIds = output.trim().split('\n').filter((id: string) => id);
+      if (containerIds.length > 0) {
+        Bun.spawnSync(["docker", "stop", ...containerIds]);
+      }
+    }
+  } catch (e) {
+    // 종료 시 오류 무시
+  }
 });

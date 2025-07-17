@@ -8,7 +8,6 @@ export const schemaPlugin: Plugin = {
   setup(build) {
     // Run before build starts
     build.onStart(() => {
-      console.log('🔧 Generating database schema...');
       
       try {
         // Use absWorkingDir if available, otherwise fall back to process.cwd()
@@ -18,7 +17,6 @@ export const schemaPlugin: Plugin = {
         
         // Check if schema file exists
         if (!existsSync(schemaPath)) {
-          console.warn('⚠️  Schema file not found at src/schema.ts');
           return;
         }
         
@@ -29,7 +27,6 @@ export const schemaPlugin: Plugin = {
         generateSchema(schemaPath, outputPath);
         
       } catch (error) {
-        console.error('❌ Schema generation failed:', error);
         throw error; // Fail the build if schema generation fails
       }
     });

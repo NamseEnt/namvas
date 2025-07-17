@@ -8,7 +8,7 @@ const redirectUri =
 
 export const s3ClientConfig = isLocalDev()
   ? {
-      endpoint: "http://localhost:4566",
+      endpoint: process.env.AWS_ENDPOINT_URL || "http://localhost:4566",
       region: "us-east-1",
       credentials: {
         accessKeyId: "test",
