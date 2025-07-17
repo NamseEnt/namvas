@@ -56,24 +56,14 @@ export const s3 = {
     await s3Client.send(command);
   },
 
-  async getObject(key: string): Promise<Buffer> {
+  async getObject(key: string): Promise<Uint8Array | undefined> {
     const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
     });
 
     const response = await s3Client.send(command);
-    if (!response.Body) {
-      throw new Error(`Object not found: ${key}`);
-    }
-
-    const chunks: Uint8Array[] = [];
-    const stream = response.Body as any;
-
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-
-    return Buffer.concat(chunks);
+    // llrt doesn't support streaming blob payload output types
+    return response.Body as unknown as Uint8Array | undefined;
   },
 };

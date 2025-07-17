@@ -1,10 +1,17 @@
 import { Upload } from "lucide-react";
-import { useContext } from "react";
-import { StudioContext } from "../StudioContext";
 
-export function UploadArea() {
-  const { onDragDrop, onDragOver, handleImageUpload } =
-    useContext(StudioContext);
+export function UploadArea({ onFile }: { onFile: (file: File) => void }) {
+  const onDragDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith("image/")) {
+      onFile(files[0]);
+    }
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
   return (
     <div
       className={`
@@ -19,10 +26,8 @@ export function UploadArea() {
       <label className="cursor-pointer w-full max-w-md lg:max-w-lg">
         <input
           type="file"
-          accept="image/*"
-          onChange={(e) =>
-            e.target.files?.[0] && handleImageUpload(e.target.files[0])
-          }
+          accept="image/*,.psd"
+          onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
           className="hidden"
         />
         <div
@@ -41,6 +46,9 @@ export function UploadArea() {
             여기에 사진을 드래그 앤 드롭 하거나
             <br />
             클릭하여 업로드하세요
+          </p>
+          <p className="text-gray-500 text-xs lg:text-sm mt-2">
+            JPG, PNG, PSD 파일을 지원합니다
           </p>
         </div>
       </label>

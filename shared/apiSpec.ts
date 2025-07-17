@@ -233,4 +233,32 @@ export type ApiSpec = {
           reason: "NOT_DEVELOPMENT_ENV";
         };
   };
+  getPsdToJpgConvertPutUrl: {
+    req: {
+      contentLength: number;
+    };
+    res:
+      | {
+          ok: true;
+          uploadUrl: string;
+          conversionId: string;
+        }
+      | {
+          ok: false;
+          reason: "FILE_TOO_LARGE";
+        };
+  };
+  convertPsdToJpg: {
+    req: {
+      conversionId: string;
+    };
+    res:
+      | {
+          ok: true;
+        }
+      | {
+          ok: false;
+          reason: "CONVERSION_NOT_FOUND" | "CONVERSION_FAILED";
+        };
+  };
 };

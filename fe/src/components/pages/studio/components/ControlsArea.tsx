@@ -33,34 +33,27 @@ export function ControlsArea() {
       overflow-y-auto
     "
     >
-      {/* 데스크톱: 상세 컨트롤 */}
       <div className="hidden lg:flex flex-col gap-6">
-        {/* 이미지 변경 */}
-        {state.uploadedImage && (
-          <div>
-            <Label className="text-sm font-medium mb-2 block">
-              이미지 변경
-            </Label>
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  e.target.files?.[0] && handleImageUpload(e.target.files[0])
-                }
-                className="hidden"
-              />
-              <Button variant="outline" className="w-full" asChild>
-                <div>
-                  <Upload className="w-4 h-4 mr-2" />
-                  다른 이미지 선택
-                </div>
-              </Button>
-            </label>
-          </div>
-        )}
+        <div>
+          <Label className="text-sm font-medium mb-2 block">이미지 변경</Label>
+          <label className="cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) =>
+                e.target.files?.[0] && handleImageUpload(e.target.files[0])
+              }
+              className="hidden"
+            />
+            <Button variant="outline" className="w-full" asChild>
+              <div>
+                <Upload className="w-4 h-4 mr-2" />
+                다른 이미지 선택
+              </div>
+            </Button>
+          </label>
+        </div>
 
-        {/* 카메라 각도 */}
         <div>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-sm font-medium text-gray-700">카메라</span>
@@ -78,8 +71,8 @@ export function ControlsArea() {
                 }
                 size="sm"
                 onClick={() =>
-                  updateState((prev) => {
-                    prev.rotation = preset.rotation;
+                  updateState((state) => {
+                    state.rotation = preset.rotation;
                   })
                 }
               >
@@ -99,8 +92,8 @@ export function ControlsArea() {
             value={state.sideMode}
             onValueChange={(value) =>
               value &&
-              updateState((prev) => {
-                prev.sideMode = value as SideMode;
+              updateState((state) => {
+                state.sideMode = value as SideMode;
               })
             }
             className="grid grid-cols-3 gap-2"
@@ -129,34 +122,32 @@ export function ControlsArea() {
           </ToggleGroup>
         </div>
 
-        {state.uploadedImage && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Label className="text-sm font-medium">위치</Label>
-              <div className="h-4 w-px bg-gray-300" />
-            </div>
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-xs text-gray-600">좌우 이동</span>
-                <span className="text-xs text-gray-600">
-                  {(state.imageOffset.x * 100).toFixed(0)}%
-                </span>
-              </div>
-              <Slider
-                value={[state.imageOffset.x]}
-                onValueChange={([value]) =>
-                  updateState((prev) => {
-                    prev.imageOffset = { x: value, y: 0 };
-                  })
-                }
-                min={-1}
-                max={1}
-                step={0.01}
-                className="w-full"
-              />
-            </div>
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Label className="text-sm font-medium">위치</Label>
+            <div className="h-4 w-px bg-gray-300" />
           </div>
-        )}
+          <div>
+            <div className="flex justify-between mb-2">
+              <span className="text-xs text-gray-600">좌우 이동</span>
+              <span className="text-xs text-gray-600">
+                {(state.imageOffset.x * 100).toFixed(0)}%
+              </span>
+            </div>
+            <Slider
+              value={[state.imageOffset.x]}
+              onValueChange={([value]) =>
+                updateState((state) => {
+                  state.imageOffset = { x: value, y: 0 };
+                })
+              }
+              min={-1}
+              max={1}
+              step={0.01}
+              className="w-full"
+            />
+          </div>
+        </div>
 
         <div className="mt-auto space-y-3">
           <div className="flex gap-3">
@@ -169,7 +160,7 @@ export function ControlsArea() {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!state.uploadedImage || state.isSaving}
+              disabled={state.isSaving}
               className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
             >
               {state.isSaving ? "저장 중..." : "저장하기"}
@@ -188,34 +179,25 @@ export function ControlsArea() {
             }
             className="hidden"
           />
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-12 h-12"
-            asChild
-          >
-            <div>
-              🖼️
-            </div>
+          <Button variant="outline" size="sm" className="w-12 h-12" asChild>
+            <div>🖼️</div>
           </Button>
         </label>
 
-        {state.uploadedImage && (
-          <div className="flex-1 mx-4">
-            <Slider
-              value={[state.imageOffset.x]}
-              onValueChange={([value]) =>
-                updateState((prev) => {
-                  prev.imageOffset = { x: value, y: 0 };
-                })
-              }
-              min={-1}
-              max={1}
-              step={0.01}
-              className="w-full"
-            />
-          </div>
-        )}
+        <div className="flex-1 mx-4">
+          <Slider
+            value={[state.imageOffset.x]}
+            onValueChange={([value]) =>
+              updateState((state) => {
+                state.imageOffset = { x: value, y: 0 };
+              })
+            }
+            min={-1}
+            max={1}
+            step={0.01}
+            className="w-full"
+          />
+        </div>
 
         <div className="flex items-center gap-2">
           <ToggleGroup
@@ -223,8 +205,8 @@ export function ControlsArea() {
             value={state.sideMode}
             onValueChange={(value) =>
               value &&
-              updateState((prev) => {
-                prev.sideMode = value as SideMode;
+              updateState((state) => {
+                state.sideMode = value as SideMode;
               })
             }
             className="flex"

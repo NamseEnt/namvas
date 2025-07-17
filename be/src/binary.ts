@@ -1,31 +1,35 @@
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { isLocalDev } from "./isLocalDev";
 import { s3ClientConfig } from "./config";
+import { SpawnOptions } from "child_process";
 
 const s3Client = new S3Client(s3ClientConfig);
+const IMAGEMAGICK_PATH = `/tmp/imagemagick-${getLambdaArchitecture()}`;
+const IMAGEMAGICK_BINARY_PATH = `${IMAGEMAGICK_PATH}/bin/magick`;
+const IMAGEMAGICK_LD_LIBRARY_PATH = `${IMAGEMAGICK_PATH}/lib`;
 
-export async function imagick(args: string[]): Promise<number> {
+export async function imagick(
+  args: string[],
+  stdin?: Uint8Array
+): Promise<number> {
   const exists = await checkImageMagickExists();
 
   if (!exists) {
     await downloadAndExtractImageMagick();
   }
 
-  try {
-    const { spawnSync } = await import("child_process");
-    const result = spawnSync(IMAGEMAGICK_BINARY_PATH, args, {
+  return await spawnAsync(
+    IMAGEMAGICK_BINARY_PATH,
+    args,
+    {
       stdio: "pipe",
       env: {
         ...process.env,
-        LD_LIBRARY_PATH: `/tmp/imagemagick/lib:${process.env.LD_LIBRARY_PATH || ""}`,
+        LD_LIBRARY_PATH: `${IMAGEMAGICK_LD_LIBRARY_PATH}:${process.env.LD_LIBRARY_PATH || ""}`,
       },
-    });
-
-    return result.status || 0;
-  } catch (error) {
-    console.error("Failed to execute ImageMagick:", error);
-    return 1;
-  }
+    },
+    stdin
+  );
 }
 
 const BINARY_ASSETS_BUCKET_NAME =
@@ -44,8 +48,6 @@ function getLambdaArchitecture(): string {
   }
 }
 
-const IMAGEMAGICK_BINARY_PATH = "/tmp/imagemagick/bin/magick";
-
 async function downloadAndExtractImageMagick() {
   if (!BINARY_ASSETS_BUCKET_NAME) {
     throw new Error("BINARY_ASSETS_BUCKET_NAME is not configured");
@@ -62,26 +64,15 @@ async function downloadAndExtractImageMagick() {
     throw new Error(`Failed to download imagemagick-${arch}.tar.zst from S3`);
   }
 
-  const { spawn } = await import("child_process");
-
-  const tarProcess = spawn("tar", ["--zstd", "-xf", "-", "-C", "/tmp"], {
-    stdio: ["pipe", "pipe", "inherit"],
-  });
-
-  for await (const chunk of response.Body.transformToWebStream()) {
-    tarProcess.stdin.write(chunk);
-  }
-  tarProcess.stdin.end();
-
-  return new Promise<void>((resolve, reject) => {
-    tarProcess.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`tar process exited with code ${code}`));
-      }
-    });
-  });
+  return await spawnAsync(
+    "tar",
+    ["--zstd", "-xmf", "-", "-C", "/tmp"],
+    {
+      stdio: ["pipe", "pipe", "inherit"],
+    },
+    // llrt doesn't support streaming blob payload input types
+    response.Body as unknown as Uint8Array
+  );
 }
 
 async function checkImageMagickExists(): Promise<boolean> {
@@ -92,4 +83,27 @@ async function checkImageMagickExists(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function spawnAsync(
+  command: string,
+  args: string[],
+  options: SpawnOptions,
+  input?: Uint8Array
+): Promise<number> {
+  const { spawn } = await import("child_process");
+  const process = spawn(command, args, {
+    stdio: ["pipe", "inherit", "inherit"],
+  });
+
+  if (input) {
+    process.stdin.write(input);
+    process.stdin.end();
+  }
+
+  return new Promise<number>((resolve) => {
+    process.on("close", (code) => {
+      resolve(code || 0);
+    });
+  });
 }

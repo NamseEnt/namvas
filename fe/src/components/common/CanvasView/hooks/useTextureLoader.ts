@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import * as THREE from "three";
+import { getImageUrl } from "@/lib/config";
+import { isPsdContentType } from "@/utils/isPsdFile";
 
 export function useTextureLoader(imageSource: string | File):
   | {
@@ -27,7 +29,7 @@ export function useTextureLoader(imageSource: string | File):
             ? await createImageBitmap(imageSource, {
                 imageOrientation: "flipY",
               })
-            : await loadImageFromUrl(imageSource);
+            : await loadImageFromUrlWithPsdDetection(imageSource);
 
         const texture = new THREE.Texture(image);
         texture.needsUpdate = true;
@@ -52,6 +54,57 @@ export function useTextureLoader(imageSource: string | File):
     : error
       ? { type: "error", error }
       : { type: "success", texture: texture! };
+}
+
+async function loadImageFromUrlWithPsdDetection(
+  url: string
+): Promise<HTMLImageElement> {
+  const response = await fetch(url, {
+    mode: "cors",
+    headers: {
+      "x-amz-checksum-mode": "ENABLED",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image: ${response.status}`);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+
+  if (isPsdContentType(contentType)) {
+    const checksumSha256 = response.headers.get("x-amz-checksum-sha256");
+    if (!checksumSha256) {
+      throw new Error(
+        "PSD file found but no checksumSha256 available for sha256 extraction"
+      );
+    }
+
+    const jpgUrl = getPsdConvertedJpgUrl(checksumSha256);
+
+    return loadImageFromUrl(jpgUrl);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error(`Failed to load image from ${url}`));
+    };
+    img.src = objectUrl;
+  });
+}
+
+function getPsdConvertedJpgUrl(hash: string): string {
+  return getImageUrl(`psd-converted/${hash}.jpg`);
 }
 
 function loadImageFromUrl(url: string): Promise<HTMLImageElement> {

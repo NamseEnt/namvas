@@ -13,3 +13,4 @@ services:
       - PERSIST=0
     volumes:
       - ./localstack-init:/etc/localstack/init/ready.d
+      - ./im:/im:ro  # ImageMagick 바이너리 디렉토리 마운트
