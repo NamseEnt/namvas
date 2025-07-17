@@ -1,26 +1,17 @@
-import {
-  ParsedSchema,
-  DocumentDefinition,
-  IndexDefinition,
-  OwnershipRelation,
-  FieldDefinition,
-} from "./schema-types.js";
+import { ParsedSchema, DocumentDefinition, IndexDefinition, OwnershipRelation, FieldDefinition } from './schema-types.js';
 
 function generateTransactionBuilderMethods(schema: ParsedSchema): string {
   const methods: string[] = [];
-
+  
   // Generate create methods
   for (const [docName, docDef] of schema.documents) {
     const typeName = capitalizeFirst(docName);
-    const baseName = docName
-      .replace(/Doc$/, "")
-      .toLowerCase()
-      .replace(/list$/, "");
-
+    const baseName = docName.replace(/Doc$/, '').toLowerCase().replace(/list$/, '');
+    
     // Check if this is a List type
     if (docDef.isList) {
       // For List types, pk is fixed and sk is required
-      const listItemName = baseName + "item";
+      const listItemName = baseName + 'item';
       methods.push(`  create${typeName}(${listItemName}: Omit<Schema.${docName}, '$v'>) {
     this.operations.push({ 
       _type: 'create-${baseName.toLowerCase()}' as const, 
@@ -30,10 +21,8 @@ function generateTransactionBuilderMethods(schema: ParsedSchema): string {
   }`);
     } else {
       // Check if this document has ownership relations
-      const ownership = schema.ownerships.find(
-        (o) => o.ownedDocument === docName
-      );
-
+      const ownership = schema.ownerships.find(o => o.ownedDocument === docName);
+      
       if (ownership) {
         // For owned documents, need owner parameter
         methods.push(`  create${typeName}(${baseName}: Omit<Schema.${docName}, '$v'>, forUser: {id: string}) {
@@ -56,29 +45,27 @@ function generateTransactionBuilderMethods(schema: ParsedSchema): string {
       }
     }
   }
-
+  
   // Generate update methods
   for (const [docName, docDef] of schema.documents) {
     const typeName = capitalizeFirst(docName);
-    const baseName = docName
-      .replace(/Doc$/, "")
-      .toLowerCase()
-      .replace(/list$/, "");
+    const baseName = docName.replace(/Doc$/, '').toLowerCase().replace(/list$/, '');
     const pkFields = findPrimaryKeyFields(docDef);
     const skFields = findSortKeyFields(docDef);
-
+    
     if (pkFields.length === 0 && !docDef.isList) continue;
-
+    
     if (docDef.isList) {
       // For List types, fixed pk + sk pattern
       if (skFields.length === 0) {
-        throw new Error(`List type ${docName} must have a sort key field`);
+        console.warn(`List type ${docName} must have a sort key field`);
+        continue;
       }
-
+      
       const skField = skFields[0];
-      const listItemName = baseName + "item";
+      const listItemName = baseName + 'item';
       const paramName = `${listItemName}${capitalizeFirst(skField.name)}`;
-
+      
       methods.push(`  update${typeName}(${listItemName}OrUpdater: Schema.${docName} | ((${listItemName}: Schema.${docName}) => Schema.${docName}), ${paramName}?: ${getTypeScriptType(skField.type)}) {
     if (typeof ${listItemName}OrUpdater === 'function') {
       if (!${paramName}) {
@@ -102,33 +89,27 @@ function generateTransactionBuilderMethods(schema: ParsedSchema): string {
     } else {
       // Regular document update logic
       // Generate parameter for function-based updates
-      let functionParams = "";
-      let functionParamMappings = "";
-
+      let functionParams = '';
+      let functionParamMappings = '';
+      
       if (pkFields.length === 1) {
         const paramName = `${baseName}${capitalizeFirst(pkFields[0].name)}`;
         functionParams = `${paramName}?: ${getTypeScriptType(pkFields[0].type)}`;
         functionParamMappings = `        ${pkFields[0].name}: ${paramName}`;
       } else {
         // For composite keys, use individual parameters
-        functionParams = pkFields
-          .map((f) => `${f.name}?: ${getTypeScriptType(f.type)}`)
-          .join(", ");
-        functionParamMappings = pkFields
-          .map((f) => `        ${f.name}: ${f.name}`)
-          .join(",\n");
+        functionParams = pkFields.map(f => `${f.name}?: ${getTypeScriptType(f.type)}`).join(', ');
+        functionParamMappings = pkFields.map(f => `        ${f.name}: ${f.name}`).join(',\n');
       }
-
-      const functionCheck =
-        pkFields.length === 1
-          ? `!${baseName}${capitalizeFirst(pkFields[0].name)}`
-          : pkFields.map((f) => `!${f.name}`).join(" || ");
-
-      const functionError =
-        pkFields.length === 1
-          ? `'${baseName}${capitalizeFirst(pkFields[0].name)} is required for function-based updates'`
-          : `'${pkFields.map((f) => f.name).join(" and ")} are required for function-based updates'`;
-
+      
+      const functionCheck = pkFields.length === 1 
+        ? `!${baseName}${capitalizeFirst(pkFields[0].name)}` 
+        : pkFields.map(f => `!${f.name}`).join(' || ');
+        
+      const functionError = pkFields.length === 1
+        ? `'${baseName}${capitalizeFirst(pkFields[0].name)} is required for function-based updates'`
+        : `'${pkFields.map(f => f.name).join(' and ')} are required for function-based updates'`;
+      
       methods.push(`  update${typeName}(${baseName}OrUpdater: Schema.${docName} | ((${baseName}: Schema.${docName}) => Schema.${docName}), ${functionParams}) {
     if (typeof ${baseName}OrUpdater === 'function') {
       if (${functionCheck}) {
@@ -151,26 +132,23 @@ ${functionParamMappings}
   }`);
     }
   }
-
+  
   // Generate delete methods
   for (const [docName, docDef] of schema.documents) {
     const typeName = capitalizeFirst(docName);
-    const baseName = docName
-      .replace(/Doc$/, "")
-      .toLowerCase()
-      .replace(/list$/, "");
+    const baseName = docName.replace(/Doc$/, '').toLowerCase().replace(/list$/, '');
     const pkFields = findPrimaryKeyFields(docDef);
     const skFields = findSortKeyFields(docDef);
-
+    
     if (pkFields.length === 0 && !docDef.isList) continue;
-
+    
     if (docDef.isList) {
       // For List types, delete by sort key
       if (skFields.length === 0) {
-        throw new Error(`List type ${docName} must have a sort key field`);
+        console.warn(`List type ${docName} must have a sort key field`);
         continue;
       }
-
+      
       const skField = skFields[0];
       methods.push(`  delete${typeName}(${skField.name}: ${getTypeScriptType(skField.type)}) {
     this.operations.push({ 
@@ -182,18 +160,13 @@ ${functionParamMappings}
     } else {
       // Regular document delete logic
       // Check if this document has indexes that need cleanup
-      const relatedIndexes = Array.from(schema.indexes.values()).filter(
-        (idx) => idx.itemDocument === docName
-      );
-
+      const relatedIndexes = Array.from(schema.indexes.values()).filter(idx => idx.itemDocument === docName);
+      
       if (pkFields.length === 1) {
         const pkField = pkFields[0];
         if (relatedIndexes.length > 0) {
           // Need owner field for index cleanup
-          const ownerField = findOwnerFieldFromSchema(
-            docDef,
-            schema.ownerships
-          );
+          const ownerField = findOwnerFieldFromSchema(docDef, schema.ownerships);
           if (ownerField) {
             methods.push(`  delete${typeName}(${pkField.name}: ${getTypeScriptType(pkField.type)}, ${ownerField}?: string) {
     this.operations.push({ 
@@ -223,11 +196,9 @@ ${functionParamMappings}
         }
       } else {
         // Composite primary key
-        const params = pkFields
-          .map((f) => `${f.name}: ${getTypeScriptType(f.type)}`)
-          .join(", ");
-        const ops = pkFields.map((f) => f.name).join(",\n      ");
-
+        const params = pkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
+        const ops = pkFields.map(f => f.name).join(',\n      ');
+        
         methods.push(`  delete${typeName}(${params}) {
     this.operations.push({ 
       _type: 'delete-${baseName}' as const, 
@@ -238,15 +209,12 @@ ${functionParamMappings}
       }
     }
   }
-
-  return methods.join("\n  \n");
+  
+  return methods.join('\n  \n');
 }
 
-function findOwnerFieldFromSchema(
-  docDef: DocumentDefinition,
-  ownerships: OwnershipRelation[]
-): string | null {
-  const ownership = ownerships.find((o) => o.ownedDocument === docDef.name);
+function findOwnerFieldFromSchema(docDef: DocumentDefinition, ownerships: OwnershipRelation[]): string | null {
+  const ownership = ownerships.find(o => o.ownedDocument === docDef.name);
   return ownership ? ownership.ownerField : null;
 }
 
@@ -320,16 +288,16 @@ const client = DynamoDBDocument.from(new DynamoDBClient(clientConfig));
 `;
 
   // Generate ddb object with CRUD functions
-  output += "export const ddb = {\n";
-
+  output += 'export const ddb = {\n';
+  
   const functions: string[] = [];
-
+  
   // Add the transaction write function first
   functions.push(generateTransactionWriteFunction(schema));
-
+  
   // Add tx function that uses builder pattern
   functions.push(generateTxFunction());
-
+  
   for (const [docName, docDef] of schema.documents) {
     const typeName = capitalizeFirst(docName);
     const pkFields = findPrimaryKeyFields(docDef);
@@ -338,114 +306,71 @@ const client = DynamoDBDocument.from(new DynamoDBClient(clientConfig));
     if (docDef.isList) {
       // List type handling
       if (skFields.length === 0) {
-        throw new Error(`List type ${docName} must have a sort key field`);
+        console.warn(`List type ${docName} must have a sort key field`);
+        continue;
       }
-
+      
       // Generate List-specific functions
       functions.push(generateListGetFunction(docName, typeName, skFields[0]));
-      functions.push(
-        generateListUpdateFunction(docName, typeName, skFields[0])
-      );
-      functions.push(
-        generateListDeleteFunction(docName, typeName, skFields[0])
-      );
+      functions.push(generateListUpdateFunction(docName, typeName, skFields[0]));
+      functions.push(generateListDeleteFunction(docName, typeName, skFields[0]));
       functions.push(generateListQueryFunction(docName, typeName));
-      functions.push(
-        generateListTransactionHelperFunctions(docName, typeName, skFields[0])
-      );
+      functions.push(generateListTransactionHelperFunctions(docName, typeName, skFields[0]));
     } else {
       // Regular document handling
       if (pkFields.length === 0) {
-        throw new Error(`No primary key found for document: ${docName}`);
+        console.warn(`No primary key found for document: ${docName}`);
+        continue;
       }
 
       // Generate get function with migration
       functions.push(generateGetFunction(docName, typeName, pkFields));
 
       // Generate update function
-      functions.push(
-        generateUpdateFunction(
-          docName,
-          typeName,
-          pkFields,
-          schema.indexes,
-          schema
-        )
-      );
+      functions.push(generateUpdateFunction(docName, typeName, pkFields, schema.indexes, schema));
 
       // Generate delete function
-      functions.push(
-        generateDeleteFunction(
-          docName,
-          typeName,
-          pkFields,
-          schema.indexes,
-          schema
-        )
-      );
-
+      functions.push(generateDeleteFunction(docName, typeName, pkFields, schema.indexes, schema));
+      
       // Generate transaction item helper functions
-      functions.push(
-        generateTransactionHelperFunctions(
-          docName,
-          typeName,
-          pkFields,
-          schema.indexes,
-          schema
-        )
-      );
+      functions.push(generateTransactionHelperFunctions(docName, typeName, pkFields, schema.indexes, schema));
     }
   }
-
+  
   // Generate query functions for indexes
   for (const [indexName, indexDef] of schema.indexes) {
     const ownerDoc = schema.documents.get(indexDef.ownerDocument);
     const itemDoc = schema.documents.get(indexDef.itemDocument);
-
+    
     if (ownerDoc && itemDoc) {
-      functions.push(
-        generateQueryFunction(indexName, indexDef, ownerDoc, itemDoc)
-      );
+      functions.push(generateQueryFunction(indexName, indexDef, ownerDoc, itemDoc));
     }
   }
-
+  
   // Generate transactional create functions for owned documents
   for (const ownership of schema.ownerships) {
     const ownerDoc = schema.documents.get(ownership.ownerDocument);
     const ownedDoc = schema.documents.get(ownership.ownedDocument);
-
+    
     if (ownerDoc && ownedDoc) {
-      functions.push(
-        generateTransactionalCreateFunction(
-          ownership,
-          ownerDoc,
-          ownedDoc,
-          schema
-        )
-      );
-      functions.push(
-        generateTransactionalCreateHelperFunction(ownership, ownerDoc, ownedDoc)
-      );
+      functions.push(generateTransactionalCreateFunction(ownership, ownerDoc, ownedDoc, schema));
+      functions.push(generateTransactionalCreateHelperFunction(ownership, ownerDoc, ownedDoc));
     }
   }
-
-  output += functions.join(",\n\n");
-  output += "\n};\n";
+  
+  
+  output += functions.join(',\n\n');
+  output += '\n};\n';
 
   return output;
 }
 
-function generateGetFunction(
-  docName: string,
-  typeName: string,
-  pkFields: any[]
-): string {
-  const keyParams = pkFields
-    .map((f) => `${f.name}: ${getTypeScriptType(f.type)}`)
-    .join(", ");
-  const keyObject = pkFields.map((f) => f.name).join(", ");
-  const keyString = pkFields.map((f) => `${f.name}=\${${f.name}}`).join("/");
 
+function generateGetFunction(docName: string, typeName: string, pkFields: any[]): string {
+  const keyParams = pkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
+  const keyObject = pkFields.map(f => f.name).join(', ');
+  const keyString = pkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
+  
   return `  async get${typeName}({${keyObject}}: {${keyParams}}): Promise<Schema.${docName} | undefined> {
     const result = await client.get({
       TableName: config.DYNAMODB_TABLE_NAME,
@@ -465,24 +390,14 @@ function generateGetFunction(
   }`;
 }
 
-function generateUpdateFunction(
-  docName: string,
-  typeName: string,
-  pkFields: any[],
-  indexes: Map<string, IndexDefinition>,
-  schema: ParsedSchema
-): string {
-  const baseName = docName.replace(/Doc$/, "").toLowerCase();
-  const keyString = pkFields
-    .map((f) => `${f.name}=\${${baseName}.${f.name}}`)
-    .join("/");
-
+function generateUpdateFunction(docName: string, typeName: string, pkFields: any[], indexes: Map<string, IndexDefinition>, schema: ParsedSchema): string {
+  const baseName = docName.replace(/Doc$/, '').toLowerCase();
+  const keyString = pkFields.map(f => `${f.name}=\${${baseName}.${f.name}}`).join('/');
+  
   // Check if this document has ownership relations and indexes that need updating
-  const relatedIndexes = Array.from(indexes.values()).filter(
-    (idx) => idx.itemDocument === docName
-  );
-  const ownership = schema.ownerships.find((o) => o.ownedDocument === docName);
-
+  const relatedIndexes = Array.from(indexes.values()).filter(idx => idx.itemDocument === docName);
+  const ownership = schema.ownerships.find(o => o.ownedDocument === docName);
+  
   let updateOperations = `    await client.put({
       TableName: config.DYNAMODB_TABLE_NAME,
       Item: {
@@ -494,17 +409,14 @@ function generateUpdateFunction(
       ExpressionAttributeNames: { '#p': '$p', '#v': '$v' },
       ExpressionAttributeValues: { ':expectedVersion': ${baseName}.$v }
     });`;
-
+  
   // Add index entry updates for documents with ownership
   if (relatedIndexes.length > 0 && ownership) {
     const ownerField = ownership.ownerField;
-    const sortKeyTemplate = pkFields
-      .map((f) => `${f.name}=\${${baseName}.${f.name}}`)
-      .join("/");
-
-    const indexUpdates = relatedIndexes
-      .map((index) => {
-        return `
+    const sortKeyTemplate = pkFields.map(f => `${f.name}=\${${baseName}.${f.name}}`).join('/');
+    
+    const indexUpdates = relatedIndexes.map(index => {
+      return `
     
     // Update index entry for ${index.name}
     await client.put({
@@ -517,40 +429,28 @@ function generateUpdateFunction(
       ConditionExpression: 'attribute_exists(#p)',
       ExpressionAttributeNames: { '#p': '$p' }
     });`;
-      })
-      .join("");
-
+    }).join('');
+    
     updateOperations = `${updateOperations}${indexUpdates}`;
   }
-
+  
   return `  async update${typeName}(${baseName}: Schema.${docName}): Promise<void> {
 ${updateOperations}
   }`;
 }
 
-function generateDeleteFunction(
-  docName: string,
-  typeName: string,
-  pkFields: any[],
-  indexes: Map<string, IndexDefinition>,
-  schema: ParsedSchema
-): string {
-  const keyParams = pkFields
-    .map((f) => `${f.name}: ${getTypeScriptType(f.type)}`)
-    .join(", ");
-  const keyObject = pkFields.map((f) => f.name).join(", ");
-  const keyString = pkFields.map((f) => `${f.name}=\${${f.name}}`).join("/");
 
+function generateDeleteFunction(docName: string, typeName: string, pkFields: any[], indexes: Map<string, IndexDefinition>, schema: ParsedSchema): string {
+  const keyParams = pkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
+  const keyObject = pkFields.map(f => f.name).join(', ');
+  const keyString = pkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
+  
   // Create sort key template for index entries
-  const sortKeyTemplate = pkFields
-    .map((f) => `${f.name}=\${${f.name}}`)
-    .join("/");
-
+  const sortKeyTemplate = pkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
+  
   // Find indexes where this document is the item document
-  const relatedIndexes = Array.from(indexes.values()).filter(
-    (idx) => idx.itemDocument === docName
-  );
-
+  const relatedIndexes = Array.from(indexes.values()).filter(idx => idx.itemDocument === docName);
+  
   let deleteOperations = `    await client.delete({
       TableName: config.DYNAMODB_TABLE_NAME,
       Key: {
@@ -558,22 +458,15 @@ function generateDeleteFunction(
         $s: '_'
       }
     });`;
-
+  
   // Add index entry deletions for each related index
   if (relatedIndexes.length > 0) {
-    const indexDeletes = relatedIndexes
-      .map((index) => {
-        const ownership = schema.ownerships.find(
-          (o) =>
-            o.ownedDocument === docName &&
-            o.ownerDocument === index.ownerDocument
-        );
-        const ownerField = ownership
-          ? ownership.ownerField
-          : findOwnerField(docName, index.ownerDocument);
-        if (!ownerField) return "";
-
-        return `
+    const indexDeletes = relatedIndexes.map(index => {
+      const ownership = schema.ownerships.find(o => o.ownedDocument === docName && o.ownerDocument === index.ownerDocument);
+      const ownerField = ownership ? ownership.ownerField : findOwnerField(docName, index.ownerDocument);
+      if (!ownerField) return '';
+      
+      return `
     
     // Delete index entry for ${index.name}
     // First get the item to find the owner field value
@@ -594,11 +487,10 @@ function generateDeleteFunction(
         }
       });
     }`;
-      })
-      .filter(Boolean);
-
+    }).filter(Boolean);
+    
     if (indexDeletes.length > 0) {
-      deleteOperations = `${indexDeletes.join("")}
+      deleteOperations = `${indexDeletes.join('')}
     
     await client.delete({
       TableName: config.DYNAMODB_TABLE_NAME,
@@ -609,47 +501,36 @@ function generateDeleteFunction(
     });`;
     }
   }
-
+  
   return `  async delete${typeName}({${keyObject}}: {${keyParams}}): Promise<void> {
 ${deleteOperations}
   }`;
 }
 
-function generateQueryFunction(
-  indexName: string,
-  indexDef: IndexDefinition,
-  ownerDoc: DocumentDefinition,
-  itemDoc: DocumentDefinition
-): string {
+function generateQueryFunction(indexName: string, indexDef: IndexDefinition, ownerDoc: DocumentDefinition, itemDoc: DocumentDefinition): string {
   // Generate function name from index name
   // e.g., "ArtworksOfUserIndex" -> "queryArtworksOfUser"
-  const baseName = indexName.replace(/Index$/, "");
-  const camelCaseName =
-    "query" + baseName.charAt(0).toUpperCase() + baseName.slice(1);
-
+  const baseName = indexName.replace(/Index$/, '');
+  const camelCaseName = 'query' + baseName.charAt(0).toUpperCase() + baseName.slice(1);
+  
   // Find the primary key field(s) of the owner document
   const ownerPkFields = findPrimaryKeyFields(ownerDoc);
-
+  
   if (ownerPkFields.length === 0) {
-    throw new Error(
-      `No primary key found for owner document: ${ownerDoc.name}`
-    );
+    console.warn(`No primary key found for owner document: ${ownerDoc.name}`);
+    return '';
   }
 
   // Create parameter list for owner's primary key
-  const ownerKeyParams = ownerPkFields
-    .map((f) => `${f.name}: ${getTypeScriptType(f.type)}`)
-    .join(", ");
-  const ownerKeyValues = ownerPkFields.map((f) => f.name).join(", ");
-
+  const ownerKeyParams = ownerPkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
+  const ownerKeyValues = ownerPkFields.map(f => f.name).join(', ');
+  
   // Create the query key pattern
-  const ownerKeyPattern = ownerPkFields
-    .map((f) => `${f.name}=\${${f.name}}`)
-    .join("/");
-
+  const ownerKeyPattern = ownerPkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
+  
   // Extract the item document name without "Doc" suffix for the result type
-  const itemTypeName = itemDoc.name.replace(/Doc$/, "");
-
+  const itemTypeName = itemDoc.name.replace(/Doc$/, '');
+  
   return `  async ${camelCaseName}({${ownerKeyValues}, nextToken, limit}: {${ownerKeyParams}, nextToken?: string, limit: number}): Promise<{items: Schema.${itemDoc.name}[], nextToken?: string}> {
     const result = await client.query({
       TableName: config.DYNAMODB_TABLE_NAME,
@@ -680,50 +561,37 @@ function generateQueryFunction(
   }`;
 }
 
-function generateTransactionalCreateFunction(
-  ownership: OwnershipRelation,
-  ownerDoc: DocumentDefinition,
-  ownedDoc: DocumentDefinition,
-  schema: ParsedSchema
-): string {
+
+function generateTransactionalCreateFunction(ownership: OwnershipRelation, ownerDoc: DocumentDefinition, ownedDoc: DocumentDefinition, schema: ParsedSchema): string {
   const ownedTypeName = capitalizeFirst(ownedDoc.name);
   const ownerPkFields = findPrimaryKeyFields(ownerDoc);
   const ownedPkFields = findPrimaryKeyFields(ownedDoc);
-
+  
   // Find the corresponding index
-  const index = Array.from(schema.indexes.values()).find(
-    (idx) =>
-      idx.ownerDocument === ownerDoc.name && idx.itemDocument === ownedDoc.name
+  const index = Array.from(schema.indexes.values()).find(idx => 
+    idx.ownerDocument === ownerDoc.name && idx.itemDocument === ownedDoc.name
   );
-
+  
   if (!index) {
-    throw new Error(
-      `Cannot find index for ${ownerDoc.name} -> ${ownedDoc.name}`
-    );
+    console.warn(`Cannot find index for ${ownerDoc.name} -> ${ownedDoc.name}`);
+    return '';
   }
-
+  
   if (ownerPkFields.length === 0 || ownedPkFields.length === 0) {
-    throw new Error(
-      `Cannot generate transactional create for ${ownedDoc.name}: missing primary keys`
-    );
+    console.warn(`Cannot generate transactional create for ${ownedDoc.name}: missing primary keys`);
+    return '';
   }
 
   // Generate owner parameter type
-  const ownerKeyParams = ownerPkFields
-    .map((f) => `${f.name}: ${getTypeScriptType(f.type)}`)
-    .join(", ");
-  const ownerKeyPattern = ownerPkFields
-    .map((f) => `${f.name}=\${owner.${f.name}}`)
-    .join("/");
-  const ownedKeyPattern = ownedPkFields
-    .map((f) => `${f.name}=\${${ownedDoc.name}.${f.name}}`)
-    .join("/");
-
+  const ownerKeyParams = ownerPkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
+  const ownerKeyPattern = ownerPkFields.map(f => `${f.name}=\${owner.${f.name}}`).join('/');
+  const ownedKeyPattern = ownedPkFields.map(f => `${f.name}=\${${ownedDoc.name}.${f.name}}`).join('/');
+  
   // Create function name - use more descriptive naming
-  const ownerBaseName = ownerDoc.name.replace(/Doc$/, "");
-  const ownedBaseName = ownedDoc.name.replace(/Doc$/, "");
+  const ownerBaseName = ownerDoc.name.replace(/Doc$/, '');
+  const ownedBaseName = ownedDoc.name.replace(/Doc$/, '');
   const functionName = `create${ownedBaseName}For${ownerBaseName}`;
-
+  
   return `  async ${functionName}(${ownedDoc.name}: Schema.${ownedDoc.name}, owner: {${ownerKeyParams}}): Promise<void> {
     // Ensure the owner field is set correctly
     const itemToCreate = {
@@ -737,7 +605,7 @@ function generateTransactionalCreateFunction(
         Put: {
           TableName: config.DYNAMODB_TABLE_NAME,
           Item: {
-            $p: \`${ownedDoc.name}/${ownedKeyPattern.replace(ownedDoc.name, "itemToCreate")}\`,
+            $p: \`${ownedDoc.name}/${ownedKeyPattern.replace(ownedDoc.name, 'itemToCreate')}\`,
             $s: '_',
             ...itemToCreate
           }
@@ -749,7 +617,7 @@ function generateTransactionalCreateFunction(
           TableName: config.DYNAMODB_TABLE_NAME,
           Item: {
             $p: \`${index.name}/${ownerKeyPattern}\`,
-            $s: \`${ownedPkFields.map((f) => `${f.name}=\${itemToCreate.${f.name}}`).join("/")}\`,
+            $s: \`${ownedPkFields.map(f => `${f.name}=\${itemToCreate.${f.name}}`).join('/')}\`,
             ...itemToCreate
           }
         }
@@ -762,35 +630,19 @@ function generateTransactionalCreateFunction(
   }`;
 }
 
-function generateTransactionHelperFunctions(
-  docName: string,
-  typeName: string,
-  pkFields: any[],
-  indexes: Map<string, IndexDefinition>,
-  schema: ParsedSchema
-): string {
-  const keyParams = pkFields
-    .map((f) => `${f.name}: ${getTypeScriptType(f.type)}`)
-    .join(", ");
-  const keyObject = pkFields.map((f) => f.name).join(", ");
-  const keyString = pkFields.map((f) => `${f.name}=\${${f.name}}`).join("/");
-  const itemKeyString = pkFields
-    .map((f) => `${f.name}=\${${docName}.${f.name}}`)
-    .join("/");
-
+function generateTransactionHelperFunctions(docName: string, typeName: string, pkFields: any[], indexes: Map<string, IndexDefinition>, schema: ParsedSchema): string {
+  const keyParams = pkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
+  const keyObject = pkFields.map(f => f.name).join(', ');
+  const keyString = pkFields.map(f => `${f.name}=\${${f.name}}`).join('/');
+  const itemKeyString = pkFields.map(f => `${f.name}=\${${docName}.${f.name}}`).join('/');
+  
   // Create sort key template for index entries
-  const sortKeyTemplateForDelete = pkFields
-    .map((f) => `${f.name}=\${existingItem.${f.name}}`)
-    .join("/");
-  const sortKeyTemplateForCreate = pkFields
-    .map((f) => `${f.name}=\${${docName}.${f.name}}`)
-    .join("/");
-
+  const sortKeyTemplateForDelete = pkFields.map(f => `${f.name}=\${existingItem.${f.name}}`).join('/');
+  const sortKeyTemplateForCreate = pkFields.map(f => `${f.name}=\${${docName}.${f.name}}`).join('/');
+  
   // Find indexes where this document is the item document
-  const relatedIndexes = Array.from(indexes.values()).filter(
-    (idx) => idx.itemDocument === docName
-  );
-
+  const relatedIndexes = Array.from(indexes.values()).filter(idx => idx.itemDocument === docName);
+  
   let createItemsCode = `    const items: DbTransactionItem[] = [
       {
         type: 'create',
@@ -802,22 +654,15 @@ function generateTransactionHelperFunctions(
         }
       }
     ];`;
-
+  
   // Add index entries for create function
   if (relatedIndexes.length > 0) {
-    const indexCreates = relatedIndexes
-      .map((index) => {
-        const ownership = schema.ownerships.find(
-          (o) =>
-            o.ownedDocument === docName &&
-            o.ownerDocument === index.ownerDocument
-        );
-        const ownerField = ownership
-          ? ownership.ownerField
-          : findOwnerField(docName, index.ownerDocument);
-        if (!ownerField) return "";
-
-        return `
+    const indexCreates = relatedIndexes.map(index => {
+      const ownership = schema.ownerships.find(o => o.ownedDocument === docName && o.ownerDocument === index.ownerDocument);
+      const ownerField = ownership ? ownership.ownerField : findOwnerField(docName, index.ownerDocument);
+      if (!ownerField) return '';
+      
+      return `
     items.push({
       type: 'create',
       tableName: config.DYNAMODB_TABLE_NAME,
@@ -827,14 +672,13 @@ function generateTransactionHelperFunctions(
         ...${docName}
       }
     });`;
-      })
-      .filter(Boolean);
-
+    }).filter(Boolean);
+    
     if (indexCreates.length > 0) {
-      createItemsCode += indexCreates.join("");
+      createItemsCode += indexCreates.join('');
     }
   }
-
+  
   let deleteItemsCode = `    const items: DbTransactionItem[] = [];
     
     // First get the item to get owner info for index cleanup
@@ -851,22 +695,15 @@ function generateTransactionHelperFunctions(
         $s: '_'
       }
     });`;
-
+  
   // Add index cleanup for delete function
   if (relatedIndexes.length > 0) {
-    const indexDeletes = relatedIndexes
-      .map((index) => {
-        const ownership = schema.ownerships.find(
-          (o) =>
-            o.ownedDocument === docName &&
-            o.ownerDocument === index.ownerDocument
-        );
-        const ownerField = ownership
-          ? ownership.ownerField
-          : findOwnerField(docName, index.ownerDocument);
-        if (!ownerField) return "";
-
-        return `
+    const indexDeletes = relatedIndexes.map(index => {
+      const ownership = schema.ownerships.find(o => o.ownedDocument === docName && o.ownerDocument === index.ownerDocument);
+      const ownerField = ownership ? ownership.ownerField : findOwnerField(docName, index.ownerDocument);
+      if (!ownerField) return '';
+      
+      return `
     items.push({
       type: 'delete',
       tableName: config.DYNAMODB_TABLE_NAME,
@@ -875,14 +712,13 @@ function generateTransactionHelperFunctions(
         $s: \`${sortKeyTemplateForDelete}\`
       }
     });`;
-      })
-      .filter(Boolean);
-
+    }).filter(Boolean);
+    
     if (indexDeletes.length > 0) {
-      deleteItemsCode += indexDeletes.join("");
+      deleteItemsCode += indexDeletes.join('');
     }
   }
-
+  
   return `  // Transaction helper functions for ${typeName}
   create${typeName}Item(${docName}: Schema.${docName}): DbTransactionItem[] {
 ${createItemsCode}
@@ -895,34 +731,25 @@ ${deleteItemsCode}
   }`;
 }
 
-function generateTransactionalCreateHelperFunction(
-  ownership: OwnershipRelation,
-  ownerDoc: DocumentDefinition,
-  ownedDoc: DocumentDefinition
-): string {
+function generateTransactionalCreateHelperFunction(ownership: OwnershipRelation, ownerDoc: DocumentDefinition, ownedDoc: DocumentDefinition): string {
   const ownedTypeName = capitalizeFirst(ownedDoc.name);
   const ownerPkFields = findPrimaryKeyFields(ownerDoc);
   const ownedPkFields = findPrimaryKeyFields(ownedDoc);
-
+  
   if (ownerPkFields.length === 0 || ownedPkFields.length === 0) {
-    throw new Error(
-      `Cannot generate transactional create helper for ${ownedDoc.name}: missing primary keys`
-    );
+    console.warn(`Cannot generate transactional create helper for ${ownedDoc.name}: missing primary keys`);
+    return '';
   }
 
   // Generate owner parameter type
-  const ownerKeyParams = ownerPkFields
-    .map((f) => `${f.name}: ${getTypeScriptType(f.type)}`)
-    .join(", ");
-  const ownerKeyPattern = ownerPkFields
-    .map((f) => `${f.name}=\${owner.${f.name}}`)
-    .join("/");
-
+  const ownerKeyParams = ownerPkFields.map(f => `${f.name}: ${getTypeScriptType(f.type)}`).join(', ');
+  const ownerKeyPattern = ownerPkFields.map(f => `${f.name}=\${owner.${f.name}}`).join('/');
+  
   // Create function name
-  const ownerBaseName = ownerDoc.name.replace(/Doc$/, "");
-  const ownedBaseName = ownedDoc.name.replace(/Doc$/, "");
+  const ownerBaseName = ownerDoc.name.replace(/Doc$/, '');
+  const ownedBaseName = ownedDoc.name.replace(/Doc$/, '');
   const functionName = `create${ownedBaseName}For${ownerBaseName}Item`;
-
+  
   return `  // Transaction helper for creating ${ownedBaseName} with ownership
   ${functionName}(${ownedDoc.name}: Schema.${ownedDoc.name}, owner: {${ownerKeyParams}}): DbTransactionItem[] {
     // Ensure the owner field is set correctly
@@ -956,6 +783,7 @@ function generateTransactionalCreateHelperFunction(
   }`;
 }
 
+
 function generateTxFunction(): string {
   return `  // New fluent transaction API
   async tx(builderFn: (tx: TransactionBuilder) => TransactionBuilder): Promise<void> {
@@ -972,7 +800,7 @@ function generateTransactionWriteFunction(schema: ParsedSchema): string {
   const updateCases = generateUpdateCases(schema);
   const updateWithFunctionCases = generateUpdateWithFunctionCases(schema);
   const deleteCases = generateDeleteCases(schema);
-
+  
   return `  async write(...operations: any[]): Promise<void> {
     if (operations.length === 0) {
       return;
@@ -1093,25 +921,20 @@ ${deleteCases}
 
 function generateCreateCases(schema: ParsedSchema): string {
   const cases: string[] = [];
-
+  
   for (const [docName, docDef] of schema.documents) {
-    const baseName = docName
-      .replace(/Doc$/, "")
-      .toLowerCase()
-      .replace(/list$/, "");
+    const baseName = docName.replace(/Doc$/, '').toLowerCase().replace(/list$/, '');
     const pkFields = findPrimaryKeyFields(docDef);
     const skFields = findSortKeyFields(docDef);
-    const ownership = schema.ownerships.find(
-      (o) => o.ownedDocument === docName
-    );
-
+    const ownership = schema.ownerships.find(o => o.ownedDocument === docName);
+    
     if (docDef.isList) {
       // List type handling
       if (skFields.length === 0) continue;
-
+      
       const skField = skFields[0];
       const listName = docName; // e.g., 'PaymentVerifingOrderList'
-
+      
       cases.push(`          case 'create-${baseName.toLowerCase()}':
             transactItems.push({
               Put: {
@@ -1129,27 +952,20 @@ function generateCreateCases(schema: ParsedSchema): string {
     } else {
       // Regular document handling
       if (pkFields.length === 0) continue;
-
-      const keyPattern = pkFields
-        .map(
-          (f) => `${f.name}=\${${ownership ? baseName : "op.data"}.${f.name}}`
-        )
-        .join("/");
-
+      
+      const keyPattern = pkFields.map(f => `${f.name}=\${${ownership ? baseName : 'op.data'}.${f.name}}`).join('/');
+      
       if (ownership) {
         // Document with ownership relation
         const ownerField = ownership.ownerField;
-
+        
         // Find the index for this ownership relation
-        const indexForOwnership = Array.from(schema.indexes.values()).find(
-          (index) =>
-            index.ownerDocument === ownership.ownerDocument &&
-            index.itemDocument === ownership.ownedDocument
+        const indexForOwnership = Array.from(schema.indexes.values()).find(index => 
+          index.ownerDocument === ownership.ownerDocument && 
+          index.itemDocument === ownership.ownedDocument
         );
-        const indexName = indexForOwnership
-          ? indexForOwnership.name
-          : `${ownership.ownedDocument.replace("Doc", "")}sOf${ownership.ownerDocument.replace("Doc", "")}Index`;
-
+        const indexName = indexForOwnership ? indexForOwnership.name : `${ownership.ownedDocument.replace('Doc', '')}sOf${ownership.ownerDocument.replace('Doc', '')}Index`;
+        
         cases.push(`          case 'create-${baseName}':
             const ${baseName} = { ...op.data, ${ownerField}: op.owner.id };
             // Main ${baseName} document
@@ -1171,7 +987,7 @@ function generateCreateCases(schema: ParsedSchema): string {
                 TableName: config.DYNAMODB_TABLE_NAME,
                 Item: {
                   $p: \`${indexName}/id=\${op.owner.id}\`,
-                  $s: \`${pkFields.map((f) => `${f.name}=\${${baseName}.${f.name}}`).join("/")}\`,
+                  $s: \`${pkFields.map(f => `${f.name}=\${${baseName}.${f.name}}`).join('/')}\`,
                   ...${baseName}
                 }
               }
@@ -1196,31 +1012,26 @@ function generateCreateCases(schema: ParsedSchema): string {
       }
     }
   }
-
-  return cases.join("\n            \n");
+  
+  return cases.join('\n            \n');
 }
 
 function generateUpdateCases(schema: ParsedSchema): string {
   const cases: string[] = [];
-
+  
   for (const [docName, docDef] of schema.documents) {
-    const baseName = docName
-      .replace(/Doc$/, "")
-      .toLowerCase()
-      .replace(/list$/, "");
+    const baseName = docName.replace(/Doc$/, '').toLowerCase().replace(/list$/, '');
     const pkFields = findPrimaryKeyFields(docDef);
     const skFields = findSortKeyFields(docDef);
-    const ownership = schema.ownerships.find(
-      (o) => o.ownedDocument === docName
-    );
-
+    const ownership = schema.ownerships.find(o => o.ownedDocument === docName);
+    
     if (docDef.isList) {
       // List type handling
       if (skFields.length === 0) continue;
-
+      
       const skField = skFields[0];
       const listName = docName; // e.g., 'PaymentVerifingOrderList'
-
+      
       cases.push(`          case 'update-${baseName.toLowerCase()}':
             transactItems.push({
               Put: {
@@ -1239,25 +1050,20 @@ function generateUpdateCases(schema: ParsedSchema): string {
     } else {
       // Regular document handling
       if (pkFields.length === 0) continue;
-
-      const keyPattern = pkFields
-        .map((f) => `${f.name}=\${op.data.${f.name}}`)
-        .join("/");
-
+      
+      const keyPattern = pkFields.map(f => `${f.name}=\${op.data.${f.name}}`).join('/');
+      
       if (ownership) {
         // Document with ownership relation - need to update both main and index
         const ownerField = ownership.ownerField;
-
+        
         // Find the index for this ownership relation
-        const indexForOwnership = Array.from(schema.indexes.values()).find(
-          (index) =>
-            index.ownerDocument === ownership.ownerDocument &&
-            index.itemDocument === ownership.ownedDocument
+        const indexForOwnership = Array.from(schema.indexes.values()).find(index => 
+          index.ownerDocument === ownership.ownerDocument && 
+          index.itemDocument === ownership.ownedDocument
         );
-        const indexName = indexForOwnership
-          ? indexForOwnership.name
-          : `${ownership.ownedDocument.replace("Doc", "")}sOf${ownership.ownerDocument.replace("Doc", "")}Index`;
-
+        const indexName = indexForOwnership ? indexForOwnership.name : `${ownership.ownedDocument.replace('Doc', '')}sOf${ownership.ownerDocument.replace('Doc', '')}Index`;
+        
         cases.push(`          case 'update-${baseName}':
             const updated${capitalizeFirst(baseName)} = op.data;
             // Update main ${baseName} document
@@ -1265,7 +1071,7 @@ function generateUpdateCases(schema: ParsedSchema): string {
               Put: {
                 TableName: config.DYNAMODB_TABLE_NAME,
                 Item: {
-                  $p: \`${docName}/${keyPattern.replace("op.data", `updated${capitalizeFirst(baseName)}`)}\`,
+                  $p: \`${docName}/${keyPattern.replace('op.data', `updated${capitalizeFirst(baseName)}`)}\`,
                   $s: '_',
                   ...updated${capitalizeFirst(baseName)}
                 },
@@ -1280,7 +1086,7 @@ function generateUpdateCases(schema: ParsedSchema): string {
                 TableName: config.DYNAMODB_TABLE_NAME,
                 Item: {
                   $p: \`${indexName}/id=\${updated${capitalizeFirst(baseName)}.${ownerField}}\`,
-                  $s: \`${pkFields.map((f) => `${f.name}=\${updated${capitalizeFirst(baseName)}.${f.name}}`).join("/")}\`,
+                  $s: \`${pkFields.map(f => `${f.name}=\${updated${capitalizeFirst(baseName)}.${f.name}}`).join('/')}\`,
                   ...updated${capitalizeFirst(baseName)}
                 },
                 ConditionExpression: 'attribute_exists(#p)',
@@ -1308,35 +1114,30 @@ function generateUpdateCases(schema: ParsedSchema): string {
       }
     }
   }
-
-  return cases.join("\n            \n");
+  
+  return cases.join('\n            \n');
 }
 
 function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
   const cases: string[] = [];
-
+  
   for (const [docName, docDef] of schema.documents) {
-    const baseName = docName
-      .replace(/Doc$/, "")
-      .toLowerCase()
-      .replace(/list$/, "");
+    const baseName = docName.replace(/Doc$/, '').toLowerCase().replace(/list$/, '');
     const typeName = capitalizeFirst(docName);
     const pkFields = findPrimaryKeyFields(docDef);
     const skFields = findSortKeyFields(docDef);
-    const ownership = schema.ownerships.find(
-      (o) => o.ownedDocument === docName
-    );
-
+    const ownership = schema.ownerships.find(o => o.ownedDocument === docName);
+    
     if (docDef.isList) {
       // List type handling
       if (skFields.length === 0) continue;
-
+      
       const skField = skFields[0];
       const listName = docName; // e.g., 'PaymentVerifingOrderList'
       const getFuncParams = `{${skField.name}: op.${skField.name}}`;
-
-      const listItemName = baseName + "item";
-
+      
+      const listItemName = baseName + 'item';
+      
       cases.push(`          case 'update-${baseName.toLowerCase()}-with-function':
             const current${capitalizeFirst(listItemName)} = await this.get${typeName}(${getFuncParams});
             if (!current${capitalizeFirst(listItemName)}) {
@@ -1361,38 +1162,29 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
     } else {
       // Regular document handling
       if (pkFields.length === 0) continue;
-
+      
       // Generate parameters for function call
-      const getFuncParams =
-        pkFields.length === 1
-          ? `{${pkFields[0].name}: op.${pkFields[0].name}}`
-          : `{${pkFields.map((f) => `${f.name}: op.${f.name}`).join(", ")}}`;
-
-      const keyPattern = pkFields
-        .map(
-          (f) =>
-            `${f.name}=\${updated${capitalizeFirst(baseName)}FromFunction.${f.name}}`
-        )
-        .join("/");
-
+      const getFuncParams = pkFields.length === 1 
+        ? `{${pkFields[0].name}: op.${pkFields[0].name}}`
+        : `{${pkFields.map(f => `${f.name}: op.${f.name}`).join(', ')}}`;
+      
+      const keyPattern = pkFields.map(f => `${f.name}=\${updated${capitalizeFirst(baseName)}FromFunction.${f.name}}`).join('/');
+      
       if (ownership) {
         // Document with ownership relation
         const ownerField = ownership.ownerField;
-
+        
         // Find the index for this ownership relation
-        const indexForOwnership = Array.from(schema.indexes.values()).find(
-          (index) =>
-            index.ownerDocument === ownership.ownerDocument &&
-            index.itemDocument === ownership.ownedDocument
+        const indexForOwnership = Array.from(schema.indexes.values()).find(index => 
+          index.ownerDocument === ownership.ownerDocument && 
+          index.itemDocument === ownership.ownedDocument
         );
-        const indexName = indexForOwnership
-          ? indexForOwnership.name
-          : `${ownership.ownedDocument.replace("Doc", "")}sOf${ownership.ownerDocument.replace("Doc", "")}Index`;
-
+        const indexName = indexForOwnership ? indexForOwnership.name : `${ownership.ownedDocument.replace('Doc', '')}sOf${ownership.ownerDocument.replace('Doc', '')}Index`;
+        
         cases.push(`          case 'update-${baseName}-with-function':
             const current${capitalizeFirst(baseName)} = await this.get${typeName}(${getFuncParams});
             if (!current${capitalizeFirst(baseName)}) {
-              throw new Error(\`${capitalizeFirst(baseName)} not found for function-based update: \${${pkFields.map((f) => `op.${f.name}`).join(' + "/" + ')}}\`);
+              throw new Error(\`${capitalizeFirst(baseName)} not found for function-based update: \${${pkFields.map(f => `op.${f.name}`).join(' + "/" + ')}}\`);
             }
             const updated${capitalizeFirst(baseName)}FromFunction = op.updater(current${capitalizeFirst(baseName)});
             // Update main ${baseName} document
@@ -1416,7 +1208,7 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
                 TableName: config.DYNAMODB_TABLE_NAME,
                 Item: {
                   $p: \`${indexName}/id=\${updated${capitalizeFirst(baseName)}FromFunction.${ownerField}}\`,
-                  $s: \`${pkFields.map((f) => `${f.name}=\${updated${capitalizeFirst(baseName)}FromFunction.${f.name}}`).join("/")}\`,
+                  $s: \`${pkFields.map(f => `${f.name}=\${updated${capitalizeFirst(baseName)}FromFunction.${f.name}}`).join('/')}\`,
                   ...updated${capitalizeFirst(baseName)}FromFunction,
                   $v: updated${capitalizeFirst(baseName)}FromFunction.$v + 1
                 },
@@ -1430,7 +1222,7 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
         cases.push(`          case 'update-${baseName}-with-function':
             const current${capitalizeFirst(baseName)} = await this.get${typeName}(${getFuncParams});
             if (!current${capitalizeFirst(baseName)}) {
-              throw new Error(\`${capitalizeFirst(baseName)} not found for function-based update: \${${pkFields.map((f) => `op.${f.name}`).join(' + "/" + ')}}\`);
+              throw new Error(\`${capitalizeFirst(baseName)} not found for function-based update: \${${pkFields.map(f => `op.${f.name}`).join(' + "/" + ')}}\`);
             }
             const updated${capitalizeFirst(baseName)}FromFunction = op.updater(current${capitalizeFirst(baseName)});
             transactItems.push({
@@ -1451,31 +1243,26 @@ function generateUpdateWithFunctionCases(schema: ParsedSchema): string {
       }
     }
   }
-
-  return cases.join("\n            \n");
+  
+  return cases.join('\n            \n');
 }
 
 function generateDeleteCases(schema: ParsedSchema): string {
   const cases: string[] = [];
-
+  
   for (const [docName, docDef] of schema.documents) {
-    const baseName = docName
-      .replace(/Doc$/, "")
-      .toLowerCase()
-      .replace(/list$/, "");
+    const baseName = docName.replace(/Doc$/, '').toLowerCase().replace(/list$/, '');
     const pkFields = findPrimaryKeyFields(docDef);
     const skFields = findSortKeyFields(docDef);
-    const ownership = schema.ownerships.find(
-      (o) => o.ownedDocument === docName
-    );
-
+    const ownership = schema.ownerships.find(o => o.ownedDocument === docName);
+    
     if (docDef.isList) {
       // List type handling
       if (skFields.length === 0) continue;
-
+      
       const skField = skFields[0];
       const listName = docName; // e.g., 'PaymentVerifingOrderList'
-
+      
       cases.push(`          case 'delete-${baseName.toLowerCase()}':
             transactItems.push({
               Delete: {
@@ -1490,25 +1277,20 @@ function generateDeleteCases(schema: ParsedSchema): string {
     } else {
       // Regular document handling
       if (pkFields.length === 0) continue;
-
-      const keyPattern = pkFields
-        .map((f) => `${f.name}=\${op.${f.name}}`)
-        .join("/");
-
+      
+      const keyPattern = pkFields.map(f => `${f.name}=\${op.${f.name}}`).join('/');
+      
       if (ownership) {
         // Document with ownership relation
         const ownerField = ownership.ownerField;
-
+        
         // Find the index for this ownership relation
-        const indexForOwnership = Array.from(schema.indexes.values()).find(
-          (index) =>
-            index.ownerDocument === ownership.ownerDocument &&
-            index.itemDocument === ownership.ownedDocument
+        const indexForOwnership = Array.from(schema.indexes.values()).find(index => 
+          index.ownerDocument === ownership.ownerDocument && 
+          index.itemDocument === ownership.ownedDocument
         );
-        const indexName = indexForOwnership
-          ? indexForOwnership.name
-          : `${ownership.ownedDocument.replace("Doc", "")}sOf${ownership.ownerDocument.replace("Doc", "")}Index`;
-
+        const indexName = indexForOwnership ? indexForOwnership.name : `${ownership.ownedDocument.replace('Doc', '')}sOf${ownership.ownerDocument.replace('Doc', '')}Index`;
+        
         cases.push(`          case 'delete-${baseName}':
             // Delete main document (no error if not exists)
             transactItems.push({
@@ -1527,7 +1309,7 @@ function generateDeleteCases(schema: ParsedSchema): string {
                   TableName: config.DYNAMODB_TABLE_NAME,
                   Key: {
                     $p: \`${indexName}/id=\${op.${ownerField}}\`,
-                    $s: \`${pkFields.map((f) => `${f.name}=\${op.${f.name}}`).join("/")}\`
+                    $s: \`${pkFields.map(f => `${f.name}=\${op.${f.name}}`).join('/')}\`
                   }
                 }
               });
@@ -1549,57 +1331,46 @@ function generateDeleteCases(schema: ParsedSchema): string {
       }
     }
   }
-
-  return cases.join("\n            \n");
+  
+  return cases.join('\n            \n');
 }
 
-function getOwnerKeyString(
-  schema: ParsedSchema,
-  ownerDocName: string,
-  ownerId: string
-): string {
+function getOwnerKeyString(schema: ParsedSchema, ownerDocName: string, ownerId: string): string {
   const ownerDoc = schema.documents.get(ownerDocName);
   if (!ownerDoc) return `id=${ownerId}`;
-
+  
   const pkFields = findPrimaryKeyFields(ownerDoc);
   if (pkFields.length === 0) return `id=${ownerId}`;
   if (pkFields.length === 1) return `${pkFields[0].name}=${ownerId}`;
-
+  
   // For composite keys, assume first field is the main identifier
   return `${pkFields[0].name}=${ownerId}`;
 }
 
 function findPrimaryKeyFields(docDef: DocumentDefinition): FieldDefinition[] {
-  return docDef.fields.filter((f) => f.isPrimaryKey);
+  return docDef.fields.filter(f => f.isPrimaryKey);
 }
 
 function findSortKeyFields(docDef: DocumentDefinition): FieldDefinition[] {
-  return docDef.fields.filter((f) => f.isSortKey);
+  return docDef.fields.filter(f => f.isSortKey);
 }
 
 function getTypeScriptType(fieldType: string): string {
   switch (fieldType) {
-    case "string":
-      return "string";
-    case "number":
-      return "number";
-    case "boolean":
-      return "boolean";
-    case "string[]":
-      return "string[]";
-    case "number[]":
-      return "number[]";
-    case "object":
-      return "object";
-    default:
-      return "any";
+    case 'string': return 'string';
+    case 'number': return 'number';
+    case 'boolean': return 'boolean';
+    case 'string[]': return 'string[]';
+    case 'number[]': return 'number[]';
+    case 'object': return 'object';
+    default: return 'any';
   }
 }
 
 function findOwnerField(docName: string, ownerDocName: string): string | null {
   // Convert OwnerDoc to expected field patterns
-  const ownerBaseName = ownerDocName.replace(/Doc$/, "");
-  return ownerBaseName.toLowerCase() + "Id";
+  const ownerBaseName = ownerDocName.replace(/Doc$/, '');
+  return ownerBaseName.toLowerCase() + 'Id';
 }
 
 function capitalizeFirst(str: string): string {
@@ -1607,14 +1378,10 @@ function capitalizeFirst(str: string): string {
 }
 
 // List-specific function generators
-function generateListGetFunction(
-  docName: string,
-  typeName: string,
-  skField: FieldDefinition
-): string {
+function generateListGetFunction(docName: string, typeName: string, skField: FieldDefinition): string {
   const listName = docName; // e.g., 'PaymentVerifingOrderList'
   const skParam = `${skField.name}: ${getTypeScriptType(skField.type)}`;
-
+  
   return `  async get${typeName}({${skField.name}}: {${skParam}}): Promise<Schema.${docName} | undefined> {
     const result = await client.get({
       TableName: config.DYNAMODB_TABLE_NAME,
@@ -1634,15 +1401,11 @@ function generateListGetFunction(
   }`;
 }
 
-function generateListUpdateFunction(
-  docName: string,
-  typeName: string,
-  skField: FieldDefinition
-): string {
+function generateListUpdateFunction(docName: string, typeName: string, skField: FieldDefinition): string {
   const listName = docName; // e.g., 'PaymentVerifingOrderList'
-  const baseName = docName.replace(/List$/, "").toLowerCase();
-  const listItemName = baseName + "item";
-
+  const baseName = docName.replace(/List$/, '').toLowerCase();
+  const listItemName = baseName + 'item';
+  
   return `  async update${typeName}(${listItemName}: Schema.${docName}): Promise<void> {
     await client.put({
       TableName: config.DYNAMODB_TABLE_NAME,
@@ -1658,14 +1421,10 @@ function generateListUpdateFunction(
   }`;
 }
 
-function generateListDeleteFunction(
-  docName: string,
-  typeName: string,
-  skField: FieldDefinition
-): string {
+function generateListDeleteFunction(docName: string, typeName: string, skField: FieldDefinition): string {
   const listName = docName; // e.g., 'PaymentVerifingOrderList'
   const skParam = `${skField.name}: ${getTypeScriptType(skField.type)}`;
-
+  
   return `  async delete${typeName}({${skField.name}}: {${skParam}}): Promise<void> {
     await client.delete({
       TableName: config.DYNAMODB_TABLE_NAME,
@@ -1680,7 +1439,7 @@ function generateListDeleteFunction(
 function generateListQueryFunction(docName: string, typeName: string): string {
   const listName = docName; // e.g., 'PaymentVerifingOrderList'
   const functionName = `query${typeName}`;
-
+  
   return `  async ${functionName}({nextToken, limit}: {nextToken?: string, limit: number}): Promise<{items: Schema.${docName}[], nextToken?: string}> {
     const result = await client.query({
       TableName: config.DYNAMODB_TABLE_NAME,
@@ -1711,17 +1470,13 @@ function generateListQueryFunction(docName: string, typeName: string): string {
   }`;
 }
 
-function generateListTransactionHelperFunctions(
-  docName: string,
-  typeName: string,
-  skField: FieldDefinition
-): string {
+function generateListTransactionHelperFunctions(docName: string, typeName: string, skField: FieldDefinition): string {
   const listName = docName; // e.g., 'PaymentVerifingOrderList'
-  const baseName = docName.replace(/List$/, "").toLowerCase();
-  const listItemName = baseName + "item";
+  const baseName = docName.replace(/List$/, '').toLowerCase();
+  const listItemName = baseName + 'item';
   const itemKeyString = `${skField.name}=\${${listItemName}.${skField.name}}`;
   const skParam = `${skField.name}: ${getTypeScriptType(skField.type)}`;
-
+  
   return `  // Transaction helper functions for ${typeName}
   create${typeName}Item(${listItemName}: Schema.${docName}): DbTransactionItem[] {
     const items: DbTransactionItem[] = [

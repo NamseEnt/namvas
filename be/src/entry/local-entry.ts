@@ -11,23 +11,12 @@ if (!PORT) {
 
 // Docker 컨테이너에서 실행될 때는 EMULATOR_ENDPOINT 환경변수 사용
 const emulatorUrl = process.env.EMULATOR_ENDPOINT || `http://localhost:${PORT}`;
-const containerId = process.env.CONTAINER_ID || "unknown";
-const codeVersion = process.env.CODE_VERSION || "unknown";
 
-async function processRequest() {
+async function main() {
   try {
-    const requestResponse = await fetch(`${emulatorUrl}/__emulator/request/${containerId}?version=${codeVersion}`);
+    const requestResponse = await fetch(`${emulatorUrl}/__emulator/request`);
 
     if (!requestResponse.ok) {
-      if (requestResponse.status === 404) {
-        // No request available
-        return false;
-      }
-      if (requestResponse.status === 410) {
-        // Code version mismatch, exit the container
-        console.log(`Code version mismatch. Container version: ${codeVersion}, shutting down...`);
-        process.exit(0);
-      }
       throw new Error(`Failed to get request: ${requestResponse.statusText}`);
     }
 
@@ -37,7 +26,6 @@ async function processRequest() {
       headers: Record<string, string>;
       body: string;
     };
-
 
     const url = new URL(requestData.url);
 
@@ -88,42 +76,27 @@ async function processRequest() {
       cookies: result.cookies || [],
     };
 
-    await fetch(`${emulatorUrl}/__emulator/response/${containerId}`, {
+    await fetch(`${emulatorUrl}/__emulator/response`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
       },
       body: JSON.stringify(response),
     });
-
-    return true;
   } catch (error) {
+    console.error("Error processing request:", error);
 
-    try {
-      await fetch(`${emulatorUrl}/__emulator/response/${containerId}`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          status: 500,
-          headers: { "content-type": "text/plain" },
-          body: "Internal Server Error",
-        }),
-      });
-    } catch (e) {
-      // Ignore response errors
-    }
-    return true;
-  }
-}
-
-async function main() {
-  // 항상 Pool 모드로 실행
-  
-  while (true) {
-    await processRequest();
-    // Long polling이므로 대기 없이 바로 다음 요청
+    await fetch(`${emulatorUrl}/__emulator/response`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        status: 500,
+        headers: { "content-type": "text/plain" },
+        body: "Internal Server Error",
+      }),
+    });
   }
 }
 

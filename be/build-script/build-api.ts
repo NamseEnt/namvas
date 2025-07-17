@@ -37,9 +37,12 @@ export async function buildLocal(
   if (watch) {
     const context = await esbuild.context(adjustedOptions);
     await context.rebuild();
+    console.log("✅ Local build completed");
     await context.watch();
+    console.log("👀 Watching for changes...");
     return context;
   } else {
     await esbuild.build(adjustedOptions);
+    console.log("✅ Local build completed");
   }
 }

@@ -11,7 +11,6 @@ export const convertPsdToJpg: Apis["convertPsdToJpg"] = async ({
   console.log("psdS3Key", psdS3Key);
 
   const bytes = await s3.getObject(psdS3Key);
-  console.log("bytes", bytes?.length);
   if (!bytes) {
     return { ok: false, reason: "CONVERSION_NOT_FOUND" };
   }
