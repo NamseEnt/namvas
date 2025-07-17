@@ -258,7 +258,10 @@ export type ApiSpec = {
         }
       | {
           ok: false;
-          reason: "CONVERSION_NOT_FOUND" | "CONVERSION_FAILED";
+          reason:
+            | "CONVERSION_NOT_FOUND"
+            | "CONVERSION_FAILED"
+            | "INTERNAL_ERROR";
         };
   };
 };

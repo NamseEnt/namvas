@@ -2,30 +2,30 @@ import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { isLocalDev } from "./isLocalDev";
 import { s3ClientConfig } from "./config";
 import { SpawnOptions } from "child_process";
+import { writeFile } from "fs/promises";
 
 const s3Client = new S3Client(s3ClientConfig);
-const IMAGEMAGICK_PATH = `/tmp/imagemagick-${getLambdaArchitecture()}`;
-const IMAGEMAGICK_BINARY_PATH = `${IMAGEMAGICK_PATH}/bin/magick`;
-const IMAGEMAGICK_LD_LIBRARY_PATH = `${IMAGEMAGICK_PATH}/lib`;
+const MAGICK_PATH = `/tmp/magick-${getLambdaArchitecture()}`;
+const MAGICK_BINARY_PATH = `${MAGICK_PATH}/bin/magick`;
+const MAGICK_LD_LIBRARY_PATH = `${MAGICK_PATH}/lib`;
 
 export async function imagick(
   args: string[],
   stdin?: Uint8Array
 ): Promise<number> {
-  const exists = await checkImageMagickExists();
+  const exists = await checkMagickExists();
 
   if (!exists) {
-    await downloadAndExtractImageMagick();
+    await downloadAndExtractMagick();
   }
 
   return await spawnAsync(
-    IMAGEMAGICK_BINARY_PATH,
+    MAGICK_BINARY_PATH,
     args,
     {
-      stdio: "pipe",
       env: {
         ...process.env,
-        LD_LIBRARY_PATH: `${IMAGEMAGICK_LD_LIBRARY_PATH}:${process.env.LD_LIBRARY_PATH || ""}`,
+        LD_LIBRARY_PATH: `${MAGICK_LD_LIBRARY_PATH}:${process.env.LD_LIBRARY_PATH || ""}`,
       },
     },
     stdin
@@ -48,7 +48,7 @@ function getLambdaArchitecture(): string {
   }
 }
 
-async function downloadAndExtractImageMagick() {
+async function downloadAndExtractMagick() {
   if (!BINARY_ASSETS_BUCKET_NAME) {
     throw new Error("BINARY_ASSETS_BUCKET_NAME is not configured");
   }
@@ -56,29 +56,21 @@ async function downloadAndExtractImageMagick() {
   const arch = getLambdaArchitecture();
   const command = new GetObjectCommand({
     Bucket: BINARY_ASSETS_BUCKET_NAME,
-    Key: `imagemagick-${arch}.tar.zst`,
+    Key: `magick-${arch}`,
   });
 
   const response = await s3Client.send(command);
   if (!response.Body) {
-    throw new Error(`Failed to download imagemagick-${arch}.tar.zst from S3`);
+    throw new Error(`Failed to download magick-${arch} from S3`);
   }
 
-  return await spawnAsync(
-    "tar",
-    ["--zstd", "-xmf", "-", "-C", "/tmp"],
-    {
-      stdio: ["pipe", "pipe", "inherit"],
-    },
-    // llrt doesn't support streaming blob payload input types
-    response.Body as unknown as Uint8Array
-  );
+  await writeFile(MAGICK_BINARY_PATH, response.Body as unknown as Uint8Array);
 }
 
-async function checkImageMagickExists(): Promise<boolean> {
+async function checkMagickExists(): Promise<boolean> {
   try {
     const { accessSync } = await import("fs");
-    accessSync(IMAGEMAGICK_BINARY_PATH);
+    accessSync(MAGICK_BINARY_PATH);
     return true;
   } catch {
     return false;
@@ -88,11 +80,12 @@ async function checkImageMagickExists(): Promise<boolean> {
 async function spawnAsync(
   command: string,
   args: string[],
-  options: SpawnOptions,
+  options: Omit<SpawnOptions, "stdio">,
   input?: Uint8Array
 ): Promise<number> {
   const { spawn } = await import("child_process");
   const process = spawn(command, args, {
+    ...options,
     stdio: ["pipe", "inherit", "inherit"],
   });
 

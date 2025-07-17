@@ -195,16 +195,16 @@ const schedulerRole = new aws.iam.Role("scheduler-role", {
 // Upload ImageMagick binaries for both platforms
 const imagemagickArm64Object = new aws.s3.BucketObjectv2("imagemagick-arm64-object", {
   bucket: binaryAssetsBucket.bucket,
-  key: "imagemagick-arm64.tar.zst",
-  source: new pulumi.asset.FileAsset("../im/imagemagick-arm64.tar.zst"),
-  contentType: "application/zstd",
+  key: "magick-arm64",
+  source: new pulumi.asset.FileAsset("../binary/magick-arm64"),
+  contentType: "application/octet-stream",
 });
 
 const imagemagickX64Object = new aws.s3.BucketObjectv2("imagemagick-x64-object", {
   bucket: binaryAssetsBucket.bucket,
-  key: "imagemagick-x64.tar.zst",
-  source: new pulumi.asset.FileAsset("../im/imagemagick-x64.tar.zst"),
-  contentType: "application/zstd",
+  key: "magick-x64",
+  source: new pulumi.asset.FileAsset("../binary/magick-x64"),
+  contentType: "application/octet-stream",
 });
 
 // LLRT Layer
