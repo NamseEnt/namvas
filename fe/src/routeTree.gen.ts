@@ -11,11 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsAgreementRouteImport } from './routes/terms-agreement'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OrderCompleteRouteImport } from './routes/order-complete'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as MyRouteImport } from './routes/my'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as BuildOrderRouteImport } from './routes/build-order'
 import { Route as ArtworksRouteImport } from './routes/artworks'
 import { Route as IndexRouteImport } from './routes/index'
@@ -31,6 +33,11 @@ const TermsAgreementRoute = TermsAgreementRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -56,6 +63,11 @@ const OrderRoute = OrderRouteImport.update({
 const MyRoute = MyRouteImport.update({
   id: '/my',
   path: '/my',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BuildOrderRoute = BuildOrderRouteImport.update({
@@ -93,11 +105,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/artworks': typeof ArtworksRoute
   '/build-order': typeof BuildOrderRoute
+  '/login': typeof LoginRoute
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
   '/orders': typeof OrdersRouteWithChildren
   '/privacy': typeof PrivacyRoute
+  '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -108,11 +122,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/artworks': typeof ArtworksRoute
   '/build-order': typeof BuildOrderRoute
+  '/login': typeof LoginRoute
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
   '/orders': typeof OrdersRouteWithChildren
   '/privacy': typeof PrivacyRoute
+  '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -124,11 +140,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/artworks': typeof ArtworksRoute
   '/build-order': typeof BuildOrderRoute
+  '/login': typeof LoginRoute
   '/my': typeof MyRoute
   '/order': typeof OrderRoute
   '/order-complete': typeof OrderCompleteRoute
   '/orders': typeof OrdersRouteWithChildren
   '/privacy': typeof PrivacyRoute
+  '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/terms-agreement': typeof TermsAgreementRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -141,11 +159,13 @@ export interface FileRouteTypes {
     | '/'
     | '/artworks'
     | '/build-order'
+    | '/login'
     | '/my'
     | '/order'
     | '/order-complete'
     | '/orders'
     | '/privacy'
+    | '/support'
     | '/terms'
     | '/terms-agreement'
     | '/auth/callback'
@@ -156,11 +176,13 @@ export interface FileRouteTypes {
     | '/'
     | '/artworks'
     | '/build-order'
+    | '/login'
     | '/my'
     | '/order'
     | '/order-complete'
     | '/orders'
     | '/privacy'
+    | '/support'
     | '/terms'
     | '/terms-agreement'
     | '/auth/callback'
@@ -171,11 +193,13 @@ export interface FileRouteTypes {
     | '/'
     | '/artworks'
     | '/build-order'
+    | '/login'
     | '/my'
     | '/order'
     | '/order-complete'
     | '/orders'
     | '/privacy'
+    | '/support'
     | '/terms'
     | '/terms-agreement'
     | '/auth/callback'
@@ -187,11 +211,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArtworksRoute: typeof ArtworksRoute
   BuildOrderRoute: typeof BuildOrderRoute
+  LoginRoute: typeof LoginRoute
   MyRoute: typeof MyRoute
   OrderRoute: typeof OrderRoute
   OrderCompleteRoute: typeof OrderCompleteRoute
   OrdersRoute: typeof OrdersRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
+  SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
   TermsAgreementRoute: typeof TermsAgreementRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
@@ -212,6 +238,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -247,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/my'
       fullPath: '/my'
       preLoaderRoute: typeof MyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/build-order': {
@@ -309,11 +349,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArtworksRoute: ArtworksRoute,
   BuildOrderRoute: BuildOrderRoute,
+  LoginRoute: LoginRoute,
   MyRoute: MyRoute,
   OrderRoute: OrderRoute,
   OrderCompleteRoute: OrderCompleteRoute,
   OrdersRoute: OrdersRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
+  SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
   TermsAgreementRoute: TermsAgreementRoute,
   AuthCallbackRoute: AuthCallbackRoute,

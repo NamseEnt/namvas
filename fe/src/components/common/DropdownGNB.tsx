@@ -10,31 +10,40 @@ export function DropdownGNB() {
   const { data: authData, logout } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(function handleClickOutside() {
-    function handleClick(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+  useEffect(
+    function handleClickOutside() {
+      function handleClick(event: MouseEvent) {
+        if (
+          menuRef.current &&
+          !menuRef.current.contains(event.target as Node)
+        ) {
+          setIsOpen(false);
+        }
       }
-    }
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClick);
-      return () => document.removeEventListener("mousedown", handleClick);
-    }
-  }, [isOpen]);
-
-  useEffect(function handleEscapeKey() {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
+      if (isOpen) {
+        document.addEventListener("mousedown", handleClick);
+        return () => document.removeEventListener("mousedown", handleClick);
       }
-    }
+    },
+    [isOpen]
+  );
 
-    if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [isOpen]);
+  useEffect(
+    function handleEscapeKey() {
+      function handleKeyDown(event: KeyboardEvent) {
+        if (event.key === "Escape") {
+          setIsOpen(false);
+        }
+      }
+
+      if (isOpen) {
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+      }
+    },
+    [isOpen]
+  );
 
   const handleMenuClick = (callback: () => void) => {
     return () => {
@@ -44,27 +53,39 @@ export function DropdownGNB() {
   };
 
   const handleLogout = () => {
-    logout();
+    logout({});
     setIsOpen(false);
   };
 
   return (
     <div ref={menuRef} className="relative">
-      <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-200 z-50">
-        <div className="h-full px-4 flex items-center">
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-            aria-label="메뉴 열기"
-          >
-            {isOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-          <Link
-            to={authData?.ok ? "/artworks" : "/"}
-            className="ml-3 text-xl font-bold tracking-tight hover:text-gray-700 transition-colors"
-          >
-            NAMVAS
-          </Link>
+      <header className="fixed top-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-sm border-b border-gray-200 z-50">
+        <div className="container mx-auto h-full px-4 flex items-center justify-between">
+          <div className="flex items-center">
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+              aria-label="메뉴 열기"
+            >
+              {isOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            <Link
+              to="/"
+              className="ml-3 font-serif text-2xl font-bold text-amber-900 tracking-wider hover:text-amber-800 transition-colors"
+            >
+              namvas
+            </Link>
+          </div>
+
+          {/* 우측 로그인/로그아웃 버튼 (비로그인 상태일 때만) */}
+          {!authData?.ok && (
+            <Link
+              to="/login"
+              className="px-4 py-2 text-sm font-medium bg-amber-900 text-white rounded-full hover:bg-amber-800 transition-colors"
+            >
+              로그인
+            </Link>
+          )}
         </div>
       </header>
 
@@ -72,7 +93,9 @@ export function DropdownGNB() {
       <div
         className={cn(
           "fixed top-14 left-0 right-0 bg-white border-b border-gray-200 shadow-lg transition-all duration-200 ease-in-out z-40",
-          isOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
+          isOpen
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 -translate-y-2 pointer-events-none"
         )}
       >
         <nav className="">
@@ -95,7 +118,7 @@ export function DropdownGNB() {
                   새 작품 만들기
                 </Link>
               </div>
-              
+
               <div className="border-t border-gray-100 py-2">
                 <Link
                   to="/build-order"
@@ -133,7 +156,9 @@ export function DropdownGNB() {
             <>
               {/* 비로그인 상태 메뉴 */}
               <div className="py-4 px-6">
-                <p className="text-gray-600 mb-4">NAMVAS를 시작하려면 로그인하세요</p>
+                <p className="text-gray-600 mb-4">
+                  NAMVAS를 시작하려면 로그인하세요
+                </p>
                 <div className="space-y-2">
                   <button
                     onClick={handleMenuClick(() => navigate({ to: "/login" }))}

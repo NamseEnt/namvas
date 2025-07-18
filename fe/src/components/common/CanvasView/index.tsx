@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { calculateCameraDistance } from "./utils/textureOptimization";
 import { useTextureLoader } from "./hooks/useTextureLoader";
-import { SideMode } from "../../../../../shared/types";
+import { SideMode } from "@shared/types";
 import * as THREE from "three";
 import { getUvBounds } from "./getUvBounds";
 import { canvasProductSizeM } from "./constants";

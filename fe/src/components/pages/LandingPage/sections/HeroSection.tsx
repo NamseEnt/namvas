@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useSmoothScroll } from "../hooks/useSmoothScroll";
+import { Link } from "@tanstack/react-router";
 
 export function HeroSection() {
-  const { handleAnchorClick } = useSmoothScroll();
   const [currentIndex, setCurrentIndex] = useState(0);
   const images = [
     "/landing1.jpg",
     "/landing2.jpg", 
-    "/landing3.jpg",
+    "/landing3.png",
   ];
 
   useEffect(function autoAdvanceCarousel() {
@@ -60,18 +59,15 @@ export function HeroSection() {
                 <span className="text-amber-600">|</span>
                 <span>배송비 ₩3,000</span>
               </div>
-              <a
-                href="#preview-section"
-                onClick={handleAnchorClick}
-                className="inline-block"
+              <Button 
+                size="lg"
+                className="px-8 py-6 text-lg font-medium bg-amber-900 hover:bg-amber-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+                asChild
               >
-                <Button 
-                  size="lg"
-                  className="px-8 py-6 text-lg font-medium bg-amber-900 hover:bg-amber-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
-                >
-                  지금 만들어보기
-                </Button>
-              </a>
+                <Link to="/login">
+                  지금 시작하기
+                </Link>
+              </Button>
             </div>
           </div>
           

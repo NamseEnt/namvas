@@ -24,16 +24,22 @@ async function generateCodeChallenge(codeVerifier: string): Promise<string> {
     .replace(/=/g, "");
 }
 
+export const getMeQueryOptions = {
+  queryKey: ["auth"],
+  queryFn: async () => {
+    console.log("call getMe");
+    const result = await api.getMe({});
+    console.log("result", result);
+    return result;
+  },
+  retry: false,
+};
+
 export function useAuth() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const userQuery = useQuery({
-    queryKey: ["auth"],
-    queryFn: api.getMe,
-    retry: false,
-    staleTime: Infinity,
-  });
+  const meQuery = useQuery(getMeQueryOptions);
 
   const logoutMutation = useMutation({
     mutationFn: api.logout,
@@ -43,16 +49,6 @@ export function useAuth() {
     },
     onError: (error) => {
       console.error("Logout failed:", error);
-    },
-  });
-
-  const devLoginMutation = useMutation({
-    mutationFn: api.loginDev,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["auth"] });
-    },
-    onError: (error) => {
-      console.error("Dev login failed:", error);
     },
   });
 
@@ -108,9 +104,9 @@ export function useAuth() {
 
   return {
     // 사용자 정보
-    data: userQuery.data,
-    isLoading: userQuery.isLoading,
-    error: userQuery.error,
+    data: meQuery.data,
+    isLoading: meQuery.isLoading,
+    error: meQuery.error,
 
     // 로그아웃
     logout: logoutMutation.mutate,
@@ -121,13 +117,8 @@ export function useAuth() {
     loginWithGoogle: initiateGoogleLogin,
     loginWithX: initiateXLogin,
 
-    // 개발 로그인
-    loginDev: devLoginMutation.mutate,
-    isDevLogging: devLoginMutation.isPending,
-    devLoginError: devLoginMutation.error,
-
     // 유틸리티
-    isAuthenticated: !!userQuery.data,
-    refetchUser: userQuery.refetch,
+    isAuthenticated: !meQuery.isLoading && !!meQuery.data?.ok,
+    refetchUser: meQuery.refetch,
   };
 }

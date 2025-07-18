@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { api } from "@/lib/api";
-import type { Artwork } from "../../../shared/types";
+import type { Artwork } from "@shared/types";
 
 export function useArtworks() {
   const [artworks, setArtworks] = useState<Artwork[]>([]);

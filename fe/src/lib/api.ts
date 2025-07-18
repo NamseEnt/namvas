@@ -1,4 +1,4 @@
-import type { ApiSpec } from "../../../shared/apiSpec";
+import type { ApiSpec } from "@shared/apiSpec";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 

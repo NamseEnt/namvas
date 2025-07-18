@@ -1,4 +1,4 @@
-import type { SideMode } from "../../../../../shared/types";
+import type { SideMode } from "@shared/types";
 import { type UVBounds } from "./types";
 import { calculateUvBounds } from "./utils/uvCalculations";
 

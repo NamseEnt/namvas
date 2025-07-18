@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/auth/callback")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -14,68 +14,50 @@ export const Route = createFileRoute("/auth/callback")({
 function AuthCallback() {
   const navigate = useNavigate();
   const { code, error } = Route.useSearch();
-
-  const twitterLoginMutation = useMutation({
-    mutationFn: ({
-      code,
-      codeVerifier,
-    }: {
-      code: string;
-      codeVerifier: string;
-    }) => api.loginWithTwitter({ authorizationCode: code, codeVerifier }),
-    onSuccess: () => {
-      sessionStorage.removeItem("twitter_code_verifier");
-      navigate({ to: "/" });
-    },
-    onError: (error) => {
-      console.error("Twitter login failed:", error);
-      navigate({ to: "/" });
-    },
-  });
-
-  const googleLoginMutation = useMutation({
-    mutationFn: (code: string) =>
-      api.loginWithGoogle({ authorizationCode: code }),
-    onSuccess: () => {
-      navigate({ to: "/" });
-    },
-    onError: (error) => {
-      console.error("Google login failed:", error);
-      navigate({ to: "/" });
-    },
-  });
+  const queryClient = useQueryClient();
 
   useEffect(
     function handleOAuthCallback() {
-      // Prevent multiple executions
-      if (googleLoginMutation.isPending || twitterLoginMutation.isPending) {
-        return;
+      async function processAuth() {
+        if (error) {
+          throw new Error(error);
+        }
+
+        if (!code) {
+          throw new Error("No authorization code received");
+        }
+
+        const codeVerifier = sessionStorage.getItem("twitter_code_verifier");
+
+        let response;
+        if (codeVerifier) {
+          response = await api.loginWithTwitter({
+            authorizationCode: code,
+            codeVerifier,
+          });
+          sessionStorage.removeItem("twitter_code_verifier");
+        } else {
+          response = await api.loginWithGoogle({ authorizationCode: code });
+        }
+
+        if (!response.ok) {
+          throw new Error(response.reason);
+        }
+
+        console.log("response", response);
+
+        queryClient.invalidateQueries({ queryKey: ["auth"] });
+        console.log("invalidateQueries auth");
+
+        return navigate({ to: "/", replace: true });
       }
 
-      // code와 error는 이미 Route.useSearch()에서 가져옴
-
-      if (error) {
-        console.error("OAuth error:", error);
-        navigate({ to: "/" });
-        return;
-      }
-
-      if (!code) {
-        console.error("No authorization code received");
-        navigate({ to: "/" });
-        return;
-      }
-
-      // Check if this is a Twitter OAuth callback
-      const codeVerifier = sessionStorage.getItem("twitter_code_verifier");
-      if (codeVerifier) {
-        twitterLoginMutation.mutate({ code, codeVerifier });
-      } else {
-        // Handle Google OAuth callback
-        googleLoginMutation.mutate(code);
-      }
+      processAuth().catch((error) => {
+        alert(`로그인에 실패했습니다.\n시스템 오류: ${error}`);
+        navigate({ to: "/login", replace: true });
+      });
     },
-    [code, error, googleLoginMutation, navigate, twitterLoginMutation] // Dependencies
+    [code, error, queryClient, navigate]
   );
 
   return (

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { Order } from "../../../shared/types";
+import type { Order } from "@shared/types";
 
 type CreateOrderData = {
   orderItems: Array<{

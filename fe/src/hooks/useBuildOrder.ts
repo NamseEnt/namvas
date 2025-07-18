@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@/lib/api";
 import { PRICES } from "@/constants";
-import type { Artwork } from "../../../shared/types";
+import type { Artwork } from "@shared/types";
 
 type OrderItem = {
   artwork: Artwork;

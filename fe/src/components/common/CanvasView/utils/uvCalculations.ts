@@ -1,5 +1,5 @@
 // UV calculation utilities for CanvasView
-import { SideMode } from "../../../../../../shared/types";
+import { SideMode } from "@shared/types";
 import { canvasProductSizeM } from "../constants";
 import { type UVBounds } from "../types";
 

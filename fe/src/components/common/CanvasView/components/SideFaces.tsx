@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { SideMode } from "../../../../../../shared/types";
+import { SideMode } from "@shared/types";
 import { ClipSideFaces } from "./ClipSideFaces";
 import { PreserveSideFaces } from "./PreserveSideFaces";
 import { FlipSideFaces } from "./FlipSideFaces";

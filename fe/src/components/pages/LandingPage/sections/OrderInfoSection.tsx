@@ -1,6 +1,6 @@
 import { InfoCard } from "../components/InfoCard";
 import { Button } from "@/components/ui/button";
-import { useSmoothScroll } from "../hooks/useSmoothScroll";
+import { Link } from "@tanstack/react-router";
 
 const infoCards = [
   {
@@ -27,8 +27,6 @@ const infoCards = [
 ];
 
 export function OrderInfoSection() {
-  const { handleAnchorClick } = useSmoothScroll();
-  
   return (
     <section id="order-info" className="py-20 lg:py-32 bg-white">
       <div className="container mx-auto px-4 lg:px-6">
@@ -48,18 +46,15 @@ export function OrderInfoSection() {
         </div>
         
         <div className="text-center">
-          <a
-            href="#preview-section"
-            onClick={handleAnchorClick}
-            className="inline-block"
+          <Button 
+            size="lg"
+            className="px-8 py-6 text-lg font-medium bg-amber-900 hover:bg-amber-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+            asChild
           >
-            <Button 
-              size="lg"
-              className="px-8 py-6 text-lg font-medium bg-amber-900 hover:bg-amber-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
-            >
+            <Link to="/login">
               지금 시작하기
-            </Button>
-          </a>
+            </Link>
+          </Button>
         </div>
       </div>
     </section>

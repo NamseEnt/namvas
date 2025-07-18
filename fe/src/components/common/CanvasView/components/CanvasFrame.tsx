@@ -2,7 +2,7 @@ import { useRef, useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { canvasProductSizeM } from "../constants";
 import { SideFaces } from "./SideFaces";
-import type { SideMode } from "../../../../../../shared/types";
+import type { SideMode } from "@shared/types";
 import { useUvBounds } from "../hooks/useUvBounds";
 
 export function CanvasFrame({

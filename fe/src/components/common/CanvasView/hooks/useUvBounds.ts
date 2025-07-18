@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import * as THREE from "three";
-import { SideMode } from "../../../../../../shared/types";
+import { SideMode } from "@shared/types";
 import { getUvBounds } from "../getUvBounds";
 
 export function useUvBounds({

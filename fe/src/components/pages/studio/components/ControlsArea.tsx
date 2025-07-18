@@ -7,7 +7,7 @@ import { CAMERA_PRESETS } from "../types";
 import { useContext } from "react";
 import { StudioContext } from "../StudioContext";
 import { useNavigate } from "@tanstack/react-router";
-import { SideMode } from "../../../../../../shared/types";
+import { SideMode } from "@shared/types";
 
 export function ControlsArea() {
   const {
