@@ -18,11 +18,7 @@ export default defineConfig({
   },
   server: {
     host: true, // Listen on all network interfaces
-    allowedHosts: [
-      "localhost",
-      "namse.chickenkiller.com",
-      ".chickenkiller.com", // Allow all subdomains
-    ],
+    allowedHosts: ["localhost", "namse.chickenkiller.com"],
     proxy: {
       "/api": {
         target: "http://localhost:3003",
