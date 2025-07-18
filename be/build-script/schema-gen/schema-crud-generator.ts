@@ -451,7 +451,8 @@ function generateGetFunction(
       Key: {
         $p: \`${docName}/${keyString}\`,
         $s: '_'
-      }
+      },
+      ConsistentRead: true
     });
     
     if (!result.Item) {
@@ -581,7 +582,8 @@ function generateDeleteFunction(
       Key: {
         $p: \`${docName}/${keyString}\`,
         $s: '_'
-      }
+      },
+      ConsistentRead: true
     });
     
     if (itemToDelete.Item) {
@@ -660,7 +662,8 @@ function generateQueryFunction(
         ':pk': \`${indexName}/${ownerKeyPattern}\`
       },
       ExclusiveStartKey: nextToken ? decryptPaginationToken(nextToken) : undefined,
-      Limit: limit
+      Limit: limit,
+      ConsistentRead: true
     });
     
     const items = (result.Items || []).map(item => {
@@ -1078,7 +1081,8 @@ ${deleteCases}
         // Convert to a get operation to check if condition would pass
         await client.get({
           TableName: item.ConditionCheck.TableName,
-          Key: item.ConditionCheck.Key
+          Key: item.ConditionCheck.Key,
+          ConsistentRead: true
         });
       }
     } else {
@@ -1620,7 +1624,8 @@ function generateListGetFunction(
       Key: {
         $p: '${listName}',
         $s: \`${skField.name}=\${${skField.name}}\`
-      }
+      },
+      ConsistentRead: true
     });
     
     if (!result.Item) {
@@ -1691,7 +1696,8 @@ function generateListQueryFunction(docName: string, typeName: string): string {
         ':pk': '${listName}'
       },
       ExclusiveStartKey: nextToken ? decryptPaginationToken(nextToken) : undefined,
-      Limit: limit
+      Limit: limit,
+      ConsistentRead: true
     });
     
     const items = (result.Items || []).map(item => {
