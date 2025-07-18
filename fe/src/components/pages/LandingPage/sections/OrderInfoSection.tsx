@@ -1,4 +1,6 @@
 import { InfoCard } from "../components/InfoCard";
+import { Button } from "@/components/ui/button";
+import { useSmoothScroll } from "../hooks/useSmoothScroll";
 
 const infoCards = [
   {
@@ -6,10 +8,9 @@ const infoCards = [
     title: "이미지 준비하기",
     description: "아래 사항을 확인해주세요:",
     items: [
-      "권장 해상도: 1200x1800 픽셀 이상",
-      "파일 형식: TIFF, JPG, PNG 모두 가능해요",
-      "색상 작업: CMYK로 작업하시면 더 정확해요",
-      "RGB 파일도 괜찮지만 약간의 색 차이가 있을 수 있어요",
+      "권장 해상도: 1200x1800 픽셀 이상 (300 dpi)",
+      "파일 형식: PSD, JPG, PNG",
+      "색상 공간: CMYK 권장. RGB의 경우 인쇄 색감이 다를 수 있습니다",
     ],
   },
   {
@@ -17,28 +18,19 @@ const infoCards = [
     title: "제작 과정",
     description: "이렇게 진행돼요:",
     items: [
-      "이미지를 보내주시면 3D로 미리보기를 만들어드려요",
-      "확인하신 후 제작을 시작합니다",
-      "직접 수제로 제작하기 때문에 주문량에 따라 시간이 조금 더 걸릴 수 있어요",
-      "행사가 있으시다면 한 달 전쯤 주문하시는 걸 추천드려요!",
-    ],
-  },
-  {
-    emoji: "💌",
-    title: "함께 만들어가요",
-    description: "namvas는 창작자님들과 함께 성장하고 싶어요:",
-    items: [
-      "3D 미리보기로 실물과 거의 같게 확인 가능해요",
-      "대량 주문도 환영합니다 (제작 기간은 상의해요)",
-      "궁금한 점은 언제든 편하게 물어봐주세요",
-      "여러분의 부스에서 빛날 특별한 굿즈가 되길 바라요",
+      "이미지를 업로드하면 3D로 미리볼 수 있습니다",
+      "옆면을 자르기/살리기/뒤집기 로 원하는대로 설정할 수 있습니다",
+      "직접 수제로 제작하기 때문에 주문량에 따라 시간이 조금 더 걸릴 수 있습니다",
+      "목표하시는 행사의 한 달 전쯤 주문하시는 걸 추천드립니다!",
     ],
   },
 ];
 
 export function OrderInfoSection() {
+  const { handleAnchorClick } = useSmoothScroll();
+  
   return (
-    <section id="order-info" className="py-20 lg:py-32 bg-[#faf8f5]">
+    <section id="order-info" className="py-20 lg:py-32 bg-white">
       <div className="container mx-auto px-4 lg:px-6">
         <h2 className="text-3xl lg:text-4xl font-serif font-bold text-center text-amber-950 mb-8">
           주문하시는 방법
@@ -49,10 +41,25 @@ export function OrderInfoSection() {
           코믹월드, 일러스타페스 등 행사를 준비하시는 창작자님들을 위한 특별한 굿즈입니다
         </p>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl mx-auto mb-12">
           {infoCards.map((card, index) => (
             <InfoCard key={index} {...card} />
           ))}
+        </div>
+        
+        <div className="text-center">
+          <a
+            href="#preview-section"
+            onClick={handleAnchorClick}
+            className="inline-block"
+          >
+            <Button 
+              size="lg"
+              className="px-8 py-6 text-lg font-medium bg-amber-900 hover:bg-amber-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+            >
+              지금 시작하기
+            </Button>
+          </a>
         </div>
       </div>
     </section>

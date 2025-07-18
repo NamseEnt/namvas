@@ -16,7 +16,7 @@ export function InfoCard({
   return (
     <div 
       ref={ref}
-      className="bg-white p-8 lg:p-10 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+      className="bg-[#faf8f5] p-8 lg:p-10 rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300">
       <h3 className="text-xl font-bold text-amber-900 mb-6 flex items-center gap-2">
         <span className="text-2xl">{emoji}</span>
         {title}
