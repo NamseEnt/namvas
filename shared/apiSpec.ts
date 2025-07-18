@@ -220,19 +220,6 @@ export type ApiSpec = {
           reason: "NOT_LOGGED_IN";
         };
   };
-  loginDev: {
-    req: {
-      identifier: string;
-    };
-    res:
-      | {
-          ok: true;
-        }
-      | {
-          ok: false;
-          reason: "NOT_DEVELOPMENT_ENV";
-        };
-  };
   getPsdToJpgConvertPutUrl: {
     req: {
       contentLength: number;
