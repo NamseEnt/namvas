@@ -37,3 +37,6 @@ tmp/
 
 # Generated files
 src/__generated/
+
+# LLRT binary
+llrt

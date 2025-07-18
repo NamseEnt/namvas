@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build:lambda": "bun build-script/lambda.ts",
-    "test": "bun build-script/test.ts && dotenv -e .env.test -- ../llrt test -d dist",
+    "test": "bun download-llrt.ts && bun build-script/test.ts && dotenv -e .env.test -- ./llrt test -d dist",
     "test:bun": "echo '❌ bun test 사용 금지 - bun run test를 사용하세요 (LLRT 환경 필요)' && exit 1",
     "schema-gen": "bun -e \"import { generateSchema } from './build-script/generate-schema.ts'; generateSchema('src/schema.ts', 'src/__generated/db.ts');\""
   },
@@ -12,8 +12,7 @@
     "@aws-sdk/client-s3": "^3.839.0",
     "@aws-sdk/client-sqs": "^3.840.0",
     "@aws-sdk/lib-dynamodb": "^3.839.0",
-    "@aws-sdk/s3-request-presigner": "^3.839.0",
-    "shared": "file:../shared"
+    "@aws-sdk/s3-request-presigner": "^3.839.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.0",
